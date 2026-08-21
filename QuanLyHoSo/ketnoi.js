@@ -19,7 +19,7 @@ const KETNOI = {
     
     // 4. Tài nguyên hình ảnh đại diện (Logo & Giao diện)
     LINK_LOGO: "https://i.ibb.co/8Df1xXsN/Logo-nguyen-du.png",
-    LINK_HINH_NEN: "https://bigpicturesb.org/wp-content/uploads/2024/10/anh-nen-win-10-51-scaled.jpeg",
+    LINK_HINH_NEN: "https://www.wallpaperalchemy.com/storage/wallpapers/2256/windows-10-colorful-3d-logo-wallpaper-card.jpg",
     LINK_AVATAR_NAM: "https://lh3.googleusercontent.com/d/13OnSd7t73KO7GP6NB7FjkdpsO6vfH-dp",
     LINK_AVATAR_NU: "https://lh3.googleusercontent.com/d/1zW6N_UQKGYl_uCOb9jMfvZCHkLVJKNVU"
    
