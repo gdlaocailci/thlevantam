@@ -4,30 +4,41 @@
     <script src="ketnoi.js"></script>
     <link id="sys-favicon" rel="icon" href="">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- CẬP NHẬT: GIỮ LẠI LỆNH KHÓA ZOOM ĐỂ TRÁNH LỆCH KHUNG HÌNH TRÊN ĐIỆN THOẠI -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2c3e50">
+    
     <meta name="author" content="Phát triển Hoàng Ngọc Lâm">
-   <title id="sys-title">Hồ sơ</title>
+    <title id="sys-title">Hồ sơ</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://apis.google.com/js/api.js"></script> 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
-        let __matchId = KETNOI.WEB_APP_URL.match(/\/s\/([a-zA-Z0-9_-]+)/);
+        let __matchId = (typeof KETNOI !== 'undefined' && KETNOI.WEB_APP_URL) ? KETNOI.WEB_APP_URL.match(/\/s\/([a-zA-Z0-9_-]+)/) : null;
         const PREFIX_MEM = __matchId ? "ht_" + __matchId[1].substring(0, 10) + "_" : "ht_sys_";
 
         document.addEventListener("DOMContentLoaded", function() {
-            document.getElementById('sys-title').innerText = KETNOI.TIEU_DE_TRANG;
-            document.getElementById('sys-favicon').href = KETNOI.LINK_LOGO;
-            document.getElementById('sys-logo').src = KETNOI.LINK_LOGO;
-            if (KETNOI.LINK_YOUTUBE) {
-                document.getElementById('btn-huong-dan').href = KETNOI.LINK_YOUTUBE;
+            if (typeof KETNOI !== 'undefined') {
+                if (KETNOI.TIEU_DE_TRANG) document.getElementById('sys-title').innerText = KETNOI.TIEU_DE_TRANG;
+                if (KETNOI.LINK_LOGO) {
+                    document.getElementById('sys-favicon').href = KETNOI.LINK_LOGO;
+                    document.getElementById('sys-logo').src = KETNOI.LINK_LOGO;
+                }
+                if (KETNOI.LINK_YOUTUBE) {
+                    document.getElementById('btn-huong-dan').href = KETNOI.LINK_YOUTUBE;
+                }
             }
         });
+        
         (function() {
             var savedBgUrl = localStorage.getItem(PREFIX_MEM + "bg");
+            var defaultBgUrl = (typeof KETNOI !== 'undefined' && KETNOI.LINK_HINH_NEN) ? KETNOI.LINK_HINH_NEN : "";
+            
             if (savedBgUrl && savedBgUrl.trim() !== "") {
-                document.documentElement.style.setProperty('--default-bg', "url('" + savedBgUrl + "')");
-            } else {
-                document.documentElement.style.setProperty('--default-bg', "url('" + KETNOI.LINK_HINH_NEN + "')");
+                document.documentElement.style.setProperty('--default-bg', "url('" + savedBgUrl.trim() + "')");
+            } else if (defaultBgUrl.trim() !== "") {
+                document.documentElement.style.setProperty('--default-bg', "url('" + defaultBgUrl.trim() + "')");
             }
         })();
     </script>
@@ -62,6 +73,10 @@
             0%, 100% { filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)); }
             50% { filter: drop-shadow(0 0 12px rgba(255,255,255,0.8)); }
         }
+
+        /* KHỐI GIAO DIỆN CỜ THÔNG BÁO VĂN BẢN MỚI */
+        .menu-badge { position: absolute; top: -5px; right: -10px; background: #ef4444; color: white; border-radius: 50%; padding: 2px 7px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3); animation: pulseBadge 2s infinite; z-index: 20; pointer-events: none; }
+        @keyframes pulseBadge { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         .desktop-icon { 
             position: absolute; 
@@ -176,8 +191,11 @@
         .form-native { padding: 20px; user-select: text; }
         .form-native .form-group { margin-bottom: 15px; }
         .form-native label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #333; }
-        .form-native input, .form-native select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; box-sizing: border-box; font-family: inherit; outline: none; transition: border-color 0.2s;}
-        .form-native input:focus, .form-native select:focus { border-color: #1976D2; }
+        
+        .form-native input:not([type="checkbox"]):not([type="radio"]), .form-native select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; box-sizing: border-box; font-family: inherit; outline: none; transition: border-color 0.2s;}
+        .form-native input:not([type="checkbox"]):not([type="radio"]):focus, .form-native select:focus { border-color: #1976D2; }
+        .form-native input[type="checkbox"], .form-native input[type="radio"] { width: auto; margin: 0 10px 0 0; padding: 0; cursor: pointer; flex-shrink: 0; }
+        
         .form-native .input-group { display: flex; gap: 8px; }
         .form-native .btn-picker { display: flex; align-items: center; gap: 4px; background: #F57C00; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap; font-size: 12px; transition: background 0.2s;}
         .form-native .btn-picker:hover { background: #EF6C00; }
@@ -221,6 +239,34 @@
         .nut-huong-dan .kytu-hoi { font-size: 32px; font-weight: 900; font-family: 'Arial Black', Arial, sans-serif; line-height: 1; padding-top: 2px; }
         .nut-huong-dan span { position: absolute; top: 52px; font-size: 11px; font-weight: bold; color: #198754; white-space: nowrap; background: rgba(255,255,255,0.95); padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); pointer-events: none; }
         .nut-huong-dan:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.25); color: white; }
+
+        /* TỐI ƯU HÓA HIỂN THỊ TRÊN THIẾT BỊ DI ĐỘNG */
+        @media (max-width: 768px) {
+            .desktop-icon { width: 75px; min-height: 85px; padding: 4px; }
+            .icon-box { width: 42px; height: 42px; margin-bottom: 4px; }
+            .icon-box .material-icons { font-size: 26px; }
+            .icon-text { font-size: 11px; }
+            #window-gan-hoso .window-container, 
+            #window-sua-hoso .window-container, 
+            #window-tao-thumuc .window-container, 
+            #window-xoa-hoso .window-container, 
+            #window-alert .window-container { width: 95vw !important; max-width: 400px; }
+            .start-text { display: none !important; }
+            .btn-taskbar { font-size: 0; padding: 6px; }
+            .btn-taskbar .material-icons { font-size: 20px; }
+            .clock-container { font-size: 10px; padding-left: 5px; margin-left: 5px; }
+            .nut-huong-dan { bottom: 65px; width: 35px; height: 35px; }
+            .nut-huong-dan .kytu-hoi { font-size: 24px; }
+            .nut-huong-dan span { display: none; }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .desktop-icon:hover { 
+                background: transparent; border: 1px solid transparent; backdrop-filter: none; box-shadow: none;
+            }
+            .desktop-icon:hover .icon-box::after { left: -100%; }
+            .desktop-icon:hover .icon-box { transform: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); filter: none; }
+        }
     </style>
 </head>
 <body>
@@ -289,8 +335,8 @@
                     <label>Tệp hồ sơ trên Drive (Cột B): <span style="color: red;">*</span></label>
                     <input type="text" id="hs-td2" placeholder="Dán link hoặc chọn từ hệ thống..." style="margin-bottom: 8px;">
                     <div class="input-group">
-                        <button class="btn-picker" onclick="khoiTaoGooglePicker()" title="Dùng tài khoản hiện tại"><span class="material-icons" style="font-size: 16px;">folder_shared</span> Kho hiện tại</button>
-                        <button class="btn-picker" style="background: #546E7A; color: white;" onclick="moDriveTaiKhoanKhac()"><span class="material-icons" style="font-size: 16px;">switch_account</span> Kho khác</button>
+                       
+                        <button class="btn-picker" style="background: #546E7A; color: white;" onclick="moDriveTaiKhoanKhac()"><span class="material-icons" style="font-size: 16px;">switch_account</span>Mở nơi lưu hồ sơ</button>
                     </div>
                 </div>
                 <div class="form-group">
@@ -319,6 +365,7 @@
                             <option value="csvc">Cơ sở vật chất (Kho chứa)</option>
                             <option value="thuvien">Thư viện & Đọc sách (Cuốn sách)</option>
                             <option value="doandoi">Đoàn Đội & Thanh niên (Lá cờ)</option>
+                            <option value="ghi_chep">Sổ Công tác & Hội họp (Cuốn sổ mở)</option>
                         </optgroup>
                         <optgroup label="Công nghệ & Kỹ thuật">
                             <option value="caidat">Cài đặt & Hệ thống (Bánh răng)</option>
@@ -364,6 +411,7 @@
                         <optgroup label="Giới tính & Cá nhân">
                             <option value="nam">Giới tính Nam (Cán bộ - Ảnh trực tiếp)</option>
                             <option value="nu">Giới tính Nữ (Giáo viên - Ảnh trực tiếp)</option>
+                            <option value="thuky">Nữ Thư ký (Nhân viên - Ảnh trực tiếp)</option>
                         </optgroup>
                         <optgroup label="Khác">
                             <option value="danso">Dân số & Xã hội (Gia định)</option>
@@ -385,6 +433,15 @@
                         <option value="glow">Tỏa sáng (Glow)</option>
                     </select>
                 </div>
+                
+                <div class="form-group">
+                    <label>Cơ chế mở Ứng dụng/Link:</label>
+                    <select id="hs-cachmo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="_blank">Mở trong Thẻ mới (New Tab)</option>
+                        <option value="_self">Mở đè ở Thẻ hiện tại (Current Tab)</option>
+                    </select>
+                </div>
+                
                 <div class="form-group">
                     <label>Vị trí hiển thị lưu trữ:</label>
                     <select id="hs-vitri">
@@ -440,6 +497,7 @@
                             <option value="csvc">Cơ sở vật chất (Kho chứa)</option>
                             <option value="thuvien">Thư viện & Đọc sách (Cuốn sách)</option>
                             <option value="doandoi">Đoàn Đội & Thanh niên (Lá cờ)</option>
+                            <option value="ghi_chep">Sổ Công tác & Hội họp (Cuốn sổ mở)</option>
                         </optgroup>
                         <optgroup label="Công nghệ & Kỹ thuật">
                             <option value="caidat">Cài đặt & Hệ thống (Bánh răng)</option>
@@ -485,6 +543,7 @@
                         <optgroup label="Giới tính & Cá nhân">
                             <option value="nam">Giới tính Nam (Cán bộ - Ảnh trực tiếp)</option>
                             <option value="nu">Giới tính Nữ (Giáo viên - Ảnh trực tiếp)</option>
+                            <option value="thuky">Nữ Thư ký (Nhân viên - Ảnh trực tiếp)</option>
                         </optgroup>
                         <optgroup label="Khác">
                             <option value="danso">Dân số & Xã hội (Gia đình)</option>
@@ -572,6 +631,7 @@
                             <option value="csvc">Cơ sở vật chất (Kho chứa)</option>
                             <option value="thuvien">Thư viện & Đọc sách (Cuốn sách)</option>
                             <option value="doandoi">Đoàn Đội & Thanh niên (Lá cờ)</option>
+                            <option value="ghi_chep">Sổ Công tác & Hội họp (Cuốn sổ mở)</option>
                         </optgroup>
                         <optgroup label="Công nghệ & Kỹ thuật">
                             <option value="caidat">Cài đặt & Hệ thống (Bánh răng)</option>
@@ -617,6 +677,7 @@
                         <optgroup label="Giới tính & Cá nhân">
                             <option value="nam">Giới tính Nam (Cán bộ - Ảnh trực tiếp)</option>
                             <option value="nu">Giới tính Nữ (Giáo viên - Ảnh trực tiếp)</option>
+                            <option value="thuky">Nữ Thư ký (Nhân viên - Ảnh trực tiếp)</option>
                         </optgroup>
                         <optgroup label="Khác">
                             <option value="danso">Dân số & Xã hội (Gia đình)</option>
@@ -638,6 +699,15 @@
                         <option value="glow">Tỏa sáng (Glow)</option>
                     </select>
                 </div>
+                
+                <div class="form-group">
+                    <label>Cơ chế mở Ứng dụng/Link:</label>
+                    <select id="edit-cachmo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="_blank">Mở trong Thẻ mới (New Tab)</option>
+                        <option value="_self">Mở đè ở Thẻ hiện tại (Current Tab)</option>
+                    </select>
+                </div>
+                
                 <div class="form-group">
                     <label>Thay đổi vị trí lưu trữ:</label>
                     <select id="edit-vitri">
@@ -650,6 +720,7 @@
         </div>
     </div>
 
+    <!-- KHỐI QUẢN LÝ DỰ ÁN ĐA NHIỆM (ĐÃ THU GỌN VÀ CHỈNH SỬA) -->
     <div id="window-xoa-hoso" class="window-overlay">
         <div class="window-container">
             <div class="window-titlebar">
@@ -657,24 +728,29 @@
                 <button class="window-close" onclick="toggleXoaHoSoModal(false)">✕</button>
             </div>
             <div class="form-native">
-                <div class="form-group">
-                    <label>Lựa chọn dự án cần thao tác:</label>
-                    <select id="del-hoso-select" onchange="hienThiTrangThaiDuAn()" style="cursor: pointer; width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                        <option value="">-- Đang tải danh sách --</option>
-                    </select>
-                    <div id="hoso-current-status" style="margin-top: 12px; font-size: 14px; font-weight: 600; text-align: center; background: #f5f5f5; padding: 8px; border-radius: 4px; border: 1px dashed #ccc;">
-                        Vui lòng chọn một dự án
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="margin-bottom: 0;">Lựa chọn dự án thao tác:</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-picker" style="background: #546E7A; color: white;" onclick="chonTatCaQuanLy(true)">Chọn tất cả</button>
+                            <button class="btn-picker" style="background: #9e9e9e; color: white;" onclick="chonTatCaQuanLy(false)">Bỏ chọn</button>
+                        </div>
+                    </div>
+                    <div id="del-danhsach-hoso" style="max-height: 250px; overflow-y: auto; background: #f9f9f9; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                        <!-- Nội dung sẽ được JavaScript tạo tự động -->
                     </div>
                 </div>
                 <div class="input-group" style="margin-top: 20px;">
-                    <button class="form-native btn-submit" style="background-color: #4CAF50; color: white; margin-top: 0;" onclick="xuLyDoiTrangThaiCongKhai()">Đảo Trạng Thái</button>
-                    <button class="form-native btn-submit" style="background-color: #d32f2f; color: white; margin-top: 0;" onclick="xuLyXoaHoSo()">Hủy Bỏ Dự Án</button>
+                    <button class="form-native btn-submit" style="background-color: #2e7d32; color: white; margin-top: 0; padding: 10px 5px;" onclick="xuLyDoiTrangThaiNhieu(true)">Mở Công Khai</button>
+                    <button class="form-native btn-submit" style="background-color: #F57C00; color: white; margin-top: 0; padding: 10px 5px;" onclick="xuLyDoiTrangThaiNhieu(false)">Khóa Lại</button>
+                    <button class="form-native btn-submit" style="background-color: #d32f2f; color: white; margin-top: 0; padding: 10px 5px;" onclick="xuLyXoaHoSoNhieu()">Hủy Bỏ</button>
                 </div>
                 <div id="del-form-status" class="status-text">Đang đồng bộ cơ sở dữ liệu...</div>
             </div>
         </div>
     </div>
 
+    <!-- KHỐI MA TRẬN PHÂN QUYỀN (ĐÃ KIỂM TRA DOM) -->
     <div id="window-phanquyen" class="window-overlay">
         <div class="window-container">
             <div class="window-titlebar">
@@ -767,6 +843,42 @@
     let sysRoles = "";       
     let sysIconRoles = "";   
 
+function getUrlAndTarget(encodedTd2) {
+        let decodedStr = encodedTd2 || '';
+        try {
+            if (!decodedStr.toLowerCase().startsWith('http')) {
+                try {
+                    decodedStr = decodeURIComponent(escape(atob(encodedTd2)));
+                } catch(e) {
+                    decodedStr = atob(encodedTd2);
+                }
+            }
+        } catch(e) {
+            decodedStr = encodedTd2 || '';
+        }
+        
+        let parts = decodedStr.split('|||');
+        let finalUrl = parts[0] ? parts[0].trim() : '';
+        
+        if (finalUrl !== "" && !finalUrl.toLowerCase().startsWith('http://') && !finalUrl.toLowerCase().startsWith('https://') && finalUrl !== '#INTERNAL_FOLDER_CONTAINER#') {
+            finalUrl = 'https://' + finalUrl;
+        }
+        
+        return {
+            url: finalUrl,
+            target: parts.length > 1 ? parts[1] : '_blank'
+        };
+    }
+
+    function buildEncodedTd2(url, target) {
+        let raw = url + '|||' + target;
+        try {
+            return btoa(unescape(encodeURIComponent(raw)));
+        } catch(e) {
+            return btoa(raw); 
+        }
+    }
+
     window.onload = function() {
         google.accounts.id.initialize({ client_id: KETNOI.CLIENT_ID, callback: xuLyDangNhapThanhCong });
         tokenClient = google.accounts.oauth2.initTokenClient({
@@ -808,7 +920,6 @@
                             <p style="color: #ffcdd2; font-size: 14px; max-width: 80%; line-height: 1.5;">${result.message}</p>
                         </div>`;
                     }
-                    console.error("Báo cáo hệ thống (Backend):", result.message);
                 }
             } catch (jsonError) {
                 if (!cachedIcons) {
@@ -818,7 +929,6 @@
                         <p style="color: #ffe0b2; font-size: 14px; max-width: 80%; line-height: 1.5;">Máy chủ Google chặn truy cập. Vui lòng rà soát lại thông số Deploy hoặc kiểm tra biến CONFIG.</p>
                     </div>`;
                 }
-                console.error("Cảnh báo từ máy chủ Google:", text);
             }
         }).catch(error => {
             if (!cachedIcons) {
@@ -831,7 +941,7 @@
         });
     }
 
-function kiemTraTrangThaiDangNhap() {
+    function kiemTraTrangThaiDangNhap() {
         let sysSession = localStorage.getItem(PREFIX_MEM + 'session');
         if (!sysSession) {
             isLoggedIn = false;
@@ -843,21 +953,24 @@ function kiemTraTrangThaiDangNhap() {
             document.getElementById('btn-google-login').style.display = 'none'; 
             document.getElementById('sys-name').style.display = 'block';
             
-            // Trích xuất bộ nhớ đệm cục bộ
             let cachedRoles = localStorage.getItem(PREFIX_MEM + 'sysRoles');
             let cachedIconRoles = localStorage.getItem(PREFIX_MEM + 'sysIconRoles');
             let cachedName = localStorage.getItem(PREFIX_MEM + 'sysName');
 
             if (cachedRoles !== null) {
-                // Kích hoạt ngay lập tức từ Cache
                 isLoggedIn = true;
                 document.getElementById('sys-name').innerText = cachedName || "Đã đăng nhập"; 
                 document.getElementById('btn-logout').style.display = 'flex';
                 sysRoles = cachedRoles;
                 sysIconRoles = cachedIconRoles || "";
                 apDungPhanQuyen(sysRoles);
+                
+                // [NÂNG CẤP] Đồng bộ ID để nhận diện LocalStorage liên thông với phân hệ
+                sessionStorage.setItem("SCV_ACTIVE_ID", cachedName || "Khách");
+                localStorage.setItem("SCV_ACTIVE_ID", cachedName || "Khách");
+                setTimeout(kiemTraCongVanMoi, 500);
+
             } else {
-                // Nếu chưa có Cache thì gọi máy chủ xác thực
                 document.getElementById('sys-name').innerText = "Đang xác thực...";
                 xacThucPhienDangNhap(sysSession);
             }
@@ -869,8 +982,7 @@ function kiemTraTrangThaiDangNhap() {
         kiemTraTrangThaiDangNhap(); 
     }
     
-   function dangXuat() { 
-        // Dọn dẹp toàn bộ phiên làm việc cục bộ
+    function dangXuat() { 
         localStorage.removeItem(PREFIX_MEM + 'session'); 
         localStorage.removeItem(PREFIX_MEM + 'sysRoles'); 
         localStorage.removeItem(PREFIX_MEM + 'sysIconRoles'); 
@@ -881,7 +993,7 @@ function kiemTraTrangThaiDangNhap() {
         location.reload(); 
     }
 
-function xacThucPhienDangNhap(sysSession) {
+    function xacThucPhienDangNhap(sysSession) {
         fetch(KETNOI.WEB_APP_URL, {
             method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action: 'initApp', khoaBaoMat: sysSession }) 
@@ -899,17 +1011,21 @@ function xacThucPhienDangNhap(sysSession) {
                     sysRoles = result.roles || "";
                     sysIconRoles = result.iconRoles || "";
                     
-                    // Ghi nhận Cache để tái sử dụng cho các lần tải sau
                     localStorage.setItem(PREFIX_MEM + 'sysRoles', sysRoles);
                     localStorage.setItem(PREFIX_MEM + 'sysIconRoles', sysIconRoles);
                     localStorage.setItem(PREFIX_MEM + 'sysName', accountName);
 
+                    // [NÂNG CẤP] Đồng bộ ID định danh cho các phân hệ
+                    sessionStorage.setItem("SCV_ACTIVE_ID", accountName);
+                    localStorage.setItem("SCV_ACTIVE_ID", accountName);
+
                     apDungPhanQuyen(sysRoles); 
+                    setTimeout(kiemTraCongVanMoi, 500);
+
                 } else { 
                     alert(result.message); dangXuat(); 
                 }
             } catch (jsonError) {
-                console.error("Cảnh báo máy chủ khi xác thực:", text);
                 alert("Quá trình xác thực gặp sự cố từ máy chủ Google. Vui lòng kiểm tra lại cấu hình phân quyền Web App.");
                 dangXuat();
             }
@@ -947,7 +1063,8 @@ function xacThucPhienDangNhap(sysSession) {
     function kiemTraLaThuMuc(item) {
         if (item.iconType === 'hoso_thumuc') return true; 
         try {
-            return item.td2 && atob(item.td2) === '#INTERNAL_FOLDER_CONTAINER#';
+            let parsed = getUrlAndTarget(item.td2);
+            return parsed.url === '#INTERNAL_FOLDER_CONTAINER#';
         } catch(e) { return false; }
     }
 
@@ -974,6 +1091,7 @@ function xacThucPhienDangNhap(sysSession) {
             case 'csvc': iconContent = '<span class="material-icons">inventory</span>'; bgClass = 'bg-6'; break;
             case 'thuvien': iconContent = '<span class="material-icons">local_library</span>'; bgClass = 'bg-4'; break;
             case 'doandoi': iconContent = '<span class="material-icons">flag</span>'; bgClass = 'bg-1'; break;
+            case 'ghi_chep': iconContent = '<span class="material-icons">menu_book</span>'; bgClass = 'bg-6'; break;
             case 'caidat': iconContent = '<span class="material-icons">settings</span>'; bgClass = 'bg-9'; break;
             case 'congnghe': iconContent = '<span class="material-icons">memory</span>'; bgClass = 'bg-9'; break;
             case 'cntt': iconContent = '<span class="material-icons">computer</span>'; bgClass = 'bg-9'; break;
@@ -1009,16 +1127,9 @@ function xacThucPhienDangNhap(sysSession) {
             case 'baohiem': iconContent = '<span class="material-icons">shield</span>'; bgClass = 'bg-10'; break;
             case 'thue': iconContent = '<span class="material-icons">request_quote</span>'; bgClass = 'bg-8'; break;
             case 'nangluong': iconContent = '<span class="material-icons">bolt</span>'; bgClass = 'bg-2'; break;
-            
-            case 'nam': 
-                iconContent = '<img src="' + KETNOI.LINK_AVATAR_NAM + '" class="custom-avatar" alt="Nam">'; 
-                bgClass = 'bg-avatar'; 
-                break;
-            case 'nu': 
-                iconContent = '<img src="' + KETNOI.LINK_AVATAR_NU + '" class="custom-avatar" alt="Nữ">'; 
-                bgClass = 'bg-avatar'; 
-                break;
-
+            case 'nam': iconContent = '<img src="' + KETNOI.LINK_AVATAR_NAM + '" class="custom-avatar" alt="Nam">'; bgClass = 'bg-avatar'; break;
+            case 'nu': iconContent = '<img src="' + KETNOI.LINK_AVATAR_NU + '" class="custom-avatar" alt="Nữ">'; bgClass = 'bg-avatar'; break;
+            case 'thuky': iconContent = '<img src="' + KETNOI.LINK_AVATAR_NU_THU_KY + '" class="custom-avatar" alt="Thư ký">'; bgClass = 'bg-avatar'; break;
             case 'danso': iconContent = '<span class="material-icons">family_restroom</span>'; bgClass = 'bg-5'; break;
             case 'tainguyen': iconContent = '<span class="material-icons">forest</span>'; bgClass = 'bg-3'; break;
             case 'phucvu': iconContent = '<span class="material-icons">room_service</span>'; bgClass = 'bg-7'; break;
@@ -1041,7 +1152,7 @@ function xacThucPhienDangNhap(sysSession) {
         }
     }
 
-function renderIconsFromData(data) {
+    function renderIconsFromData(data) {
         globalProfiles = data; 
         desktopArea.innerHTML = ''; 
         capNhatDropdownThuMuc();
@@ -1058,14 +1169,12 @@ function renderIconsFromData(data) {
             const div = document.createElement('div'); 
             div.className = `desktop-icon ${effectClass}`; 
             div.setAttribute('data-id', index + 1); 
-            
-            // BỔ SUNG KHÓA ĐỊNH DANH BẤT BIẾN THEO TÊN PHÂN HỆ
             div.setAttribute('data-title', item.td1.trim()); 
             div.setAttribute('data-desc', item.td1); 
 
             div.style.animationDelay = (index * 0.04) + 's';
 
-            let publicBadge = item.isPublic ? '<div style="position: absolute; top: -5px; right: -5px; background: #4CAF50; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2; pointer-events: none;" title="Tương tác công khai"><span class="material-icons" style="font-size: 12px; color: white;">lock_open</span></div>' : '';
+            let publicBadge = !item.isPublic ? '<div style="position: absolute; top: -5px; right: -5px; background: #d32f2f; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2; pointer-events: none;" title="Yêu cầu Đăng nhập"><span class="material-icons" style="font-size: 12px; color: white;">lock</span></div>' : '';
 
             div.innerHTML = `<div style="position:relative;">${publicBadge}<div class="icon-box ${bgClass}">${iconContent}</div></div><span class="icon-text">${item.td1}</span>`;
             
@@ -1079,15 +1188,11 @@ function renderIconsFromData(data) {
                     showAlertModal("Thầy/Cô vui lòng thực hiện <b>đăng nhập hệ thống</b> (Nút Đăng nhập ở góc dưới Taskbar) để có thể tương tác với cơ sở dữ liệu này!");
                     return;
                 }
-                var finalUrl = item.td2;
-                try {
-                    if (!finalUrl.startsWith('http')) { 
-                        finalUrl = atob(finalUrl); 
-                    }
-                } catch(e) {}
+                
+                let parsed = getUrlAndTarget(item.td2);
                 
                 if (item.isPublic || (sysRoles && sysRoles.includes('xx')) || (sysIconRoles && sysIconRoles.split('|').includes(item.td1.trim()))) {
-                    window.open(finalUrl, '_blank');
+                    window.open(parsed.url, parsed.target);
                 } else {
                     showAlertModal("Tài khoản của Thầy/Cô chưa được cấp quyền tương tác dữ liệu <b>[" + item.td1 + "]</b>.<br>👉 Vui lòng liên hệ Ban Quản trị để được xét duyệt!");
                 }
@@ -1100,6 +1205,9 @@ function renderIconsFromData(data) {
         setupTooltipEvents(); 
         setupDragEvents();
         initializeLayout(); 
+
+        // [NÂNG CẤP] Kích hoạt kiểm tra Công văn mới sau khi render xong
+        if (isLoggedIn) { setTimeout(kiemTraCongVanMoi, 500); }
     }
 
     function dongCuaSoThuMuc() {
@@ -1129,7 +1237,7 @@ function renderIconsFromData(data) {
                 let iconContent = cfg.iconContent;
                 let bgClass = cfg.bgClass;
                 
-                let publicBadge = item.isPublic ? '<div style="position: absolute; top: -5px; right: -5px; background: #4CAF50; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2; pointer-events: none;" title="Tương tác công khai"><span class="material-icons" style="font-size: 12px; color: white;">lock_open</span></div>' : '';
+                let publicBadge = !item.isPublic ? '<div style="position: absolute; top: -5px; right: -5px; background: #d32f2f; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 2; pointer-events: none;" title="Yêu cầu Đăng nhập"><span class="material-icons" style="font-size: 12px; color: white;">lock</span></div>' : '';
                 
                 let moveOutBtn = "";
                 if (sysRoles && (sysRoles.includes('xx') || sysRoles.includes('xoahoso') || sysRoles.includes('taohoso') || sysRoles.includes('ganhoso'))) {
@@ -1143,11 +1251,11 @@ function renderIconsFromData(data) {
                         showAlertModal("Thầy/Cô vui lòng thực hiện <b>đăng nhập hệ thống</b> để có thể tương tác với cơ sở dữ liệu này!");
                         return;
                     }
-                    var finalUrl = item.td2;
-                    try { if (!finalUrl.startsWith('http')) finalUrl = atob(finalUrl); } catch(e) {}
+                    
+                    let parsed = getUrlAndTarget(item.td2);
                     
                     if (item.isPublic || (sysRoles && sysRoles.includes('xx')) || (sysIconRoles && sysIconRoles.split('|').includes(item.td1.trim()))) {
-                        window.open(finalUrl, '_blank');
+                        window.open(parsed.url, parsed.target);
                     } else {
                         showAlertModal("Tài khoản của Thầy/Cô chưa được cấp quyền tương tác dữ liệu <b>[" + item.td1 + "]</b>.");
                     }
@@ -1158,13 +1266,12 @@ function renderIconsFromData(data) {
         document.getElementById('window-folder-view').style.display = 'flex';
     }
 
-    function xuLyDiChuyenHoSo(tenHoSo, viTriMoi) {
+function xuLyDiChuyenHoSo(tenHoSo, viTriMoi) {
         const item = globalProfiles.find(p => p.td1 === tenHoSo);
         if (!item) return;
 
-        let decodedUrl = item.td2;
-        try { if (!decodedUrl.startsWith('http')) decodedUrl = atob(decodedUrl); } catch(e) {}
-        let safeEncodedTd2 = btoa(decodedUrl);
+        let parsed = getUrlAndTarget(item.td2);
+        let safeEncodedTd2 = buildEncodedTd2(parsed.url, parsed.target);
 
         let loading = document.createElement('div');
         loading.className = 'loading-screen';
@@ -1174,7 +1281,17 @@ function renderIconsFromData(data) {
 
         fetch(KETNOI.WEB_APP_URL, {
             method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'editProfile', oldTd1: item.td1, td1: item.td1, td2: safeEncodedTd2, loaiIcon: item.iconType, vitri: viTriMoi, hieuung: item.hieuung || 'none', khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') })
+            body: JSON.stringify({ 
+                action: 'editProfile', 
+                oldTd1: item.td1, 
+                td1: item.td1, 
+                td2: safeEncodedTd2, 
+                loaiIcon: item.iconType, 
+                isPublic: item.isPublic ? 'public' : '', 
+                vitri: viTriMoi, 
+                hieuung: item.hieuung || 'none', 
+                khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') 
+            })
         })
         .then(r => r.text())
         .then(text => {
@@ -1209,7 +1326,7 @@ function renderIconsFromData(data) {
         if (selSua) selSua.innerHTML = optionsHtml;
     }
 
-    function toggleTaoThuMucModal(isShow) {
+function toggleTaoThuMucModal(isShow) {
         document.getElementById('window-tao-thumuc').style.display = isShow ? 'flex' : 'none';
         if (isShow) {
             const containerDanhSach = document.getElementById('tm-danhsach-hoso');
@@ -1218,7 +1335,10 @@ function renderIconsFromData(data) {
             globalProfiles.forEach(p => {
                 if ((!p.vitri || p.vitri === 'desktop') && !kiemTraLaThuMuc(p)) {
                     countHoso++;
-                    containerDanhSach.innerHTML += `<label class="checkbox-label" style="display:block; margin-bottom:5px;"><input type="checkbox" class="cb-chon-hoso" value="${p.td1}"> ${p.td1}</label>`;
+                    containerDanhSach.innerHTML += `<label class="checkbox-label" style="display: flex; align-items: flex-start; margin-bottom: 8px; cursor: pointer;">
+                        <input type="checkbox" class="cb-chon-hoso" value="${p.td1}" style="margin-top: 3px;"> 
+                        <span style="flex: 1; word-break: break-word; line-height: 1.4;">${p.td1}</span>
+                    </label>`;
                 }
             });
             if (countHoso === 0) {
@@ -1253,7 +1373,7 @@ function renderIconsFromData(data) {
         let danhSachGom = [];
         document.querySelectorAll('.cb-chon-hoso:checked').forEach(cb => danhSachGom.push(cb.value));
 
-        var td2_encoded = btoa('#INTERNAL_FOLDER_CONTAINER#');
+        var td2_encoded = buildEncodedTd2('#INTERNAL_FOLDER_CONTAINER#', '_blank');
         var statusText = document.getElementById('tm-form-status');
         statusText.innerText = "Đang khởi tạo thư mục..."; 
         statusText.style.display = 'block';
@@ -1285,9 +1405,8 @@ function renderIconsFromData(data) {
                             let item = globalProfiles.find(p => p.td1 === tenHosoGom);
                             if(!item) return Promise.resolve();
                             
-                            let decodedUrl = item.td2;
-                            try { if (!decodedUrl.startsWith('http')) decodedUrl = atob(decodedUrl); } catch(e) {}
-                            let safeEncodedTd2 = btoa(decodedUrl);
+                            let parsed = getUrlAndTarget(item.td2);
+                            let safeEncodedTd2 = buildEncodedTd2(parsed.url, parsed.target);
 
                             return fetch(KETNOI.WEB_APP_URL, {
                                 method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1310,7 +1429,6 @@ function renderIconsFromData(data) {
                 }
             } catch (jsonError) {
                 statusText.style.display = 'none';
-                console.error("Lỗi đồng bộ cấu hình:", text);
                 alert("Cảnh báo hệ thống: Kiểm tra lại cấu hình phân quyền Web App.");
             }
         }).catch(err => {
@@ -1331,71 +1449,61 @@ function renderIconsFromData(data) {
     function setupTooltipEvents() { icons.forEach(icon => { icon.addEventListener('mouseenter', function(e) { if (isDragging) return; tooltip.innerText = this.getAttribute('data-desc'); tooltip.style.opacity = '1'; }); icon.addEventListener('mousemove', function(e) { tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px'; }); icon.addEventListener('mouseleave', function() { tooltip.style.opacity = '0'; }); }); }
     function updateClock() { const now = new Date(); document.getElementById('sys-clock').innerHTML = `${now.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}<br>${now.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit', year: 'numeric'})}`; } setInterval(updateClock, 1000); updateClock();
     
-function initializeLayout() { 
-        const savedPositions = JSON.parse(localStorage.getItem(PREFIX_MEM + 'positions')) || {}; 
-        const iconWidth = 100;
-        const iconHeight = 120;
-        const startX = 20;
-        const startY = 20;
+    function getGridConfig() {
+        const isMobile = window.innerWidth <= 768;
+        return {
+            width: isMobile ? 75 : 100, 
+            height: isMobile ? 95 : 120,
+            startX: isMobile ? 10 : 20,
+            startY: isMobile ? 10 : 20
+        };
+    }
+
+    function initializeLayout() { applyGridOrder(null, false); }
+    function rearrangeGrid() { applyGridOrder(null, true); }
+
+    function applyGridOrder(excludeIcon = null, useTransition = true) {
+        let orderArray = JSON.parse(localStorage.getItem(PREFIX_MEM + 'iconOrder')) || [];
+        let currentTitles = Array.from(icons).map(i => i.getAttribute('data-title')).filter(Boolean);
         
-        // Đảm bảo không gian được tính toán an toàn khi trình duyệt tải
-        let maxColHeight = window.innerHeight - 150; 
+        let newOrder = orderArray.filter(title => currentTitles.includes(title));
+        currentTitles.forEach(title => {
+            if (!newOrder.includes(title)) newOrder.push(title);
+        });
+        
+        orderArray = newOrder;
+        localStorage.setItem(PREFIX_MEM + 'iconOrder', JSON.stringify(orderArray));
+
+        const cfg = getGridConfig();
+        let maxColHeight = window.innerHeight - 70; 
         if (maxColHeight < 200) maxColHeight = 500; 
         
-        let gridIndex = 0; // Bộ đếm cho các icon chưa di chuyển
+        let maxRows = Math.floor(maxColHeight / cfg.height);
+        if (maxRows < 1) maxRows = 1;
 
-        icons.forEach((icon) => { 
-            const titleKey = icon.getAttribute('data-title'); 
-            
-            if (titleKey && savedPositions[titleKey]) { 
-                // Nạp tọa độ tuyệt đối cho Icon đã từng di chuyển
-                icon.style.left = savedPositions[titleKey].left; 
-                icon.style.top = savedPositions[titleKey].top; 
-            } else { 
-                // Tự động sắp xếp nối tiếp vào không gian trống
-                let col = Math.floor(gridIndex * iconHeight / maxColHeight);
-                let row = Math.floor((gridIndex * iconHeight) % maxColHeight / iconHeight);
-                icon.style.left = (startX + col * iconWidth) + 'px';
-                icon.style.top = (startY + row * iconHeight) + 'px';
-                gridIndex++;
-            } 
-            icon.style.margin = '0'; 
-        }); 
-    }
-    
-    // Hàm mới: Tính toán và lấp đầy khoảng trống cho các icon chưa ghim
-function rearrangeGrid() {
-        const savedPositions = JSON.parse(localStorage.getItem(PREFIX_MEM + 'positions')) || {}; 
-        const iconWidth = 100;
-        const iconHeight = 120;
-        const startX = 20;
-        const startY = 20;
-        const maxColHeight = (window.innerHeight - 150) > 0 ? (window.innerHeight - 150) : 500; 
-        
-        let gridIndex = 0; 
+        orderArray.forEach((title, index) => {
+            let icon = Array.from(icons).find(i => i.getAttribute('data-title') === title);
+            if (icon) {
+                let col = Math.floor(index / maxRows);
+                let row = index % maxRows;
+                let targetLeft = cfg.startX + col * cfg.width;
+                let targetTop = cfg.startY + row * cfg.height;
+                
+                icon.dataset.gridLeft = targetLeft;
+                icon.dataset.gridTop = targetTop;
 
-        icons.forEach((icon) => { 
-            // ĐỌC DỮ LIỆU TỪ KHÓA TÊN, KHÔNG ĐỌC BẰNG DATA-ID
-            const titleKey = icon.getAttribute('data-title'); 
-            
-            if (titleKey && savedPositions[titleKey]) { 
-                icon.style.transition = 'none'; // Vô hiệu hóa animation tạm thời để ghim vị trí ngay lập tức
-                icon.style.left = savedPositions[titleKey].left; 
-                icon.style.top = savedPositions[titleKey].top; 
-                setTimeout(() => { icon.style.transition = ''; }, 100);
-            } else { 
-                let col = Math.floor(gridIndex * iconHeight / maxColHeight);
-                let row = Math.floor((gridIndex * iconHeight) % maxColHeight / iconHeight);
-                icon.style.left = (startX + col * iconWidth) + 'px';
-                icon.style.top = (startY + row * iconHeight) + 'px';
-                gridIndex++;
-            } 
-            icon.style.margin = '0'; 
-        }); 
+                if (icon !== excludeIcon) {
+                    icon.style.transition = useTransition ? 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none';
+                    icon.style.left = targetLeft + 'px';
+                    icon.style.top = targetTop + 'px';
+                }
+            }
+        });
     }
 
     let draggedIcon = null, offsetX = 0, offsetY = 0, dragThresholdPassed = false, startX, startY;
-    
+    let lastSwapTime = 0;
+
     function setupDragEvents() { 
         icons.forEach(icon => { 
             icon.removeEventListener('mousedown', startDrag); 
@@ -1404,20 +1512,21 @@ function rearrangeGrid() {
             icon.addEventListener('touchstart', startDrag, {passive: false}); 
         }); 
     }
-    
-function startDrag(e) { 
+
+    function startDrag(e) { 
         dragThresholdPassed = false; 
         draggedIcon = this; 
         const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX; 
         const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY; 
         startX = clientX; startY = clientY; 
+        
         const rect = draggedIcon.getBoundingClientRect(); 
         offsetX = clientX - rect.left; 
         offsetY = clientY - rect.top; 
         tooltip.style.opacity = '0'; 
-        
-        // Vô hiệu hóa hiệu ứng chuyển động CSS để icon bám sát chuột tức thì
+
         draggedIcon.style.transition = 'none';
+        applyGridOrder(draggedIcon, true);
 
         document.addEventListener('mousemove', drag); 
         document.addEventListener('touchmove', drag, {passive: false}); 
@@ -1429,65 +1538,107 @@ function startDrag(e) {
         if (!draggedIcon) return; 
         const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX; 
         const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY; 
+        
         if (Math.abs(clientX - startX) > 3 || Math.abs(clientY - startY) > 3) { 
             dragThresholdPassed = true; 
             isDragging = true; 
             draggedIcon.style.zIndex = '9999'; 
-            draggedIcon.style.opacity = '0.7'; 
-            e.preventDefault(); 
+            draggedIcon.style.opacity = '0.85'; 
+            draggedIcon.style.transform = 'scale(1.05)';
+            if(e.cancelable) e.preventDefault(); 
         } 
+        
         if (dragThresholdPassed) { 
             const areaRect = desktopArea.getBoundingClientRect(); 
             let newLeft = Math.max(0, Math.min(clientX - areaRect.left - offsetX, areaRect.width - draggedIcon.offsetWidth)); 
             let newTop = Math.max(0, Math.min(clientY - areaRect.top - offsetY, areaRect.height - draggedIcon.offsetHeight)); 
+            
             draggedIcon.style.left = newLeft + 'px'; 
             draggedIcon.style.top = newTop + 'px'; 
             
-            const draggedRect = draggedIcon.getBoundingClientRect();
-            const draggedCenter = { x: draggedRect.left + draggedRect.width / 2, y: draggedRect.top + draggedRect.height / 2 };
+            const currentTime = new Date().getTime();
             
-            document.querySelectorAll('.desktop-icon').forEach(iconEl => {
-                if (iconEl === draggedIcon) return;
-                const idx = parseInt(iconEl.getAttribute('data-id')) - 1;
-                if (isNaN(idx)) return;
-                const profile = globalProfiles[idx];
+            if (currentTime - lastSwapTime > 300) {
+                const draggedCenterX = newLeft + (draggedIcon.offsetWidth || 90) / 2;
+                const draggedCenterY = newTop + (draggedIcon.offsetHeight || 105) / 2;
                 
-                if (kiemTraLaThuMuc(profile)) {
-                    const rect = iconEl.getBoundingClientRect();
-                    if (draggedCenter.x >= rect.left && draggedCenter.x <= rect.right && draggedCenter.y >= rect.top && draggedCenter.y <= rect.bottom) {
-                        iconEl.style.transform = 'scale(1.15)';
-                        iconEl.style.boxShadow = '0 0 20px #4CAF50'; 
+                let orderArray = JSON.parse(localStorage.getItem(PREFIX_MEM + 'iconOrder')) || [];
+                const draggedTitle = draggedIcon.getAttribute('data-title');
+                const draggedIndex = orderArray.indexOf(draggedTitle);
+
+                let targetTitleToSwap = null;
+                const hitRadius = getGridConfig().width * 0.6; 
+
+                document.querySelectorAll('.desktop-icon').forEach(iconEl => {
+                    if (iconEl === draggedIcon || targetTitleToSwap) return;
+                    
+                    const idx = parseInt(iconEl.getAttribute('data-id')) - 1;
+                    if (isNaN(idx)) return;
+                    const profile = globalProfiles[idx];
+                    
+                    const targetCenterX = parseFloat(iconEl.dataset.gridLeft || 0) + (iconEl.offsetWidth || 90) / 2;
+                    const targetCenterY = parseFloat(iconEl.dataset.gridTop || 0) + (iconEl.offsetHeight || 105) / 2;
+                    
+                    const distance = Math.hypot(draggedCenterX - targetCenterX, draggedCenterY - targetCenterY);
+
+                    if (distance < hitRadius) { 
+                        if (kiemTraLaThuMuc(profile)) {
+                            iconEl.style.transform = 'scale(1.15)';
+                            iconEl.style.boxShadow = '0 0 20px #4CAF50'; 
+                        } else {
+                            targetTitleToSwap = iconEl.getAttribute('data-title');
+                        }
                     } else {
-                        iconEl.style.transform = '';
-                        iconEl.style.boxShadow = '';
+                        if (kiemTraLaThuMuc(profile)) {
+                            iconEl.style.transform = '';
+                            iconEl.style.boxShadow = '';
+                        }
+                    }
+                });
+
+                if (targetTitleToSwap) {
+                    const targetIndex = orderArray.indexOf(targetTitleToSwap);
+                    if (targetIndex !== -1 && draggedIndex !== -1) {
+                        const temp = orderArray[draggedIndex];
+                        orderArray[draggedIndex] = orderArray[targetIndex];
+                        orderArray[targetIndex] = temp;
+                        
+                        localStorage.setItem(PREFIX_MEM + 'iconOrder', JSON.stringify(orderArray));
+                        lastSwapTime = currentTime;
+                        applyGridOrder(draggedIcon, true);
                     }
                 }
-            });
+            }
         } 
     }
 
     function stopDrag(e) { 
         if (!draggedIcon) return; 
+        
         draggedIcon.style.zIndex = ''; 
         draggedIcon.style.opacity = '1'; 
-        
-        // Khôi phục lại hiệu ứng chuyển động sau khi thả chuột
-        draggedIcon.style.transition = '';
+        draggedIcon.style.transform = '';
+        draggedIcon.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
         
         document.querySelectorAll('.desktop-icon').forEach(iconEl => {
-            iconEl.style.transform = '';
-            iconEl.style.boxShadow = '';
+            if (iconEl !== draggedIcon) {
+                iconEl.style.transform = '';
+                iconEl.style.boxShadow = '';
+            }
         });
         
         if (dragThresholdPassed) { 
-            if (isLoggedIn && sysRoles && (sysRoles.includes('xx') || sysRoles.includes('xoahoso') || sysRoles.includes('taohoso') || sysRoles.includes('ganhoso'))) {
-                let droppedFolder = null;
-                const draggedRect = draggedIcon.getBoundingClientRect();
-                const draggedCenter = { x: draggedRect.left + draggedRect.width / 2, y: draggedRect.top + draggedRect.height / 2 };
-                
-                const draggedIndex = parseInt(draggedIcon.getAttribute('data-id')) - 1;
-                const draggedProfile = globalProfiles[draggedIndex];
+            let droppedFolder = null;
+            const currentLeft = parseFloat(draggedIcon.style.left) || 0;
+            const currentTop = parseFloat(draggedIcon.style.top) || 0;
+            const draggedCenterX = currentLeft + (draggedIcon.offsetWidth || 90) / 2;
+            const draggedCenterY = currentTop + (draggedIcon.offsetHeight || 105) / 2;
+            
+            const draggedId = parseInt(draggedIcon.getAttribute('data-id')) - 1;
+            const draggedProfile = globalProfiles[draggedId];
+            const hitRadius = getGridConfig().width * 0.6;
 
+            if (isLoggedIn && sysRoles && (sysRoles.includes('xx') || sysRoles.includes('xoahoso') || sysRoles.includes('taohoso') || sysRoles.includes('ganhoso'))) {
                 if (!kiemTraLaThuMuc(draggedProfile)) {
                     document.querySelectorAll('.desktop-icon').forEach(iconEl => {
                         if (iconEl === draggedIcon) return;
@@ -1496,55 +1647,65 @@ function startDrag(e) {
                         const profile = globalProfiles[idx];
                         
                         if (kiemTraLaThuMuc(profile)) {
-                            const rect = iconEl.getBoundingClientRect();
-                            if (draggedCenter.x >= rect.left && draggedCenter.x <= rect.right && draggedCenter.y >= rect.top && draggedCenter.y <= rect.bottom) {
+                            const targetCenterX = parseFloat(iconEl.dataset.gridLeft || 0) + (iconEl.offsetWidth || 90) / 2;
+                            const targetCenterY = parseFloat(iconEl.dataset.gridTop || 0) + (iconEl.offsetHeight || 105) / 2;
+                            
+                            const distance = Math.hypot(draggedCenterX - targetCenterX, draggedCenterY - targetCenterY);
+                            if (distance < hitRadius) {
                                 droppedFolder = profile;
                             }
                         }
                     });
                 }
+            }
 
-                if (droppedFolder) {
-                    if (confirm("Thầy/Cô có chắc chắn muốn gộp [" + draggedProfile.td1 + "] vào bên trong thư mục [" + droppedFolder.td1 + "] không?")) {
-                        xuLyDiChuyenHoSo(draggedProfile.td1, droppedFolder.td1);
-                    } else { savePositions(); }
-                } else { savePositions(); }
-            } else { savePositions(); }
+            if (droppedFolder) {
+                if (confirm("Thầy/Cô có chắc chắn muốn gộp [" + draggedProfile.td1 + "] vào bên trong thư mục [" + droppedFolder.td1 + "] không?")) {
+                    xuLyDiChuyenHoSo(draggedProfile.td1, droppedFolder.td1);
+                } else { 
+                    snapToGrid(draggedIcon);
+                }
+            } else { 
+                snapToGrid(draggedIcon);
+            }
         } 
         
         document.removeEventListener('mousemove', drag); 
         document.removeEventListener('touchmove', drag); 
         document.removeEventListener('mouseup', stopDrag); 
         document.removeEventListener('touchend', stopDrag); 
-        draggedIcon = null; 
-        setTimeout(() => { isDragging = false; }, 100); 
+        
+        setTimeout(() => { 
+            if(draggedIcon) draggedIcon.style.transition = ''; 
+            draggedIcon = null; 
+            isDragging = false; 
+        }, 400); 
     }
-    
-function savePositions() { 
-        if (!draggedIcon) return;
-        const positions = JSON.parse(localStorage.getItem(PREFIX_MEM + 'positions')) || {}; 
-        
-        // GHI NHẬN TỌA ĐỘ THEO KHÓA TÊN BẤT BIẾN
-        const titleKey = draggedIcon.getAttribute('data-title'); 
-        
-        if (titleKey) {
-            positions[titleKey] = { left: draggedIcon.style.left, top: draggedIcon.style.top }; 
-            localStorage.setItem(PREFIX_MEM + 'positions', JSON.stringify(positions)); 
+
+    function snapToGrid(icon) {
+        if (icon && icon.dataset.gridLeft !== undefined && icon.dataset.gridTop !== undefined) {
+            icon.style.left = icon.dataset.gridLeft + 'px';
+            icon.style.top = icon.dataset.gridTop + 'px';
         }
-        
-        rearrangeGrid(); 
     }
-    
+
     function resetPositions() { 
+        localStorage.removeItem(PREFIX_MEM + 'iconOrder'); 
         localStorage.removeItem(PREFIX_MEM + 'positions'); 
         initializeLayout(); 
     }
 
-    // Đảm bảo không gian không xô lệch khi xoay hoặc thu phóng trình duyệt
     window.addEventListener('resize', () => {
-        if (typeof initializeLayout === 'function') initializeLayout();
+        if (typeof initializeLayout === 'function') {
+            clearTimeout(window.resizeTimer);
+            window.resizeTimer = setTimeout(initializeLayout, 150); 
+        }
     });
-    
+
+    window.addEventListener('orientationchange', () => {
+        setTimeout(initializeLayout, 200); 
+    });
+
     function toggleHoSoModal(isShow) {
         document.getElementById('window-gan-hoso').style.display = isShow ? 'flex' : 'none';
         if(!isShow) {
@@ -1552,6 +1713,10 @@ function savePositions() {
             var elLoaiIcon = document.getElementById('hs-loaiicon'); var elHieuUng = document.getElementById('hs-hieuung');
             elTd1.value = ''; elTd1.style.borderColor = '#ccc'; elTd2.value = ''; elTd2.style.borderColor = '#ccc'; 
             elLoaiIcon.value = ''; elLoaiIcon.style.borderColor = '#ccc'; elHieuUng.value = 'none';
+            
+            var elCachMo = document.getElementById('hs-cachmo');
+            if (elCachMo) elCachMo.value = '_blank';
+            
             document.getElementById('hs-ispublic').checked = false; 
             document.getElementById('hs-vitri').value = 'desktop';
         }
@@ -1572,6 +1737,10 @@ function savePositions() {
             document.getElementById('edit-td2').value = '';
             document.getElementById('edit-loaiicon').value = '';
             document.getElementById('edit-hieuung').value = 'none';
+            
+            var elEditCachMo = document.getElementById('edit-cachmo');
+            if (elEditCachMo) elEditCachMo.value = '_blank';
+            
             document.getElementById('edit-vitri').value = 'desktop';
             document.getElementById('edit-form-status').style.display = 'none';
         }
@@ -1582,34 +1751,47 @@ function savePositions() {
         if (select.value === "") return;
         const profile = globalProfiles[select.value];
         document.getElementById('edit-td1').value = profile.td1;
-        let decodedUrl = profile.td2;
-        try { if (!decodedUrl.startsWith('http')) decodedUrl = atob(decodedUrl); } catch(e) {}
-        document.getElementById('edit-td2').value = decodedUrl;
+        
+        let parsed = getUrlAndTarget(profile.td2);
+        
+        document.getElementById('edit-td2').value = parsed.url;
+        let editCachMo = document.getElementById('edit-cachmo');
+        if (editCachMo) editCachMo.value = parsed.target;
+        
         document.getElementById('edit-loaiicon').value = profile.iconType;
         document.getElementById('edit-hieuung').value = profile.hieuung || 'none';
         document.getElementById('edit-vitri').value = profile.vitri || 'desktop';
     }
 
-    function xuLySuaHoSo() {
+function xuLySuaHoSo() {
         const select = document.getElementById('edit-hoso-select');
         if (select.value === "") { alert("Yêu cầu hệ thống: Vui lòng chọn một dự án cần cập nhật!"); return; }
         
         const oldProfile = globalProfiles[select.value];
         var td1 = document.getElementById('edit-td1').value.trim(); 
-        var td2_raw = document.getElementById('edit-td2').value.trim(); 
+        var td2_input = document.getElementById('edit-td2').value.trim(); 
         var loaiIcon = document.getElementById('edit-loaiicon').value;
-        var hieuung = document.getElementById('edit-hieuung').value;
         var vitri = document.getElementById('edit-vitri').value;
+        var hieuung = document.getElementById('edit-hieuung').value; 
         
-        if (!td1 || !td2_raw || !loaiIcon) { alert("Yêu cầu hệ thống: Vui lòng điền đủ các thông số!"); return; }
-        var td2_encoded = btoa(td2_raw);
+        var isPublic = oldProfile.isPublic ? 'public' : ''; 
+        
+        if (!td1 || !td2_input || !loaiIcon) { alert("Yêu cầu hệ thống: Vui lòng điền đủ các thông số!"); return; }
+        
+        if (td2_input !== "" && !td2_input.toLowerCase().startsWith('http://') && !td2_input.toLowerCase().startsWith('https://')) {
+            td2_input = 'https://' + td2_input;
+        }
 
-        document.getElementById('edit-form-status').innerText = "Đang đồng bộ cơ sở dữ liệu sửa chữa..."; 
+        var elEditCachMo = document.getElementById('edit-cachmo');
+        var target = elEditCachMo ? elEditCachMo.value : '_blank';
+        var td2_encoded = buildEncodedTd2(td2_input, target); 
+
+        document.getElementById('edit-form-status').innerText = "Đang đồng bộ dữ liệu sửa chữa..."; 
         document.getElementById('edit-form-status').style.display = 'block';
         
         fetch(KETNOI.WEB_APP_URL, {
             method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'editProfile', oldTd1: oldProfile.td1, td1: td1, td2: td2_encoded, loaiIcon: loaiIcon, vitri: vitri, hieuung: hieuung, khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') })
+            body: JSON.stringify({ action: 'editProfile', oldTd1: oldProfile.td1, td1: td1, td2: td2_encoded, loaiIcon: loaiIcon, isPublic: isPublic, vitri: vitri, hieuung: hieuung, khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') })
         })
         .then(response => response.text())
         .then(text => {
@@ -1619,12 +1801,9 @@ function savePositions() {
                 if (result.status === 'success') {
                     toggleSuaHoSoModal(false);
                     taiBieuTuongCongKhai();
-                } else { 
-                    alert("Phát sinh sự cố: " + result.message); 
-                }
+                } else { alert("Phát sinh sự cố: " + result.message); }
             } catch (jsonError) {
-                console.error("Lỗi từ backend máy chủ Google:", text);
-                alert("CẢNH BÁO QUẢN TRỊ:\nMáy chủ Google trả về trang báo lỗi HTML thay vì định dạng chuẩn JSON.\n\nNguyên nhân: Hệ thống gặp lỗi khi truy vấn Code.gs.");
+                alert("CẢNH BÁO QUẢN TRỊ:\nMáy chủ Google trả về trang báo lỗi HTML thay vì định dạng chuẩn JSON.");
             }
         }).catch(err => { 
             document.getElementById('edit-form-status').style.display = 'none'; 
@@ -1635,113 +1814,97 @@ function savePositions() {
     function toggleXoaHoSoModal(isShow) {
         document.getElementById('window-xoa-hoso').style.display = isShow ? 'flex' : 'none';
         if (isShow) {
-            const select = document.getElementById('del-hoso-select');
-            select.innerHTML = '<option value="">-- Lựa chọn dự án cần thao tác --</option>';
+            const container = document.getElementById('del-danhsach-hoso');
+            container.innerHTML = '';
+            
             globalProfiles.forEach((item, index) => {
-                const opt = document.createElement('option');
-                opt.value = index; 
-                opt.text = item.td1;
-                select.appendChild(opt);
+                let statusLabel = item.isPublic 
+                    ? '<span style="color: #2e7d32; font-size: 12px; margin-left: 5px; font-weight: 600;">[Đang Mở Công Khai]</span>' 
+                    : '<span style="color: #d32f2f; font-size: 12px; margin-left: 5px; font-weight: 600;">[Đang Khóa]</span>';
+                
+                container.innerHTML += `<label class="checkbox-label" style="display: flex; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 6px;">
+                    <input type="checkbox" class="cb-del-hoso" value="${index}" style="width: auto; margin-right: 10px;"> 
+                    <span style="flex: 1;"><strong>${item.td1}</strong></span>
+                    ${statusLabel}
+                </label>`;
             });
-            document.getElementById('hoso-current-status').innerHTML = 'Vui lòng chọn một dự án để xem cấu hình';
             document.getElementById('del-form-status').style.display = 'none';
         }
     }
 
-    function hienThiTrangThaiDuAn() {
-        const select = document.getElementById('del-hoso-select');
-        const statusDiv = document.getElementById('hoso-current-status');
-        if (select.value === "") {
-            statusDiv.innerHTML = "Vui lòng chọn một dự án để xem cấu hình";
-            return;
-        }
-        const profile = globalProfiles[select.value];
-        if (profile.isPublic) {
-            statusDiv.innerHTML = '<span style="color: #2e7d32;"><span class="material-icons" style="font-size: 16px; vertical-align: middle;">lock_open</span> Trạng thái: ĐANG MỞ CÔNG KHAI</span>';
-        } else {
-            statusDiv.innerHTML = '<span style="color: #d32f2f;"><span class="material-icons" style="font-size: 16px; vertical-align: middle;">lock</span> Trạng thái: ĐANG KHÓA (CẦN ĐĂNG NHẬP)</span>';
-        }
+    function chonTatCaQuanLy(isCheck) {
+        document.querySelectorAll('.cb-del-hoso').forEach(cb => cb.checked = isCheck);
     }
 
-    function xuLyDoiTrangThaiCongKhai() {
-        const select = document.getElementById('del-hoso-select');
-        const selectedIndex = select.value;
-        if (selectedIndex === "") { alert("Vui lòng chọn một dự án cụ thể để thao tác!"); return; }
+    async function xuLyDoiTrangThaiNhieu(isMakePublic) {
+        let checkedBoxes = document.querySelectorAll('.cb-del-hoso:checked');
+        if (checkedBoxes.length === 0) { 
+            alert("Yêu cầu hệ thống: Vui lòng chọn ít nhất một dự án để thao tác!"); 
+            return; 
+        }
 
-        const profile = globalProfiles[selectedIndex];
-        const newStatus = profile.isPublic ? "" : "public";
-        const confirmMsg = profile.isPublic ? "KHÓA LẠI (yêu cầu cán bộ đăng nhập)" : "MỞ CÔNG KHAI (không cần đăng nhập)";
+        const newStatus = isMakePublic ? "public" : "";
+        const confirmMsg = isMakePublic ? "MỞ CÔNG KHAI (Không cần đăng nhập)" : "KHÓA LẠI (Yêu cầu phải đăng nhập)";
         
-        if (!confirm("Thầy/Cô có chắc chắn muốn " + confirmMsg + " đối với dự án '" + profile.td1 + "' ?")) { return; }
+        if (!confirm(`Thầy/Cô có chắc chắn muốn ${confirmMsg} cho ${checkedBoxes.length} dự án đã chọn?`)) return;
 
         const statusText = document.getElementById('del-form-status');
-        statusText.innerText = "Đang đồng bộ cấu hình..."; statusText.style.display = 'block';
+        statusText.style.display = 'block';
 
-        fetch(KETNOI.WEB_APP_URL, {
-            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'togglePublicProfile', td1: profile.td1, newStatus: newStatus, khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') })
-        })
-        .then(response => response.text())
-        .then(text => {
-            statusText.style.display = 'none';
+        for (let i = 0; i < checkedBoxes.length; i++) {
+            let profile = globalProfiles[checkedBoxes[i].value];
+            statusText.innerText = `Đang đồng bộ trạng thái (${i + 1}/${checkedBoxes.length}): ${profile.td1}...`;
+            
             try {
-                let result = JSON.parse(text);
-                if (result.status === 'success') { 
-                    toggleXoaHoSoModal(false); 
-                    taiBieuTuongCongKhai(); 
-                } else { 
-                    alert("Cảnh báo: " + result.message); 
-                }
-            } catch (jsonError) {
-                console.error("Lỗi từ backend:", text);
-                alert("Cảnh báo từ hệ thống: Backend trả về lỗi định dạng HTML. Vui lòng kiểm tra lại log hoạt động.");
-            }
-        }).catch(err => { 
-            statusText.style.display = 'none'; 
-            alert("Lỗi kết nối máy chủ: " + err); 
-        });
+                await fetch(KETNOI.WEB_APP_URL, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'togglePublicProfile', td1: profile.td1, newStatus: newStatus, khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') })
+                });
+            } catch (err) {}
+        }
+
+        statusText.style.display = 'none';
+        toggleXoaHoSoModal(false); 
+        taiBieuTuongCongKhai(); 
     }
 
-    function xuLyXoaHoSo() {
-        const select = document.getElementById('del-hoso-select');
-        const selectedIndex = select.value;
-        if (selectedIndex === "") { alert("Vui lòng chọn một dự án cụ thể để cấu hình!"); return; }
+    async function xuLyXoaHoSoNhieu() {
+        let checkedBoxes = document.querySelectorAll('.cb-del-hoso:checked');
+        if (checkedBoxes.length === 0) { 
+            alert("Yêu cầu hệ thống: Vui lòng chọn ít nhất một dự án để hủy bỏ!"); 
+            return; 
+        }
 
-        const profileToDelete = globalProfiles[selectedIndex];
-        if (!confirm("CẢNH BÁO: Thầy/Cô có chắc chắn muốn HỦY BỎ dự án '" + profileToDelete.td1 + "' khỏi hệ thống?")) { return; }
+        if (!confirm(`CẢNH BÁO: Thầy/Cô có chắc chắn muốn HỦY BỎ HOÀN TOÀN ${checkedBoxes.length} dự án đã chọn khỏi hệ thống?`)) return;
 
         const statusText = document.getElementById('del-form-status');
-        statusText.innerText = "Đang xử lý thu hồi dữ liệu..."; statusText.style.display = 'block';
+        statusText.style.display = 'block';
 
-        fetch(KETNOI.WEB_APP_URL, {
-            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'deleteProfile', td1: profileToDelete.td1, td2: profileToDelete.td2, khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') })
-        })
-        .then(response => response.text())
-        .then(text => {
-            statusText.style.display = 'none';
+        for (let i = 0; i < checkedBoxes.length; i++) {
+            let profile = globalProfiles[checkedBoxes[i].value];
+            statusText.innerText = `Đang tiến hành hủy bỏ (${i + 1}/${checkedBoxes.length}): ${profile.td1}...`;
+            
             try {
-                let result = JSON.parse(text);
-                if (result.status === 'success') { 
-                    toggleXoaHoSoModal(false); 
-                    taiBieuTuongCongKhai(); 
-                } else { 
-                    alert("Cảnh báo: " + result.message); 
-                }
-            } catch (jsonError) {
-                console.error("Lỗi từ backend:", text);
-                alert("Cảnh báo từ hệ thống: Backend trả về lỗi định dạng HTML. Vui lòng kiểm tra lại log hoạt động.");
-            }
-        }).catch(err => { 
-            statusText.style.display = 'none'; 
-            alert("Lỗi kết nối máy chủ: " + err); 
-        });
+                await fetch(KETNOI.WEB_APP_URL, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'deleteProfile', td1: profile.td1, td2: profile.td2, khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') })
+                });
+            } catch (err) {}
+        }
+
+        statusText.style.display = 'none';
+        toggleXoaHoSoModal(false); 
+        taiBieuTuongCongKhai(); 
     }
 
     function moDriveTaiKhoanKhac() { window.open('https://accounts.google.com/AccountChooser?continue=https://drive.google.com/drive/', '_blank'); }
 
     function khoiTaoGooglePicker() {
-        if (pickerAccessToken === null) { tokenClient.requestAccessToken({prompt: 'consent'}); } else { hienThiGooglePicker(pickerAccessToken); }
+        if (pickerAccessToken === null) { 
+            tokenClient.requestAccessToken({prompt: 'consent'}); 
+        } else { 
+            tokenClient.requestAccessToken({prompt: ''}); 
+        }
     }
 
     function hienThiGooglePicker(token) {
@@ -1761,19 +1924,26 @@ function savePositions() {
         var elLoaiIcon = document.getElementById('hs-loaiicon'); var elHieuUng = document.getElementById('hs-hieuung');
         var vitri = document.getElementById('hs-vitri').value;
         var td1 = elTd1.value.trim(); 
-        var td2_raw = elTd2.value.trim(); 
+        var td2_input = elTd2.value.trim(); 
         var loaiIcon = elLoaiIcon.value;
-        var hieuung = elHieuUng.value;
         var isPublic = document.getElementById('hs-ispublic').checked ? 'public' : ''; 
+        var hieuung = elHieuUng.value; 
         
         elTd1.style.borderColor = '#ccc'; elTd2.style.borderColor = '#ccc'; elLoaiIcon.style.borderColor = '#ccc';
         var hasError = false;
         if (!td1) { elTd1.style.borderColor = 'red'; hasError = true; } 
-        if (!td2_raw) { elTd2.style.borderColor = 'red'; hasError = true; } 
+        if (!td2_input) { elTd2.style.borderColor = 'red'; hasError = true; } 
         if (!loaiIcon) { elLoaiIcon.style.borderColor = 'red'; hasError = true; }
         if (hasError) { alert("Yêu cầu hệ thống: Vui lòng điền đủ các tham số!"); return; }
 
-        var td2_encoded = btoa(td2_raw);
+        if (td2_input !== "" && !td2_input.toLowerCase().startsWith('http://') && !td2_input.toLowerCase().startsWith('https://')) {
+            td2_input = 'https://' + td2_input;
+        }
+
+        var elCachMo = document.getElementById('hs-cachmo');
+        var target = elCachMo ? elCachMo.value : '_blank';
+        
+        var td2_encoded = buildEncodedTd2(td2_input, target);
 
         document.getElementById('form-status').innerText = "Đang đồng bộ cơ sở dữ liệu..."; document.getElementById('form-status').style.display = 'block';
         fetch(KETNOI.WEB_APP_URL, {
@@ -1788,11 +1958,8 @@ function savePositions() {
                 if (result.status === 'success') {
                     toggleHoSoModal(false);
                     taiBieuTuongCongKhai();
-                } else { 
-                    alert("Phát sinh sự cố: " + result.message); 
-                }
+                } else { alert("Phát sinh sự cố: " + result.message); }
             } catch (jsonError) {
-                console.error("Lỗi từ backend:", text);
                 alert("Cảnh báo từ hệ thống: Backend trả về lỗi định dạng HTML. Vui lòng kiểm tra lại log hoạt động.");
             }
         })
@@ -1809,7 +1976,8 @@ function savePositions() {
             iconListContainer.innerHTML = '';
             globalProfiles.forEach(profile => {
                 let pubLabel = profile.isPublic ? ' <span style="color: #2e7d32; font-weight: 600; font-size: 11px; background: #e8f5e9; padding: 2px 4px; border-radius: 3px; margin-left: 5px;">[Đã mở Công khai]</span>' : '';
-                iconListContainer.innerHTML += `<label class="checkbox-label" style="display: flex; align-items: center;"><input type="checkbox" class="icon-role-cb" value="${profile.td1}"> <span>${profile.td1}</span> ${pubLabel}</label>`;
+                let safeVal = profile.td1.replace(/"/g, '&quot;');
+                iconListContainer.innerHTML += `<label class="checkbox-label" style="display: flex; align-items: center;"><input type="checkbox" class="icon-role-cb" value="${safeVal}"> <span>${profile.td1}</span> ${pubLabel}</label>`;
             });
             taiDuLieuQuyen(); 
         } else { lamMoiBieuMauQuyen(); }
@@ -1833,7 +2001,6 @@ function savePositions() {
                     alert(result.message); 
                 }
             } catch (jsonError) {
-                console.error("Lỗi từ backend khi tải quyền:", text);
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:red;">Máy chủ trả về dữ liệu HTML (Crash Backend). Vui lòng kiểm tra log!</td></tr>';
             }
         }).catch(err => { 
@@ -1913,7 +2080,6 @@ function savePositions() {
                     alert("Cảnh báo: " + result.message); 
                 }
             } catch (jsonError) {
-                console.error("Lỗi từ backend:", text);
                 alert("Cảnh báo từ hệ thống: Backend trả về lỗi định dạng HTML. Vui lòng kiểm tra lại log hoạt động.");
             }
         });
@@ -1940,7 +2106,6 @@ function savePositions() {
                         alert("Cảnh báo: " + result.message); 
                     }
                 } catch (jsonError) {
-                    console.error("Lỗi từ backend:", text);
                     alert("Cảnh báo từ hệ thống: Backend trả về lỗi định dạng HTML. Vui lòng kiểm tra lại log hoạt động.");
                 }
             });
@@ -1953,7 +2118,12 @@ function savePositions() {
         if (newUrl !== null) { 
             if (newUrl.trim() === "") { 
                 localStorage.removeItem(PREFIX_MEM + "bg"); 
-                document.documentElement.style.setProperty('--default-bg', "url('" + KETNOI.LINK_HINH_NEN + "')"); 
+                var defaultBgUrl = (typeof KETNOI !== 'undefined' && KETNOI.LINK_HINH_NEN) ? KETNOI.LINK_HINH_NEN : "";
+                if (defaultBgUrl !== "") {
+                    document.documentElement.style.setProperty('--default-bg', "url('" + defaultBgUrl.trim() + "')"); 
+                } else {
+                    document.documentElement.style.setProperty('--default-bg', "#2c3e50"); 
+                }
             } else { 
                 localStorage.setItem(PREFIX_MEM + "bg", newUrl.trim()); 
                 document.documentElement.style.setProperty('--default-bg', "url('" + newUrl.trim() + "')"); 
@@ -1981,9 +2151,7 @@ function savePositions() {
     function xuLyBungManHinh(e) {
         if (!dangChoTuongTac || (e && e.target && e.target.closest && e.target.closest('.tray-icon'))) return;
         if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                console.log("Hệ thống: Trình duyệt từ chối lệnh full màn hình do chính sách bảo mật.");
-            });
+            document.documentElement.requestFullscreen().catch(err => {});
         }
         dangChoTuongTac = false;
         danhSachSuKien.forEach(suKien => document.removeEventListener(suKien, xuLyBungManHinh));
@@ -2003,6 +2171,93 @@ function savePositions() {
             }, 300);
         }
     });
+
+    function khoaTruyCapMaNguon() {
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || e.keyCode === 123) { e.preventDefault(); }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) { e.preventDefault(); }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) { e.preventDefault(); }
+            if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) { e.preventDefault(); }
+            if (e.ctrlKey && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) { e.preventDefault(); }
+        });
+    }
+    khoaTruyCapMaNguon();
+    
+    // =========================================================================
+    // [NÂNG CẤP MỚI] THUẬT TOÁN ĐỒNG BỘ CỜ THÔNG BÁO VĂN BẢN TRÊN MÀN HÌNH CHÍNH
+    // =========================================================================
+    function kiemTraCongVanMoi() {
+        if (!isLoggedIn) return; 
+        
+        // Chỉ đích danh hệ thống Công văn thông qua tên hiển thị
+        let targetIconNodes = Array.from(icons).filter(i => {
+            let title = i.getAttribute('data-title').toLowerCase();
+            return title.includes('công văn') || title.includes('lịch công tác');
+        });
+        
+        targetIconNodes.forEach(iconNode => {
+            let profileId = parseInt(iconNode.getAttribute('data-id')) - 1;
+            let profile = globalProfiles[profileId];
+            if (!profile) return;
+            
+            // Trích xuất link truy xuất (API) của phân hệ con
+            let parsed = getUrlAndTarget(profile.td2);
+            let gasUrl = parsed.url; 
+            if(!gasUrl.includes("script.google.com")) return; 
+            
+            // Liên kết ID người dùng giữa Màn hình chính và Phân hệ con
+            let scvActiveId = sessionStorage.getItem("SCV_ACTIVE_ID") || localStorage.getItem(PREFIX_MEM + 'sysName') || "Khách";
+            
+            fetch(gasUrl, {
+                method: 'POST',
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ func: 'SCV_getAllDataCache', args: [scvActiveId] })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data && res.data.congvan) {
+                    let tongSoMoiNhat = res.data.congvan.length;
+                    let localKey = 'SCV_DA_XEM_CV_' + scvActiveId;
+                    
+                    if (!localStorage.getItem(localKey)) {
+                        localStorage.setItem(localKey, tongSoMoiNhat);
+                    }
+                    
+                    let tongCvDaXem = parseInt(localStorage.getItem(localKey)) || tongSoMoiNhat;
+                    let soCvMoi = tongSoMoiNhat - tongCvDaXem;
+                    
+                    // Dọn dẹp cờ cũ
+                    let oldBadge = iconNode.querySelector('.menu-badge');
+                    if (oldBadge) oldBadge.remove();
+                    
+                    // Vẽ cờ mới nếu có thông báo
+                    if (soCvMoi > 0) {
+                        let container = iconNode.querySelector('div[style*="position:relative"]');
+                        if (container) {
+                            let badge = document.createElement('div');
+                            badge.className = 'menu-badge';
+                            badge.innerText = soCvMoi > 99 ? '99+' : soCvMoi;
+                            container.appendChild(badge);
+                        }
+                    }
+                }
+            }).catch(e => { /* Im lặng hệ thống nếu đường truyền chập chờn */ }); 
+        });
+    }
+
+    // Tự động làm mới cờ khi cán bộ chuyển Tab trên trình duyệt
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible' && isLoggedIn) {
+            kiemTraCongVanMoi();
+        }
+    });
+
+    // Làm mới tự động mỗi 1 phút để đồng bộ dữ liệu Real-time
+    setInterval(() => {
+        if (isLoggedIn) kiemTraCongVanMoi();
+    }, 60000);
+
 </script>
 </body>
 </html>
