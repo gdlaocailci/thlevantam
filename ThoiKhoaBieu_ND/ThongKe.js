@@ -54,7 +54,7 @@ function dungGiaoDienThongKe() {
         </div>
 
         <div id="vungKetQuaThongKe" class="bg-white shadow-inner border border-gray-400 flex-1 overflow-auto flex flex-col relative">
-            <div class="text-center text-slate-400 mt-20 font-bold">
+            <div class="text-center text-slate-400 m-auto font-bold px-4 py-8">
                 Vui lòng chọn bộ lọc và bấm "Tra cứu" để hiển thị dữ liệu thống kê.
             </div>
         </div>
@@ -63,7 +63,6 @@ function dungGiaoDienThongKe() {
 
 document.addEventListener('DOMContentLoaded', () => { 
     dungGiaoDienThongKe();
-   
 });
 
 // =========================================================================
@@ -74,12 +73,16 @@ async function taiCayDanhMucThongKe() {
     if (btn) btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang tải...`;
     
     try {
-        const phanHoi = await fetch(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layCayQuanHeThongKe`);
+        // [NÂNG CẤP]: Áp dụng fetchVoiCoCheThuLai
+        const fetchFunc = (typeof fetchVoiCoCheThuLai === 'function') ? fetchVoiCoCheThuLai : fetch;
+        const phanHoi = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layCayQuanHeThongKe`);
         cayDanhMucThongKe = await phanHoi.json();
         
         let dsNam = Object.keys(cayDanhMucThongKe);
         if (dsNam.length > 0) {
-            document.getElementById('dlNamHocTk').innerHTML = dsNam.map(n => `<option value="${n}">`).join('');
+            let htmlArr = [];
+            dsNam.forEach(n => htmlArr.push(`<option value="${n}">`));
+            document.getElementById('dlNamHocTk').innerHTML = htmlArr.join('');
             document.getElementById('inputNamHocTk').value = dsNam[dsNam.length - 1];
             xuLyDoiNamHocTk();
         }
@@ -95,13 +98,11 @@ function xuLyDoiNamHocTk() {
     let duLieuNam = cayDanhMucThongKe[nam];
     if (!duLieuNam) return;
 
-    let htmlThang = `<option value="Cả năm">`;
-    htmlThang += duLieuNam.danhSachThang.map(th => `<option value="Tháng ${th}">`).join('');
+    let htmlThang = `<option value="Cả năm">` + duLieuNam.danhSachThang.map(th => `<option value="Tháng ${th}">`).join('');
     document.getElementById('dlThangTk').innerHTML = htmlThang;
     document.getElementById('inputThangTk').value = "Cả năm";
 
-    let htmlGv = `<option value="Toàn trường">`;
-    htmlGv += duLieuNam.danhSachGiaoVien.map(gv => `<option value="${gv}">`).join('');
+    let htmlGv = `<option value="Toàn trường">` + duLieuNam.danhSachGiaoVien.map(gv => `<option value="${gv}">`).join('');
     document.getElementById('dlGiaoVienTk').innerHTML = htmlGv;
     document.getElementById('inputGiaoVienTk').value = "Toàn trường";
 
@@ -123,8 +124,7 @@ function xuLyDoiThangTk() {
         dsTuan = duLieuNam.soDoThoiGian[thSo] || [];
     }
 
-    let htmlTuan = `<option value="Tất cả các tuần">`;
-    htmlTuan += dsTuan.map(t => `<option value="Tuần ${t}">`).join('');
+    let htmlTuan = `<option value="Tất cả các tuần">` + dsTuan.map(t => `<option value="Tuần ${t}">`).join('');
     document.getElementById('dlTuanTk').innerHTML = htmlTuan;
     document.getElementById('inputTuanTk').value = "Tất cả các tuần";
 }
@@ -158,13 +158,15 @@ async function goiTraCuuThongKe() {
     const vungKetQua = document.getElementById('vungKetQuaThongKe');
     vungKetQua.classList.remove('p-4', 'overflow-auto');
     vungKetQua.classList.add('p-0', 'overflow-hidden');
-    vungKetQua.innerHTML = `<div class="mt-20 text-center text-blue-600 font-bold w-full"><div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang truy xuất CSDL...</div>`;
+    vungKetQua.innerHTML = `<div class="m-auto text-center text-blue-600 font-bold w-full"><div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang truy xuất CSDL...</div>`;
 
     try {
         let mangDinhMucChuan = {};
         let mapTenGiaoVien = {}; 
         
-        // NÂNG CẤP: Chuyển toàn bộ Mã GV về chữ thường (toLowerCase) để triệt tiêu lỗi gõ sai Hoa/Thường
+        // [NÂNG CẤP]: Áp dụng fetchVoiCoCheThuLai để kết nối ổn định
+        const fetchFunc = (typeof fetchVoiCoCheThuLai === 'function') ? fetchVoiCoCheThuLai : fetch;
+
         if (typeof duLieuDanhMucGV !== 'undefined' && duLieuDanhMucGV.length > 0) {
             duLieuDanhMucGV.forEach(g => {
                 let ma = (g.maGv || g.hoTen || '').toString().trim();
@@ -174,7 +176,7 @@ async function goiTraCuuThongKe() {
             });
         } else {
             try {
-                const resDM = await fetch(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDanhMucGV`);
+                const resDM = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDanhMucGV`);
                 const dataDM = await resDM.json();
                 if (dataDM && dataDM.length > 1) {
                     for (let i = 1; i < dataDM.length; i++) {
@@ -191,18 +193,23 @@ async function goiTraCuuThongKe() {
             } catch(e) { console.warn("Lỗi tải định mức:", e); }
         }
 
-        const phanHoi = await fetch(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=traCuuThongKe&namHoc=${namHoc}&thang=${thang}&tuan=${tuan}&giaoVien=${giaoVien}`);
+        const phanHoi = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=traCuuThongKe&namHoc=${namHoc}&thang=${thang}&tuan=${tuan}&giaoVien=${giaoVien}`);
         duLieuThongKeHienTai = await phanHoi.json();
         
         let kieuGv = document.getElementById('inputGiaoVienTk').value.trim();
-        if (kieuGv === "Toàn trường" || kieuGv === "") {
-            veBangThongKeToanTruong(duLieuThongKeHienTai, namHoc, thang, tuan, soTuanTraCuu, mangDinhMucChuan, mapTenGiaoVien);
-        } else {
-            veMaTranThongKeCaNhan(duLieuThongKeHienTai, kieuGv, namHoc, thang, tuan);
-        }
-    } catch (loi) {
+        
+        // [NÂNG CẤP]: Sử dụng requestAnimationFrame để tránh nghẽn luồng render
+        requestAnimationFrame(() => {
+            if (kieuGv === "Toàn trường" || kieuGv === "") {
+                veBangThongKeToanTruong(duLieuThongKeHienTai, namHoc, thang, tuan, soTuanTraCuu, mangDinhMucChuan, mapTenGiaoVien);
+            } else {
+                veMaTranThongKeCaNhan(duLieuThongKeHienTai, kieuGv, namHoc, thang, tuan);
+            }
+        });
+        
+        } catch (loi) {
         console.error("Lỗi Tra cứu:", loi);
-        vungKetQua.innerHTML = `<div class="mt-20 text-center text-red-500 font-bold w-full">Lỗi kết nối máy chủ dữ liệu.</div>`;
+        vungKetQua.innerHTML = `<div class="m-auto text-center text-red-500 font-bold w-full">Lỗi kết nối máy chủ dữ liệu.</div>`;
     }
 }
 
@@ -239,12 +246,14 @@ function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDin
         hienThiGhiChuDm = `Dựa trên mốc ${soTuanTraCuu} tuần giảng dạy`;
     }
 
-    let html = `<div class="flex-none p-4 pb-2 bg-white z-30 relative shadow-sm border-b border-gray-300 text-center">
+    // [NÂNG CẤP]: Chuyển sang dùng Array.push để tối ưu bộ nhớ
+    let htmlArr = [];
+    htmlArr.push(`<div class="flex-none p-4 pb-2 bg-white z-30 relative shadow-sm border-b border-gray-300 text-center">
                     <h2 class="text-xl font-bold text-blue-900 uppercase tracking-wide">${tDe}</h2>
                     <p class="text-xs text-slate-500 font-semibold italic mt-0.5">${hienThiGhiChuDm}</p>
-                </div>`;
+                </div>`);
     
-    html += `<div class="flex-1 overflow-y-auto px-4 pb-4 pt-0 bg-gray-50 relative">
+    htmlArr.push(`<div class="flex-1 overflow-y-auto px-4 pb-4 pt-0 bg-gray-50 relative">
                 <table class="w-full h-fit text-sm border-collapse border border-gray-400 bg-white">
                     <thead class="sticky top-0 z-20 shadow-sm ring-1 ring-gray-400">
                         <tr>
@@ -257,7 +266,7 @@ function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDin
                             <th class="border border-gray-400 py-1.5 px-2 bg-yellow-100 text-yellow-900 font-extrabold text-base text-center w-[1%] whitespace-nowrap px-6">Thừa / Thiếu</th>
                         </tr>
                     </thead>
-                    <tbody>`;
+                    <tbody>`);
     
     let tongHopGv = {};
     duLieu.forEach(t => {
@@ -267,14 +276,12 @@ function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDin
         tongHopGv[t.maGv].tong++;
     });
 
-let dsGv = Object.keys(tongHopGv).sort();
+    let dsGv = Object.keys(tongHopGv).sort();
     dsGv.forEach((gv, index) => {
         let th = tongHopGv[gv];
-        let gvKey = gv.toLowerCase(); // Đưa chìa khóa tìm kiếm về chữ thường
+        let gvKey = gv.toLowerCase(); 
         
         let dinhMuc1Tuan = mangDinhMucChuan[gvKey] || 0;
-        
-        // XỬ LÝ TÊN GIAO DIỆN: Tên thật ở trên, Mã ID in nghiêng ở dưới
         let tenThuc = mapTenGiaoVien[gvKey] ? mapTenGiaoVien[gvKey] : gv;
         let tenHienThi = (tenThuc.toLowerCase() !== gv.toLowerCase()) 
                          ? `${tenThuc} <br><span class="text-[12px] text-gray-500 font-bold italic">(${gv})</span>` 
@@ -329,8 +336,7 @@ let dsGv = Object.keys(tongHopGv).sort();
             hienThiChenhLech = "-";
         }
 
-        // Tăng padding trục Y (py-1.5) để tối ưu không gian hiển thị Tên và Mã
-        html += `<tr class="hover:bg-slate-50 text-center transition-colors">
+        htmlArr.push(`<tr class="hover:bg-slate-50 text-center transition-colors">
                     <td class="border border-gray-400 py-1.5 px-2 font-bold text-slate-500 leading-tight w-[1%] whitespace-nowrap">${index + 1}</td>
                     <td class="border border-gray-400 py-1.5 px-3 font-bold text-slate-800 leading-tight text-left">${tenHienThi}</td>
                     <td class="border border-gray-400 py-1.5 px-2 font-bold text-purple-700 bg-purple-50/30 w-[1%] whitespace-nowrap leading-tight text-base">${hiểnThịDinhMuc}</td>
@@ -338,17 +344,18 @@ let dsGv = Object.keys(tongHopGv).sort();
                     <td class="border border-gray-400 py-1.5 px-2 w-[1%] whitespace-nowrap leading-tight">${th.chieu}</td>
                     <td class="border border-gray-400 py-1.5 px-2 ${textClassTong} ${bgClassTong} text-base w-[1%] whitespace-nowrap leading-tight">${th.tong}</td>
                     <td class="border border-gray-400 py-1.5 px-2 ${classChenhLech} text-base w-[1%] whitespace-nowrap leading-tight">${hienThiChenhLech}</td>
-                 </tr>`;
+                 </tr>`);
     });
     
-    html += `</tbody></table></div>`;
-    document.getElementById('vungKetQuaThongKe').innerHTML = html;
+    htmlArr.push(`</tbody></table></div>`);
+    document.getElementById('vungKetQuaThongKe').innerHTML = htmlArr.join('');
 }
 
 function veMaTranThongKeCaNhan(duLieu, gv, nam, thang, tuan) {
     let tDe = `Lịch Trình Giảng Dạy: <span class="text-red-600">${gv}</span>`;
     
-    let html = `<div class="flex-none py-1.5 px-4 bg-white z-30 relative shadow-sm border-b border-gray-300 text-center">
+    let htmlArr = [];
+    htmlArr.push(`<div class="flex-none py-1.5 px-4 bg-white z-30 relative shadow-sm border-b border-gray-300 text-center">
                     <h2 class="text-xl font-bold text-blue-900 mb-1.5 uppercase tracking-wide leading-tight">${tDe} <br><span class="text-sm text-slate-600 normal-case">(Năm học ${nam} ${thang ? '- Tháng ' + thang : ''} ${tuan ? '- Tuần ' + tuan : ''})</span></h2>
                     <div class="flex justify-center">
                         <div class="bg-blue-50 border border-blue-200 rounded shadow-sm px-6 py-1 text-center">
@@ -356,7 +363,7 @@ function veMaTranThongKeCaNhan(duLieu, gv, nam, thang, tuan) {
                             <p class="text-2xl font-extrabold text-blue-900 leading-none">${duLieu.length}</p>
                         </div>
                     </div>
-                </div>`;
+                </div>`);
 
     let luoi = {};
     let thuMacDinh = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
@@ -371,7 +378,7 @@ function veMaTranThongKeCaNhan(duLieu, gv, nam, thang, tuan) {
         }
     });
 
-    html += `<div class="flex-1 overflow-y-auto px-4 pb-4 pt-0 bg-gray-50 relative">
+    htmlArr.push(`<div class="flex-1 overflow-y-auto px-4 pb-4 pt-0 bg-gray-50 relative">
                 <table class="w-full text-center border-collapse border border-gray-400 bg-white">
                     <thead class="sticky top-0 z-20 shadow-sm ring-1 ring-gray-400">
                         <tr>
@@ -381,34 +388,45 @@ function veMaTranThongKeCaNhan(duLieu, gv, nam, thang, tuan) {
                             <th class="border border-gray-400 p-2 bg-slate-200 w-auto">Chi tiết Lên Lớp (Môn - Lớp)</th>
                         </tr>
                     </thead>
-                    <tbody>`;
+                    <tbody>`);
 
     thuMacDinh.forEach(thu => {
+        // [SỬA LỖI UI QUAN TRỌNG]: Tính toán chính xác tổng số dòng của cả ngày trước khi vẽ HTML
+        // Đảm bảo thuộc tính rowspan của cột "Thứ" không bị gãy cấu trúc khi có buổi học bị trống hoàn toàn
+        let soDongThu = Object.keys(luoi[thu]["Sáng"]).length + Object.keys(luoi[thu]["Chiều"]).length;
+        let daInCotThu = false;
+
         ["Sáng", "Chiều"].forEach(buoi => {
             let dsTiet = Object.keys(luoi[thu][buoi]).sort((a, b) => a - b);
             if (dsTiet.length > 0) {
                 dsTiet.forEach((tiet, index) => {
-                    html += `<tr class="hover:bg-slate-50 transition-colors">`;
-                    if (index === 0 && buoi === "Sáng") html += `<td rowspan="${Object.keys(luoi[thu]["Sáng"]).length + Object.keys(luoi[thu]["Chiều"]).length}" class="border border-gray-400 font-extrabold bg-slate-50 w-[1%] whitespace-nowrap px-4">${thu}</td>`;
-                    if (index === 0) html += `<td rowspan="${dsTiet.length}" class="border border-gray-400 font-bold w-[1%] whitespace-nowrap px-4">${buoi}</td>`;
+                    htmlArr.push(`<tr class="hover:bg-slate-50 transition-colors">`);
                     
-                    html += `<td class="border border-gray-400 py-1 px-4 font-bold text-slate-800 w-[1%] whitespace-nowrap">${tiet}</td>
-                             <td class="border border-gray-400 py-1 px-2 text-left space-y-1">`;
+                    if (!daInCotThu) { 
+                        htmlArr.push(`<td rowspan="${soDongThu}" class="border border-gray-400 font-extrabold bg-slate-50 w-[1%] whitespace-nowrap px-4">${thu}</td>`);
+                        daInCotThu = true;
+                    }
+                    if (index === 0) {
+                        htmlArr.push(`<td rowspan="${dsTiet.length}" class="border border-gray-400 font-bold w-[1%] whitespace-nowrap px-4">${buoi}</td>`);
+                    }
+                    
+                    htmlArr.push(`<td class="border border-gray-400 py-1 px-4 font-bold text-slate-800 w-[1%] whitespace-nowrap">${tiet}</td>
+                             <td class="border border-gray-400 py-1 px-2 text-left space-y-1">`);
                     
                     let thongTinTiet = luoi[thu][buoi][tiet];
                     for (let khoa in thongTinTiet) {
                         let soLan = thongTinTiet[khoa];
-                        html += `<div class="inline-block bg-white border border-gray-300 rounded px-2 py-1 text-sm font-semibold shadow-sm mr-1 mb-1">
+                        htmlArr.push(`<div class="inline-block bg-white border border-gray-300 rounded px-2 py-1 text-sm font-semibold shadow-sm mr-1 mb-1">
                                     <span class="text-blue-800">${khoa}</span> 
                                     <span class="text-xs bg-red-100 text-red-700 px-1 rounded ml-1" title="Số tiết dạy môn này tại tiết này">${soLan} tiết</span>
-                                 </div>`;
+                                 </div>`);
                     }
-                    html += `</td></tr>`;
+                    htmlArr.push(`</td></tr>`);
                 });
             }
         });
     });
 
-    html += `</tbody></table></div>`;
-    document.getElementById('vungKetQuaThongKe').innerHTML = html;
+    htmlArr.push(`</tbody></table></div>`);
+    document.getElementById('vungKetQuaThongKe').innerHTML = htmlArr.join('');
 }
