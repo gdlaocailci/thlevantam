@@ -588,7 +588,7 @@ function xuatMaTranBang(danhSachTiet) {
 }
 
 // =========================================================================
-// KHỐI 4: TRÌNH LƯU TRỮ VÀ XỬ LÝ DỮ LIỆU ĐA TẦNG
+// KHỐI 4: TRÌNH LƯU TRỮ VÀ XỬ LÝ DỮ LIỆU ĐA TẦNG (ĐÃ NÂNG CẤP TỐC ĐỘ CAO)
 // =========================================================================
 async function luuDuLieu(event, loaiLuu) {
     if (!quyenSuaChua) return;
@@ -597,52 +597,66 @@ async function luuDuLieu(event, loaiLuu) {
     
     if (loaiLuu === 'khoiphuc') { if (!confirm(`Xác nhận: Lưu trữ toàn bộ TKB Tuần ${tuanDangXem}, tự động chuyển sang tuần tiếp theo?`)) return; }
 
-    const btn = event.currentTarget; const textGoc = btn.innerHTML;
+    const btn = event.currentTarget; 
+    const textGoc = btn.innerHTML;
     if(btn.disabled === undefined) { } else {
-        btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang xử lý...`; btn.disabled = true;
+        btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang xử lý...`; 
+        btn.disabled = true;
     }
 
     try {
         let dsTietLuoi = []; 
+        let namHocChuan = thongSoHocVu.NAM_HOC || "";
         
-        const mangLop = thongSoHocVu.DANH_SACH_LOP || []; const thuMacDinh = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"]; const buoiMacDinh = ["Sáng", "Chiều"];
+        // [NÂNG CẤP]: Dùng querySelectorAll gom toàn bộ ô Môn học trong 1 lần quét DOM (Bỏ 4 vòng lặp lồng nhau)
+        // Hệ thống sẽ chỉ quét những ô Môn học đang thực sự có trên lưới
+        let cacOMon = document.querySelectorAll('input[id^="mon_"]');
         
-        thuMacDinh.forEach(thu => {
-            let thongTinNgay = tinhNgayDocLap(ngayDauTuanUI, thu);
-
-            buoiMacDinh.forEach(buoi => {
-                let soTietToiThieu = (buoi === "Sáng") ? 5 : 4;
-                let soTiet = Math.max(parseInt(thongSoHocVu[(buoi==="Sáng") ? "SO_TIET_SANG" : "SO_TIET_CHIEU"]) || 4, soTietToiThieu);
+        cacOMon.forEach(oMon => {
+            let valMon = oMon.value.trim();
+            // Kỹ thuật Fast-Fail: Chỉ xử lý nếu ô môn học có dữ liệu
+            if (valMon !== "") {
+                // Tách ID (Ví dụ: mon_Thứ 2_Sáng_1_1A1) thành các tham số
+                let parts = oMon.id.split('_'); 
+                let thu = parts[1];
+                let buoi = parts[2];
+                let tiet = parts[3];
+                // Dùng slice để ghép lại tên lớp nếu tên lớp có chứa dấu gạch dưới
+                let lop = parts.slice(4).join('_'); 
                 
-                for(let t=1; t<=soTiet; t++) {
-                    let vTuan = tuanDangXem;
-                    let vThang = thongTinNgay.thang;
-                    let vNgay = thongTinNgay.ngayDayDu;
-                    let vNam = thongSoHocVu.NAM_HOC || thongTinNgay.nam;
-
-                    mangLop.forEach(lop => {
-                        let theSelectMon = document.getElementById(`mon_${thu}_${buoi}_${t}_${lop}`);
-                        let theSelectGv = document.getElementById(`gv_${thu}_${buoi}_${t}_${lop}`);
-                        
-                        if(theSelectMon && theSelectMon.value && theSelectMon.value.trim() !== "") {
-                            let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
-                            dsTietLuoi.push({ 
-                                maTiet: `${vTuan}_${thu}_${tienToBuoi}_${t}_${lop}`, 
-                                namHoc: vNam, thang: vThang, ngay: vNgay, tuan: vTuan, 
-                                thu: thu, buoi: buoi, tiet: t, maLop: lop, monHoc: theSelectMon.value.trim(), maGv: theSelectGv ? theSelectGv.value.trim() : "" 
-                            });
-                        }
-                    });
-                }
-            });
+                // Nhặt nhanh dữ liệu Giáo viên tương ứng
+                let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
+                let valGv = oGv ? oGv.value.trim() : "";
+                
+                let thongTinNgay = tinhNgayDocLap(ngayDauTuanUI, thu);
+                let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
+                
+                dsTietLuoi.push({ 
+                    maTiet: `${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`, 
+                    namHoc: namHocChuan || thongTinNgay.nam, 
+                    thang: thongTinNgay.thang, 
+                    ngay: thongTinNgay.ngayDayDu, 
+                    tuan: tuanDangXem, 
+                    thu: thu, 
+                    buoi: buoi, 
+                    tiet: tiet, 
+                    maLop: lop, 
+                    monHoc: valMon, 
+                    maGv: valGv 
+                });
+            }
         });
 
         // Sử dụng hàm fetch cải tiến
-        const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { method: 'POST', body: JSON.stringify({ thaoTac: 'luuDuLieu', loaiLuu: loaiLuu, tuan: tuanDangXem, duLieu: dsTietLuoi }) });
+        const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { 
+            method: 'POST', 
+            body: JSON.stringify({ thaoTac: 'luuDuLieu', loaiLuu: loaiLuu, tuan: tuanDangXem, duLieu: dsTietLuoi }) 
+        });
         const ketQua = await phanHoi.json();
         
         if(ketQua.trangThai !== 'thanh_cong') { 
             console.error("Sự cố máy chủ."); 
+            alert("Lưu thất bại: " + ketQua.thongBao);
         } else { 
             if (loaiLuu === 'khoiphuc') {
                 await chuyenTuan(1); 
@@ -654,9 +668,14 @@ async function luuDuLieu(event, loaiLuu) {
                 await taiDuLieuTKB();
             }
         }
-    } catch (loi) { console.error("Lỗi kết nối.", loi); } 
-    finally { 
-        if(btn.disabled !== undefined) { btn.innerHTML = textGoc; btn.disabled = false; }
+    } catch (loi) { 
+        console.error("Lỗi kết nối.", loi); 
+        alert("Có sự cố trong quá trình kết nối đến máy chủ.");
+    } finally { 
+        if(btn.disabled !== undefined) { 
+            btn.innerHTML = textGoc; 
+            btn.disabled = false; 
+        }
     }
 }
 
