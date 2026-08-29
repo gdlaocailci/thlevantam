@@ -88,7 +88,7 @@ function taoKhungGiaoDienPPCT() {
                     <input type="text" id="locMonPPCT" list="listMonPPCT" class="w-full px-2 py-1.5 border border-blue-300 rounded outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-900 bg-blue-50" placeholder="Chọn môn">
                     <datalist id="listMonPPCT"></datalist>
                 </div>
-                <button onclick="taiDuLieuTkbVaPpct()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-6 rounded shadow transition duration-200 text-sm ml-auto flex items-center gap-2">
+               <button onclick="taiDuLieuTkbVaPpct()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-6 rounded shadow transition duration-200 text-sm ml-auto flex items-center gap-2 h-[34px]">
                     Xác nhận
                 </button>
             </div>
@@ -396,7 +396,24 @@ function veBangKhungLichPPCT(monDangChon) {
                             <td class="border-r border-gray-400 align-middle font-extrabold text-slate-800 text-center">${tiet}</td>
                             <td class="border-r border-gray-300 align-middle text-center p-3 font-extrabold text-red-600 break-words whitespace-normal" data-ppct-id="${idKhoa}" data-loai="tietPpc">${valTietPPC}</td>
                             <td class="border-r border-gray-300 align-middle text-center font-bold text-blue-800 break-words whitespace-normal">${tenMonTkb}</td>
-                            <td class="border-r border-gray-300 align-middle text-left p-3 font-semibold text-slate-900 break-words whitespace-normal leading-relaxed" data-ppct-id="${idKhoa}" data-loai="tenBai" style="white-space: normal !important; max-width: 400px; word-break: break-word;">${valTenBai}</td>
+
+                     
+                            <td class="border-r border-gray-300 align-middle text-left p-3 break-words whitespace-normal leading-relaxed" style="white-space: normal !important; max-width: 400px; word-break: break-word;">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-semibold text-slate-900 flex-1" data-ppct-id="${idKhoa}" data-loai="tenBai">${valTenBai}</span>
+                                    
+                                    <button onclick="kichHoatXemTruocSGK(document.getElementById('locKhoiPPCT').getAttribute('data-khoi-so'), '${tenMonTkb}', document.querySelector('[data-ppct-id=\\'${idKhoa}\\'][data-loai=\\'tenBai\\']').innerText)" 
+                                            class="p-1.5 rounded bg-blue-50 hover:bg-blue-200 text-blue-700 transition flex-none shadow-sm border border-blue-200" 
+                                            title="Xem và tải trang SGK bài học này">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>                     
+
+                           
                             <td class="align-middle text-left p-3 italic text-gray-700 break-words whitespace-normal leading-relaxed" data-ppct-id="${idKhoa}" data-loai="dieuChinh" style="white-space: normal !important; max-width: 300px; word-break: break-word;">${valDieuChinh}</td>
                         </tr>`;
                     });
