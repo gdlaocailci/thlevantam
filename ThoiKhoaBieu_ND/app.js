@@ -274,9 +274,12 @@ function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = 
     // Khởi tạo ID duy nhất cho datalist gắn với mỗi input
     let idDatalist = idPhanTu ? `list_${idPhanTu}` : `list_${Math.random().toString(36).substring(7)}`;
     
+    // [NÂNG CẤP UI]: Bắt trực tiếp sự kiện gõ phím, chọn danh sách và thoát chuột cho cột Giáo viên
+    let suKienKiemTra = (idPhanTu && idPhanTu.startsWith('gv_')) ? `oninput="if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang()" onchange="if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang()" onblur="if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang()"` : '';
+
     // Thuộc tính autocomplete="off" để tránh Google chèn gợi ý cá nhân đè lên danh sách của trường
     // Thêm size="1" và min-w-0 để triệt tiêu độ rộng mặc định của input, giúp cột co về đúng kích thước chuẩn
-    let html = `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()">`; 
+    let html = `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()" ${suKienKiemTra}>`; 
     
     html += `<datalist id="${idDatalist}">`;
     if (danhSach && danhSach.length > 0) {
@@ -547,7 +550,11 @@ function xuatMaTranBang(danhSachTiet) {
                 tbodyHTML += `<td id="uiThang_${thu}_${buoi}_${tiet}" data-ngay="${thongTinNgay.ngayDayDu}" class="hidden text-center font-bold text-red-600 align-middle">${valThang}</td>`;
                 tbodyHTML += `<td id="uiNam_${thu}_${buoi}_${tiet}" class="hidden text-center font-bold text-red-600 align-middle">${valNam}</td>`;
                 
-                tbodyHTML += `<td class="text-center font-bold text-slate-800 align-middle border-b border-r border-slate-300" style="position: sticky; left: 145px; z-index: 40; background-color: #ffffff; box-shadow: 3px 0 5px -2px rgba(0,0,0,0.15);">${tiet}</td>`;
+                // [NÂNG CẤP UI]: Định vị ô Tiết và tạo vùng chứa cảnh báo giáo viên trùng lịch
+                tbodyHTML += `<td id="oTiet_${thu}_${buoi}_${tiet}" class="text-center font-bold text-slate-800 align-middle border-b border-r border-slate-300" style="position: sticky; left: 145px; z-index: 40; background-color: #ffffff; box-shadow: 3px 0 5px -2px rgba(0,0,0,0.15);">
+                                <div class="text-base leading-none mt-1">${tiet}</div>
+                                <div class="vung-canh-bao-gv mt-0.5"></div>
+                              </td>`;
 
                 mangLop.forEach(lop => {
                     const duLieuO = luoiDuLieu[thu][buoi][tiet] ? luoiDuLieu[thu][buoi][tiet][lop] : null;
@@ -573,6 +580,11 @@ function xuatMaTranBang(danhSachTiet) {
         });
     });
     tbody.innerHTML = tbodyHTML;
+    
+    // [NÂNG CẤP UI]: Gọi hàm kiểm tra ngay sau khi vẽ bảng
+    if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
+        kiemTraTrungGiaoVienToanBang();
+    }
 }
 
 // =========================================================================
@@ -593,69 +605,44 @@ async function luuDuLieu(event, loaiLuu) {
     try {
         let dsTietLuoi = []; 
         
-        // [BẢN NÂNG CẤP]: Thuật toán truy vấn DOM nguyên khối (Batch DOM Query)
-        // Thay vì dùng 4 vòng lặp lồng nhau quét hàng ngàn lần, gom tất cả input bằng 2 lệnh querySelectorAll
-        const tatCaO_Mon = document.querySelectorAll('input[id^="mon_"]');
-        const tatCaO_Gv = document.querySelectorAll('input[id^="gv_"]');
+        const mangLop = thongSoHocVu.DANH_SACH_LOP || []; const thuMacDinh = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"]; const buoiMacDinh = ["Sáng", "Chiều"];
         
-        // Đưa ID và dữ liệu Giáo viên vào một bảng Băm (Hash Map) trong RAM để tra cứu siêu tốc O(1)
-        let mapGiaoVien = {};
-        tatCaO_Gv.forEach(inputGV => {
-            mapGiaoVien[inputGV.id] = inputGV.value.trim();
-        });
-
-        // Tính trước thông tin ngày/tháng để không phải chạy hàm tính toán nhiều lần trong vòng lặp
-        let mapNgayThang = {};
-        const thuMacDinh = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
         thuMacDinh.forEach(thu => {
-            mapNgayThang[thu] = tinhNgayDocLap(ngayDauTuanUI, thu);
+            let thongTinNgay = tinhNgayDocLap(ngayDauTuanUI, thu);
+
+            buoiMacDinh.forEach(buoi => {
+                let soTietToiThieu = (buoi === "Sáng") ? 5 : 4;
+                let soTiet = Math.max(parseInt(thongSoHocVu[(buoi==="Sáng") ? "SO_TIET_SANG" : "SO_TIET_CHIEU"]) || 4, soTietToiThieu);
+                
+                for(let t=1; t<=soTiet; t++) {
+                    let vTuan = tuanDangXem;
+                    let vThang = thongTinNgay.thang;
+                    let vNgay = thongTinNgay.ngayDayDu;
+                    let vNam = thongSoHocVu.NAM_HOC || thongTinNgay.nam;
+
+                    mangLop.forEach(lop => {
+                        let theSelectMon = document.getElementById(`mon_${thu}_${buoi}_${t}_${lop}`);
+                        let theSelectGv = document.getElementById(`gv_${thu}_${buoi}_${t}_${lop}`);
+                        
+                        if(theSelectMon && theSelectMon.value && theSelectMon.value.trim() !== "") {
+                            let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
+                            dsTietLuoi.push({ 
+                                maTiet: `${vTuan}_${thu}_${tienToBuoi}_${t}_${lop}`, 
+                                namHoc: vNam, thang: vThang, ngay: vNgay, tuan: vTuan, 
+                                thu: thu, buoi: buoi, tiet: t, maLop: lop, monHoc: theSelectMon.value.trim(), maGv: theSelectGv ? theSelectGv.value.trim() : "" 
+                            });
+                        }
+                    });
+                }
+            });
         });
 
-        let vNam = thongSoHocVu.NAM_HOC || mapNgayThang["Thứ 2"].nam;
-
-        // Chỉ quét qua những ô Môn học đang hiển thị trên giao diện và có dữ liệu
-        tatCaO_Mon.forEach(inputMon => {
-            let valMon = inputMon.value.trim();
-            if (valMon !== "") {
-                // Cấu trúc ID chuẩn: mon_Thứ 2_Sáng_1_1A
-                // Tách mảng để lấy thông tin bằng phương pháp Destructuring
-                let parts = inputMon.id.split('_');
-                let thu = parts[1];
-                let buoi = parts[2];
-                let t = parts[3];
-                // Ghép các phần tử cuối phòng trường hợp tên lớp có dấu gạch dưới (VD: 9_A1)
-                let lop = parts.slice(4).join('_');
-                
-                // Tra cứu chéo sang bảng Giáo viên trong RAM
-                let idGv = `gv_${thu}_${buoi}_${t}_${lop}`;
-                let valGv = mapGiaoVien[idGv] || "";
-                
-                let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
-                let thongTinNgay = mapNgayThang[thu];
-
-                dsTietLuoi.push({ 
-                    maTiet: `${tuanDangXem}_${thu}_${tienToBuoi}_${t}_${lop}`, 
-                    namHoc: vNam, 
-                    thang: thongTinNgay.thang, 
-                    ngay: thongTinNgay.ngayDayDu, 
-                    tuan: tuanDangXem, 
-                    thu: thu, 
-                    buoi: buoi, 
-                    tiet: parseInt(t), 
-                    maLop: lop, 
-                    monHoc: valMon, 
-                    maGv: valGv 
-                });
-            }
-        });
-
-        // Sử dụng hàm fetch cải tiến gửi gói dữ liệu (Payload) lên máy chủ
+        // Sử dụng hàm fetch cải tiến
         const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { method: 'POST', body: JSON.stringify({ thaoTac: 'luuDuLieu', loaiLuu: loaiLuu, tuan: tuanDangXem, duLieu: dsTietLuoi }) });
         const ketQua = await phanHoi.json();
         
         if(ketQua.trangThai !== 'thanh_cong') { 
             console.error("Sự cố máy chủ."); 
-            alert("Lỗi máy chủ khi ghi dữ liệu. Vui lòng thử lại.");
         } else { 
             if (loaiLuu === 'khoiphuc') {
                 await chuyenTuan(1); 
@@ -667,10 +654,8 @@ async function luuDuLieu(event, loaiLuu) {
                 await taiDuLieuTKB();
             }
         }
-    } catch (loi) { 
-        console.error("Lỗi kết nối.", loi); 
-        alert("Sự cố gián đoạn đường truyền hoặc máy chủ Google từ chối truy cập.");
-    } finally { 
+    } catch (loi) { console.error("Lỗi kết nối.", loi); } 
+    finally { 
         if(btn.disabled !== undefined) { btn.innerHTML = textGoc; btn.disabled = false; }
     }
 }
@@ -1099,3 +1084,44 @@ document.addEventListener('click', function(suKien) {
         }, 20);
     }
 });
+
+// =========================================================================
+// [NÂNG CẤP UI]: Thuật toán quét và cảnh báo giáo viên trùng lịch (Real-time)
+// =========================================================================
+window.kiemTraTrungGiaoVienToanBang = function() {
+    const thuMacDinh = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+    const buoiMacDinh = ["Sáng", "Chiều"];
+    
+    thuMacDinh.forEach(thu => {
+        buoiMacDinh.forEach(buoi => {
+            for(let tiet = 1; tiet <= 5; tiet++) {
+                let oTiet = document.getElementById(`oTiet_${thu}_${buoi}_${tiet}`);
+                if (!oTiet) continue; 
+                
+                let cacOGiaoVien = document.querySelectorAll(`input[id^="gv_${thu}_${buoi}_${tiet}_"]`);
+                let demGv = {};
+                
+                cacOGiaoVien.forEach(oGv => {
+                    let tenGv = oGv.value.trim();
+                    if (tenGv !== "" && tenGv !== "--") {
+                        demGv[tenGv] = (demGv[tenGv] || 0) + 1;
+                    }
+                });
+                
+                let mangTrung = [];
+                for (let gv in demGv) {
+                    if (demGv[gv] > 1) mangTrung.push(gv);
+                }
+                
+                let vungCanhBao = oTiet.querySelector('.vung-canh-bao-gv');
+                if (vungCanhBao) {
+                    if (mangTrung.length > 0) {
+                        vungCanhBao.innerHTML = `<div class="text-[10px] text-red-600 font-extrabold leading-tight max-w-[45px] mx-auto truncate cursor-help" title="Lỗi trùng lịch: ${mangTrung.join(', ')}">${mangTrung.join('<br>')}</div>`;
+                    } else {
+                        vungCanhBao.innerHTML = '';
+                    }
+                }
+            }
+        });
+    });
+};
