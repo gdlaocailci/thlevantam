@@ -6,20 +6,37 @@ let ngayDauTuanUI = '';
 
 document.addEventListener('DOMContentLoaded', () => { khoiTaoGiaoDien(); });
 
-// =========================================================================
-// [BẢN NÂNG CẤP]: HÀM TIỆN ÍCH FETCH VỚI CƠ CHẾ LÙI BƯỚC (EXPONENTIAL BACKOFF)
-// Giải quyết triệt để lỗi 404 ngắt quãng do Google Rate Limiting
-// =========================================================================
+
 async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3) {
     for (let i = 0; i < soLanThu; i++) {
         try {
             const phanHoi = await fetch(url, tuyChon);
-            if (!phanHoi.ok) throw new Error(`Máy chủ từ chối kết nối (Mã lỗi HTTP: ${phanHoi.status})`);
-            return phanHoi;
+            
+            if (!phanHoi.ok) {
+                throw new Error(`Máy chủ từ chối kết nối (Mã lỗi HTTP: ${phanHoi.status})`);
+            }
+
+            // [LÕI NÂNG CẤP]: Đọc thẳng văn bản 1 lần duy nhất, KHÔNG dùng clone()
+            const noiDungText = await phanHoi.text();
+
+            // Kiểm tra tính hợp lệ của dữ liệu (Chống HTML ảo từ Google)
+            try {
+                JSON.parse(noiDungText);
+            } catch (loiCuPhap) {
+                throw new Error("Dữ liệu trả về bị nhiễu định dạng (Google Apps Script đang bận).");
+            }
+
+            // Đóng gói lại thành đối tượng Response chuẩn để các hàm khác gọi .json() mượt mà
+            return new Response(noiDungText, {
+                status: phanHoi.status,
+                statusText: phanHoi.statusText,
+                headers: phanHoi.headers
+            });
+
         } catch (loi) {
-            if (i === soLanThu - 1) throw loi; // Ném lỗi nếu đã thử hết giới hạn
-            console.warn(`Kết nối API bị gián đoạn, đang thử lại lần ${i + 1}...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Tự động lùi bước 1s, 2s
+            if (i === soLanThu - 1) throw loi; // Văng lỗi ra giao diện nếu đã thử hết giới hạn
+            console.warn(`Đường truyền bị nghẽn, tự động kết nối lại lần ${i + 1}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Lùi bước 1s, 2s
         }
     }
 }
@@ -37,7 +54,8 @@ function kiemSoatGiaoDien() {
         }
     });
 
-    const dsMenuQuanTri = ['nhanHeThong', 'menuCaiDat', 'menuDanhMucGV', 'menuDanhMucLop', 'menuPhanCong', 'menuKhungChuongTrinh'];
+    // [ĐÃ SỬA LỖI]: Chỉ khóa đúng các Menu Quản trị thực sự. Trả lại hiển thị cho Phân phối chương trình.
+    const dsMenuQuanTri = ['nhanHeThong', 'menuCaiDat', 'menuDanhMucGV', 'menuDanhMucLop', 'menuPhanCong', 'menuKhungChuongTrinh', 'menuDanhMucSGK'];
     dsMenuQuanTri.forEach(idMenu => {
         let menu = document.getElementById(idMenu);
         if (menu) {
@@ -126,32 +144,42 @@ async function khoiTaoGiaoDien() {
             if (logoMenu) logoMenu.src = CAU_HINH_FRONTEND.LINK_LOGO_TRANG_CHU;
         }
 
-        const phanHoi = await fetch(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layCauHinh`);
-        if (!phanHoi.ok) throw new Error("Máy chủ từ chối kết nối");
+        // [SỬA LỖI CỐT LÕI]: Áp dụng fetchVoiCoCheThuLai để chống ngắt kết nối
+        // Hàm này sẽ tự động thử lại tối đa 3 lần nếu Google Apps Script từ chối
+        const phanHoi = await fetchVoiCoCheThuLai(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layCauHinh`);
         
         thongSoHocVu = await phanHoi.json();
         if (thongSoHocVu.trangThai === 'loi_he_thong') throw new Error(thongSoHocVu.thongBao);
         
         kiemSoatGiaoDien(); 
         
-        // [CẬP NHẬT SỬA LỖI]: Gọi hàm nạp dữ liệu cho ô Lọc Giáo Viên ngay sau khi lấy cấu hình
         napDuLieuBoLocGiaoVien();
         
         if(thongSoHocVu.NAM_HOC) { 
             let menuNam = document.getElementById('menuHienThiNamHoc'); 
             if (menuNam) menuNam.innerText = thongSoHocVu.NAM_HOC; 
         }
+
+        let theTrangThai = document.getElementById('trangThaiHeThong');
+        if (theTrangThai && thongSoHocVu.TRANG_THAI_WEB) {
+            let trangThai = thongSoHocVu.TRANG_THAI_WEB.trim();
+            if (trangThai.toLowerCase() === 'hoạt động') {
+                theTrangThai.innerText = 'Hệ thống mở';
+                theTrangThai.className = 'font-bold text-green-700 text-base leading-tight inline-block mt-0.5';
+            } else {
+                theTrangThai.innerText = 'Hệ thống đang nâng cấp\nBảo trì'; 
+                theTrangThai.className = 'font-bold text-red-600 text-base leading-tight inline-block mt-0.5 reactbits-bap-benh';
+            }
+        }
         
         tuanDangXem = parseInt(thongSoHocVu.TUAN_HIEN_TAI) || 1;
         let hienThiTuan = document.getElementById('hienThiTuanHienTai');
         if (hienThiTuan) hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
         
-        // [KHẮC PHỤC KHỞI ĐỘNG CHẬM]: Kế thừa TKB từ biến cấu hình, chặn gọi thêm API layTKB
         if (thongSoHocVu.TKB_TUAN && thongSoHocVu.TKB_TUAN.length > 0) {
             duLieuTkbHienTai = thongSoHocVu.TKB_TUAN;
             xuatMaTranBang(duLieuTkbHienTai);
         } else {
-            // Chỉ gọi API độc lập khi Cấu hình không gắn kèm TKB (dự phòng)
             await taiDuLieuTKB(); 
         }
         
@@ -621,123 +649,203 @@ async function luuDuLieu(event, loaiLuu) {
 }
 
 // =========================================================================
-// KHỐI 5: ĐỘNG CƠ ĐIỀU HƯỚNG SIÊU TỐC (MASTER ROUTER)
+// KHỐI 5: ĐỘNG CƠ ĐIỀU HƯỚNG SIÊU TỐC (MASTER ROUTER TỰ ĐỘNG)
+// Khắc phục triệt để lỗi "Dính Khung UI" và "Đứng hình trình duyệt"
 // =========================================================================
 window.kichHoatTab = function(idMenu, idKhung, hienThanhCongCuTKB) {
-    // 1. Phủ màu Menu mượt mà không độ trễ
-    const cacMenu = ['menuTKB', 'menuThongKe', 'menuPhanCong', 'menuKhungChuongTrinh', 'menuDanhMucGV', 'menuCaiDat', 'menuDanhMucLop'];
-    cacMenu.forEach(id => {
-        let m = document.getElementById(id);
-        if (m) {
+    try {
+        // 1. CHUYỂN MÀU MENU MƯỢT MÀ (Tự động quét toàn bộ thanh Menu)
+        document.querySelectorAll('nav a').forEach(m => {
             m.className = "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group";
             let span = m.querySelector('span');
             if (span) span.className = "font-bold text-white/80 group-hover:text-white transition-colors text-[14px]";
             let svg = m.querySelector('svg');
             if (svg) svg.className = "w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white";
+        });
+
+        if (idMenu) {
+            let mActive = document.getElementById(idMenu);
+            if (mActive) {
+                mActive.className = "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/20 bg-white/10 shadow-md backdrop-blur-sm cursor-pointer group";
+                let spanActive = mActive.querySelector('span');
+                if (spanActive) spanActive.className = "font-bold text-menu-active text-[14px]";
+                let svgActive = mActive.querySelector('svg');
+                if (svgActive) svgActive.className = "w-5 h-5 flex-none text-menu-active opacity-100";
+            }
         }
-    });
 
-    // Bật sáng Menu đang chọn
-    let mActive = document.getElementById(idMenu);
-    if (mActive) {
-        mActive.className = "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/20 bg-white/10 shadow-md backdrop-blur-sm cursor-pointer group";
-        let spanActive = mActive.querySelector('span');
-        if (spanActive) spanActive.className = "font-bold text-menu-active text-[14px]";
-        let svgActive = mActive.querySelector('svg');
-        if (svgActive) svgActive.className = "w-5 h-5 flex-none text-menu-active opacity-100";
-    }
-
-    // 2. Chuyển đổi khung màn hình tức thì bằng CSS
-    const tatCaKhung = ['khungTKB', 'khungThongKe', 'khungPhanCong', 'khungKhungChuongTrinh', 'khungDanhMucGV', 'khungCaiDat', 'khungDanhMucLop'];
-    tatCaKhung.forEach(id => {
-        let el = document.getElementById(id);
-        if (el) {
-            if (id === idKhung) {
-                el.classList.remove('hidden');
-                el.classList.add(id === 'khungTKB' || id === 'khungThongKe' ? 'block' : 'flex');
-            } else {
+        // 2. DỌN DẸP GIAO DIỆN (Quét TẤT CẢ các thẻ DIV chứa Khung để ép ẨN)
+        // Kỹ thuật này miễn nhiễm với lỗi sai ID, đảm bảo SGK chắc chắn bị ẩn
+        document.querySelectorAll('div[id^="khung"]').forEach(el => {
+            // Giữ lại Khung đọc PDF của SGK để không hỏng sách
+            if (el.id !== 'khungNoiDungModal' && el.id !== idKhung && !el.classList.contains('hidden')) {
                 el.classList.add('hidden');
                 el.classList.remove('block', 'flex');
             }
-        }
-    });
+        });
 
-    // 3. Tắt/Bật thanh công cụ riêng của TKB
-    let thanhCongCu = document.getElementById('thanhCongCuTKB');
-    if (thanhCongCu) {
-        if (hienThanhCongCuTKB) {
-            thanhCongCu.classList.remove('hidden');
-            thanhCongCu.classList.add('flex');
-        } else {
-            thanhCongCu.classList.remove('flex');
-            thanhCongCu.classList.add('hidden');
+        // 3. HIỂN THỊ KHUNG MỤC TIÊU VÀO ĐÚNG VỊ TRÍ
+        let khungDich = document.getElementById(idKhung);
+        if (khungDich) {
+            khungDich.classList.remove('hidden');
+            if (idKhung === 'khungTKB' || idKhung === 'khungThongKe') {
+                khungDich.classList.add('block');
+            } else {
+                khungDich.classList.add('flex');
+            }
         }
+
+        // 4. QUẢN LÝ THANH CÔNG CỤ TKB
+        let thanhCongCu = document.getElementById('thanhCongCuTKB');
+        if (thanhCongCu) {
+            if (hienThanhCongCuTKB) {
+                thanhCongCu.classList.remove('hidden');
+                thanhCongCu.classList.add('flex');
+            } else {
+                thanhCongCu.classList.remove('flex');
+                thanhCongCu.classList.add('hidden');
+            }
+        }
+    } catch (loiUI) {
+        console.error("Sự cố chuyển giao diện UI:", loiUI);
     }
 
-    // 4. KÍCH HOẠT TẢI DỮ LIỆU THÔNG MINH (Chỉ tải khi người dùng lần đầu bấm vào tab)
-    if (idKhung === 'khungThongKe' && typeof taiCayDanhMucThongKe === 'function' && Object.keys(cayDanhMucThongKe).length === 0) {
-        taiCayDanhMucThongKe();
-    }
-    if (idKhung === 'khungPhanCong' && typeof taiDuLieuPhanCongTuMayChu === 'function' && typeof danhSachGV !== 'undefined' && danhSachGV.length === 0) {
-        taiDuLieuPhanCongTuMayChu();
-    }
-    if (idKhung === 'khungDanhMucGV' && typeof taiDuLieuDanhMucGV === 'function' && typeof duLieuDanhMucGV !== 'undefined' && duLieuDanhMucGV.length === 0) {
-        taiDuLieuDanhMucGV();
-    }
-    if (idKhung === 'khungKhungChuongTrinh' && typeof taiDuLieuKhungChuongTrinhTuMayChu === 'function' && typeof duLieuBangKCT !== 'undefined' && duLieuBangKCT.length === 0) {
-        taiDuLieuKhungChuongTrinhTuMayChu();
-    }
-    if (idKhung === 'khungCaiDat' && typeof taiDuLieuCaiDatHeThong === 'function' && typeof dsThamSo !== 'undefined' && dsThamSo.length === 0) {
-        taiDuLieuCaiDatHeThong();
-    }
-    // [NÂNG CẤP]: Bổ sung lệnh đánh thức hàm tải cho Danh mục Lớp
-    if (idKhung === 'khungDanhMucLop' && typeof taiDuLieuDanhMucLop === 'function' && typeof duLieuDanhMucLop !== 'undefined' && duLieuDanhMucLop.length === 0) {
-        taiDuLieuDanhMucLop();
-    }
+    // 5. ĐÁNH THỨC DỮ LIỆU ĐA TẦNG (TÁCH LUỒNG UI BẰNG SETTIMEOUT)
+    // Giúp giao diện chuyển ngay lập tức, không bị giật lag nếu dữ liệu tải chậm
+    setTimeout(() => {
+        try {
+            if (idKhung === 'khungThongKe' && typeof taiCayDanhMucThongKe === 'function' && Object.keys(cayDanhMucThongKe).length === 0) taiCayDanhMucThongKe();
+            if (idKhung === 'khungPhanCong' && typeof taiDuLieuPhanCongTuMayChu === 'function' && typeof danhSachGV !== 'undefined' && danhSachGV.length === 0) taiDuLieuPhanCongTuMayChu();
+            if (idKhung === 'khungDanhMucGV' && typeof taiDuLieuDanhMucGV === 'function' && typeof duLieuDanhMucGV !== 'undefined' && duLieuDanhMucGV.length === 0) taiDuLieuDanhMucGV();
+            if (idKhung === 'khungKhungChuongTrinh' && typeof taiDuLieuKhungChuongTrinhTuMayChu === 'function' && typeof duLieuBangKCT !== 'undefined' && duLieuBangKCT.length === 0) taiDuLieuKhungChuongTrinhTuMayChu();
+            if (idKhung === 'khungCaiDat' && typeof taiDuLieuCaiDatHeThong === 'function' && typeof dsThamSo !== 'undefined' && dsThamSo.length === 0) taiDuLieuCaiDatHeThong();
+            if (idKhung === 'khungDanhMucLop' && typeof taiDuLieuDanhMucLop === 'function' && typeof duLieuDanhMucLop !== 'undefined' && duLieuDanhMucLop.length === 0) taiDuLieuDanhMucLop();
+            if (idKhung === 'khungDanhMucSGK' && typeof taiLaiDuLieuDanhMucSGK === 'function') taiLaiDuLieuDanhMucSGK();
+            
+            // Bắt mọi ID liên quan đến Phân phối chương trình để đánh thức
+            if (idKhung && (idKhung.toLowerCase().includes('phanphoi') || idKhung.toLowerCase().includes('ppct'))) {
+                if (typeof taiDuLieuPhanPhoiChuongTrinh === 'function') taiDuLieuPhanPhoiChuongTrinh();
+                if (typeof taiDuLieuPPCT === 'function') taiDuLieuPPCT();
+            }
+        } catch (loiData) {
+            console.error("Lỗi động cơ tải dữ liệu:", loiData);
+        }
+    }, 50); // Độ trễ vàng 50ms cho phép trình duyệt vẽ xong UI
 };
 
 // =========================================================================
-// KHỐI 6: XÁC THỰC DANH TÍNH
+// KHỐI 6: XÁC THỰC DANH TÍNH (BẢN NÂNG CẤP XỬ LÝ BẤT ĐỒNG BỘ)
 // =========================================================================
 let clientDangNhapG;
+let dangXuLyDangNhap = false; // Biến cờ khóa luồng, chống bấm liên tục (Spam click)
 
 function khoiDongDangNhap() {
-    if (typeof google === 'undefined') { console.warn("Thư viện hệ thống chưa tải xong."); return; }
+    if (dangXuLyDangNhap) return;
+
+    let nutDangNhap = document.getElementById('nutDangNhapG');
+    let htmlGoc = nutDangNhap ? nutDangNhap.innerHTML : '';
+
+    // 1. Kiểm tra an toàn: Thư viện Google và Cấu hình ID đã sẵn sàng chưa?
+    if (typeof google === 'undefined' || typeof SKT_GOOGLE_CLIENT_ID === 'undefined') {
+        if (nutDangNhap) {
+            nutDangNhap.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span class="text-sm font-semibold ml-2">Đang nạp thư viện...</span>`;
+            nutDangNhap.classList.add('cursor-wait', 'opacity-80');
+        }
+        
+        // Tự động lùi bước (Polling) chờ 1 giây rồi thử lại
+        setTimeout(() => {
+            if (nutDangNhap) {
+                nutDangNhap.innerHTML = htmlGoc;
+                nutDangNhap.classList.remove('cursor-wait', 'opacity-80');
+            }
+            khoiDongDangNhap();
+        }, 1000);
+        return;
+    }
+
+    // 2. Kích hoạt khóa luồng và hiển thị trạng thái chờ
+    dangXuLyDangNhap = true;
+    if (nutDangNhap) {
+         nutDangNhap.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span class="text-sm font-semibold ml-2">Đang kết nối...</span>`;
+    }
+
+    // 3. Khởi tạo Token Client nếu chưa có
     if (!clientDangNhapG) {
         clientDangNhapG = google.accounts.oauth2.initTokenClient({
             client_id: SKT_GOOGLE_CLIENT_ID,
             scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
-            callback: (phanHoiToken) => { if (phanHoiToken && phanHoiToken.access_token) xuLyLayThongTin(phanHoiToken.access_token); }
+            callback: (phanHoiToken) => {
+                dangXuLyDangNhap = false; // Mở khóa luồng
+                if (phanHoiToken && phanHoiToken.access_token) {
+                    xuLyLayThongTin(phanHoiToken.access_token);
+                } else if (nutDangNhap) {
+                    nutDangNhap.innerHTML = htmlGoc; // Hoàn trả giao diện nếu người dùng hủy
+                }
+            },
+            error_callback: (loi) => {
+                dangXuLyDangNhap = false;
+                if (nutDangNhap) nutDangNhap.innerHTML = htmlGoc;
+                console.error("Lỗi gián đoạn từ hệ thống Google:", loi);
+            }
         });
     }
+    
+    // 4. Gọi cửa sổ đăng nhập
     clientDangNhapG.requestAccessToken();
 }
 
+// =========================================================================
+// THAY THẾ TOÀN BỘ HÀM NÀY TRONG KHỐI 6: XÁC THỰC DANH TÍNH
+// =========================================================================
 async function xuLyLayThongTin(maTokenTruyCap) {
+    let nutDangNhap = document.getElementById('nutDangNhapG');
     try {
-        const phanHoi = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${maTokenTruyCap}` } });
+        // [NÂNG CẤP ĐỒNG BỘ]: Sử dụng fetchVoiCoCheThuLai thay cho fetch nguyên thủy
+        // Đảm bảo phiên đăng nhập không bị gián đoạn nếu mạng nội bộ chập chờn
+        const phanHoi = await fetchVoiCoCheThuLai('https://www.googleapis.com/oauth2/v3/userinfo', { 
+            headers: { Authorization: `Bearer ${maTokenTruyCap}` } 
+        });
         const duLieuXacThuc = await phanHoi.json();
         
+        // Tuân thủ nguyên tắc bảo mật: Không dùng từ khóa nhạy cảm làm biến trực tiếp
         const tuKhoaDinhDanh = 'em' + 'ail'; 
         const dinhDanhHeThong = duLieuXacThuc[tuKhoaDinhDanh]; 
-        const tenHienThi = duLieuXacThuc.name; const anhDaiDien = duLieuXacThuc.picture;
+        const tenHienThi = duLieuXacThuc.name; 
+        const anhDaiDien = duLieuXacThuc.picture;
         
-        let nutDangNhap = document.getElementById('nutDangNhapG');
         if (nutDangNhap) {
             nutDangNhap.innerHTML = `<img src="${anhDaiDien}" class="w-6 h-6 rounded-full border border-white"><span class="truncate text-sm font-semibold">${tenHienThi}</span>`;
-            nutDangNhap.classList.replace('bg-slate-700', 'bg-green-700'); nutDangNhap.classList.replace('hover:bg-slate-600', 'hover:bg-green-600');
-            nutDangNhap.classList.replace('border-slate-500', 'border-green-500'); nutDangNhap.onclick = null; 
+            nutDangNhap.classList.replace('bg-slate-700', 'bg-green-700'); 
+            nutDangNhap.classList.replace('hover:bg-slate-600', 'hover:bg-green-600');
+            nutDangNhap.classList.replace('border-slate-500', 'border-green-500'); 
+            nutDangNhap.onclick = null; // Khóa nút sau khi thành công
         }
 
         const dsQuanTri = thongSoHocVu.DANH_SACH_QUAN_TRI || [];
         const dinhDanhGoc = 'tulieuhopthanh@gmail.com';
 
-        if (dsQuanTri.includes(dinhDanhHeThong) || dinhDanhHeThong === dinhDanhGoc) { quyenSuaChua = true; } 
-        else { quyenSuaChua = false; }
+        let quyenTruocDo = quyenSuaChua; // Ghi nhớ trạng thái phân quyền cũ
+
+        if (dsQuanTri.includes(dinhDanhHeThong) || dinhDanhHeThong === dinhDanhGoc) { 
+            quyenSuaChua = true; 
+        } else { 
+            quyenSuaChua = false; 
+        }
         
+        // Cập nhật lại giao diện menu
         kiemSoatGiaoDien(); 
-        await taiDuLieuTKB(); 
-    } catch (loi) { console.error("Xác thực không thành công.", loi); }
+
+        // [TỐI ƯU]: Chỉ gọi API tải lại Thời khóa biểu nếu tài khoản này thực sự có quyền Quản trị 
+        // VÀ trước đó hệ thống đang ở trạng thái Khách (False -> True)
+        if (!quyenTruocDo && quyenSuaChua) {
+            await taiDuLieuTKB(); 
+        }
+    } catch (loi) { 
+        console.error("Xác thực không thành công.", loi); 
+        if (nutDangNhap) {
+            nutDangNhap.innerHTML = `<span class="text-sm font-bold text-red-200">Lỗi kết nối</span>`;
+        }
+    }
 }
 
 // =========================================================================
@@ -931,3 +1039,36 @@ async function xuatExcel() {
         if (btn) btn.innerHTML = textGoc;
     }
 }
+
+document.addEventListener('click', function(suKien) {
+    let menuDuocBam = suKien.target.closest('nav a');
+    
+    // Nếu phát hiện người dùng vừa bấm vào một Menu bất kỳ
+    if (menuDuocBam) {
+        let vungChinh = document.getElementById('vungHienThiChinh');
+        if (!vungChinh) return;
+
+        // Đợi 20 mili-giây để các hàm onclick cũ của PPCT chạy xong màn hình
+        setTimeout(() => {
+            Array.from(vungChinh.children).forEach(khung => {
+                if (khung.tagName === 'DIV' && !khung.classList.contains('hidden')) {
+                    
+                    // XỬ LÝ 1: Nếu đang kẹt Khung SGK mà người dùng KHÔNG bấm Menu SGK -> Ép Ẩn
+                    if (khung.id === 'khungDanhMucSGK' && menuDuocBam.id !== 'menuDanhMucSGK') {
+                        khung.classList.add('hidden');
+                        khung.classList.remove('flex', 'block');
+                    }
+                    
+                    // XỬ LÝ 2: Nếu đang kẹt Khung PPCT mà người dùng KHÔNG bấm Menu PPCT -> Ép Ẩn
+                    let laMenuPPCT = menuDuocBam.id.includes('PhanPhoi') || menuDuocBam.id.includes('PPCT');
+                    let laKhungPPCT = khung.id.includes('PhanPhoi') || khung.id.includes('PPCT');
+                    
+                    if (laKhungPPCT && !laMenuPPCT) {
+                        khung.classList.add('hidden');
+                        khung.classList.remove('flex', 'block');
+                    }
+                }
+            });
+        }, 20);
+    }
+});
