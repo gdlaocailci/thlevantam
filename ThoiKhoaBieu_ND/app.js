@@ -613,23 +613,17 @@ async function luuDuLieu(event, loaiLuu) {
         let dsTietLuoi = []; 
         let namHocChuan = thongSoHocVu.NAM_HOC || "";
         
-        // [NÂNG CẤP]: Dùng querySelectorAll gom toàn bộ ô Môn học trong 1 lần quét DOM (Bỏ 4 vòng lặp lồng nhau)
-        // Hệ thống sẽ chỉ quét những ô Môn học đang thực sự có trên lưới
         let cacOMon = document.querySelectorAll('input[id^="mon_"]');
         
         cacOMon.forEach(oMon => {
             let valMon = oMon.value.trim();
-            // Kỹ thuật Fast-Fail: Chỉ xử lý nếu ô môn học có dữ liệu
             if (valMon !== "") {
-                // Tách ID (Ví dụ: mon_Thứ 2_Sáng_1_1A1) thành các tham số
                 let parts = oMon.id.split('_'); 
                 let thu = parts[1];
                 let buoi = parts[2];
                 let tiet = parts[3];
-                // Dùng slice để ghép lại tên lớp nếu tên lớp có chứa dấu gạch dưới
                 let lop = parts.slice(4).join('_'); 
                 
-                // Nhặt nhanh dữ liệu Giáo viên tương ứng
                 let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
                 let valGv = oGv ? oGv.value.trim() : "";
                 
@@ -652,7 +646,6 @@ async function luuDuLieu(event, loaiLuu) {
             }
         });
 
-        // Sử dụng hàm fetch cải tiến
         const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { 
             method: 'POST', 
             body: JSON.stringify({ thaoTac: 'luuDuLieu', loaiLuu: loaiLuu, tuan: tuanDangXem, duLieu: dsTietLuoi }) 
@@ -670,7 +663,11 @@ async function luuDuLieu(event, loaiLuu) {
                 btnAn.innerHTML = "Auto Save";
                 await luuDuLieu({ currentTarget: btnAn }, 'tuan');
             } else {
-                await taiDuLieuTKB();
+                // [ĐÃ NÂNG CẤP]: Bỏ hàm await taiDuLieuTKB(); để tránh tải lại UI.
+                // Hệ thống sẽ chỉ thông báo thành công và giữ nguyên toàn bộ trạng thái hiện tại.
+                console.log("Lưu dữ liệu thành công. Giao diện được giữ nguyên trạng thái.");
+                // Bạn có thể mở comment dòng dưới nếu muốn hiển thị một popup nhỏ cho người dùng an tâm:
+                // alert("Lưu dữ liệu thành công!"); 
             }
         }
     } catch (loi) { 
