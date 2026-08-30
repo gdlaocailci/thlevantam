@@ -149,3 +149,35 @@ async function luuDuLieuDanhMucLopSangMayChu() {
         btn.disabled = false; 
     }
 }
+
+<!-- KHỐI NÚT THAO TÁC CỦA DANH MỤC LỚP -->
+<div class="flex flex-wrap items-center gap-2 mb-4">
+    <!-- Input ẩn để gọi hộp thoại tải file Excel -->
+    <input type="file" id="fileNhapDMLop" accept=".xlsx, .xls" style="display: none;" onchange="nhapExcelDanhMucLop(event)">
+    
+    <!-- Nút Nhập Excel -->
+    <button onclick="document.getElementById('fileNhapDMLop').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded shadow transition duration-200 flex items-center gap-1 text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+        </svg>
+        Nhập Excel
+    </button>
+    
+    <!-- Nút Xuất Excel -->
+    <button onclick="xuatExcelDanhMucLop()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded shadow transition duration-200 flex items-center gap-1 text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        Xuất Excel
+    </button>
+
+    <!-- Nút Thêm Lớp (Đã có sẵn, để nguyên) -->
+    <button onclick="themDongLopMoi()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded shadow transition duration-200 text-sm">
+        Thêm lớp
+    </button>
+
+    <!-- Nút Lưu Hệ Thống (Đã có sẵn, để nguyên) -->
+    <button onclick="luuDuLieuDanhMucLopSangMayChu()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded shadow transition duration-200 text-sm">
+        Lưu danh mục
+    </button>
+</div>
