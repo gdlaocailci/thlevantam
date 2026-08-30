@@ -556,6 +556,7 @@ function xuLyNhapExcelPPCT(event) {
 
 // =========================================================================
 // KHỐI 5: LƯU TRỮ KÉP (PPCT VÀ TKB) LÊN MÁY CHỦ
+// Thiết kế và phát triển: Hoàng Ngọc Lâm
 // =========================================================================
 async function luuDuLieuPPCTLenMayChu(event) {
     const nutBam = event.currentTarget;
@@ -574,6 +575,7 @@ async function luuDuLieuPPCTLenMayChu(event) {
     let mangGhi = [];
     const cacOInputTiet = document.querySelectorAll('[data-loai="tietPpc"]');
     
+    // Gom dữ liệu từ lưới UI của tuần hiện tại
     cacOInputTiet.forEach(inp => {
         let valTiet = inp.innerText.trim();
         if (valTiet !== '') {
@@ -602,6 +604,7 @@ async function luuDuLieuPPCTLenMayChu(event) {
         }
     });
     
+    // Bổ sung toàn bộ các tiết còn lại từ mảng gốc (do đã nạp từ Excel)
     duLieuPpctGoc.forEach(goc => {
         let daCoTrenLuoi = mangGhi.some(ghi => String(ghi.tietPpc) === String(goc.tiet));
         if (!daCoTrenLuoi && goc.tiet !== '') {
@@ -612,6 +615,7 @@ async function luuDuLieuPPCTLenMayChu(event) {
         }
     });
     
+    // Hiệu ứng Loading
     nutBam.innerHTML = `<div class="flex items-center gap-1.5"><div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Đang lưu...</span></div>`;
     nutBam.disabled = true;
 
@@ -625,12 +629,17 @@ async function luuDuLieuPPCTLenMayChu(event) {
         
         if (ketQua.trangThai === 'Thành công') {
             alert(`Đã lưu Phân phối chương trình Môn ${mon} - Khối ${khoi} lên hệ thống thành công!`);
+            
+            // [BẢN NÂNG CẤP]: Gọi hàm vẽ lại lưới để xóa sạch Bản xem trước Excel trên UI
+            // Hàm này sẽ thiết lập lại giao diện lưới gốc, chỉ giữ lại các tiết của tuần hiện tại
+            veBangKhungLichPPCT(mon);
         } else {
             alert(`Sự cố lưu trữ: ${ketQua.thongBao}`);
         }
     } catch (loi) {
         alert('Lỗi kết nối máy chủ.');
     } finally {
+        // Khôi phục trạng thái nút bấm
         nutBam.innerHTML = noiDungGoc;
         nutBam.disabled = false;
     }
