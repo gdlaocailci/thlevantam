@@ -10,7 +10,7 @@ const KETNOI = {
     TIEU_DE_TRANG: "Cổng thông tin Quản trị - Trường Tiểu học Lê Văn Tám",
     
     // 2. Tài nguyên hình ảnh đại diện (Logo & Giao diện)
-    LINK_LOGO: "https://i.ibb.co/8Df1xXsN/Logo-nguyen-du.png",
+    LINK_LOGO: "https://i.postimg.cc/xjzpvXCm/Logo-HL.png",
     LINK_HINH_NEN: "https://www.wallpaperalchemy.com/storage/wallpapers/2256/windows-10-colorful-3d-logo-wallpaper-card.jpg",
     LINK_AVATAR_NAM: "https://lh3.googleusercontent.com/d/13OnSd7t73KO7GP6NB7FjkdpsO6vfH-dp",
     LINK_AVATAR_NU: "https://lh3.googleusercontent.com/d/1zW6N_UQKGYl_uCOb9jMfvZCHkLVJKNVU",
