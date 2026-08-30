@@ -149,8 +149,14 @@ function xuatExcelDanhMucGV() {
     XLSX.writeFile(wb, "DanhMucGiaoVien.xlsx");
 }
 
+// =========================================================================
+// NÂNG CẤP: NHẬP EXCEL DANH MỤC GIÁO VIÊN LÊN GIAO DIỆN (UI)
+// =========================================================================
 function nhapExcelDanhMucGV(e) {
-    if (typeof XLSX === 'undefined') return;
+    if (typeof XLSX === 'undefined') { 
+        alert("Thư viện Excel chưa sẵn sàng. Đồng chí vui lòng thử lại sau vài giây."); 
+        return; 
+    }
     const file = e.target.files[0];
     if (!file) return;
 
@@ -160,30 +166,60 @@ function nhapExcelDanhMucGV(e) {
             const data = new Uint8Array(evt.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const duLieuExcel = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-            if (duLieuExcel.length < 2) return;
             
-            // Hỏi ý kiến để ghi đè hay ghép nối
+            // Ép defval: '' để không bị lỗi undefined khi ô Excel bị bỏ trống
+            const duLieuExcel = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+            if (duLieuExcel.length < 2) {
+                alert("Bảng Excel trống hoặc thiếu dòng tiêu đề.");
+                return;
+            }
+            
             let ghiDe = confirm("Đồng chí muốn XÓA TRẮNG danh sách hiện tại để nạp mới (OK), hay THÊM NỐI TIẾP vào danh sách cũ (Cancel)?");
-            if (ghiDe) duLieuDanhMucGV = [];
+            if (ghiDe) duLieuDanhMucGV = []; // Xóa trắng mảng UI
+
+            let soGvBiTrung = 0;
 
             for (let i = 1; i < duLieuExcel.length; i++) {
                 let row = duLieuExcel[i];
-                if (row[0] && String(row[0]).trim() !== '') {
+                let maGvMoi = row[0] ? String(row[0]).trim() : '';
+                
+                if (maGvMoi !== '') {
+                    // Chặn trùng mã GV nếu chọn chế độ nối tiếp
+                    let biTrung = duLieuDanhMucGV.some(gv => gv.maGv.trim().toLowerCase() === maGvMoi.toLowerCase());
+                    if (biTrung && !ghiDe) {
+                        soGvBiTrung++;
+                        continue; // Bỏ qua dòng này, chuyển sang dòng tiếp theo
+                    }
+
+                    // Ép kiểu định mức về số nguyên, tránh lỗi logic xếp lịch sau này
+                    let dinhMuc = row[3] !== '' && !isNaN(row[3]) ? parseInt(row[3], 10) : '';
+
                     duLieuDanhMucGV.push({
-                        maGv: row[0] ? String(row[0]).trim() : '',
+                        maGv: maGvMoi,
                         hoTen: row[1] ? String(row[1]).trim() : '',
                         toChuyenMon: row[2] ? String(row[2]).trim() : 'Tiểu học',
-                        dinhMuc: row[3] !== undefined ? row[3] : '',
+                        dinhMuc: dinhMuc,
                         trangThai: row[4] ? String(row[4]).trim() : 'Đang công tác'
                     });
                 }
             }
+            
+            // Render dữ liệu mới lên UI ngay lập tức
             veBangDanhMucGV();
-            alert("Nạp dữ liệu từ Excel thành công! Vui lòng bấm 'Lưu Hệ Thống'.");
-        } catch (loi) { alert("Lỗi khi đọc file Excel."); }
-        finally { e.target.value = ''; }
+            
+            let thongBao = "Nạp dữ liệu từ Excel lên giao diện thành công!";
+            if (soGvBiTrung > 0) {
+                thongBao += `\nĐã tự động bỏ qua ${soGvBiTrung} giáo viên bị trùng mã.`;
+            }
+            thongBao += "\nĐồng chí vui lòng kiểm tra lại bảng và bấm 'Lưu...' để đưa lên hệ thống.";
+            
+            alert(thongBao);
+        } catch (loi) { 
+            alert("Lỗi khi đọc file Excel: " + loi.message); 
+        } finally { 
+            e.target.value = ''; // Giải phóng input để tải lại được file cùng tên
+        }
     };
     reader.readAsArrayBuffer(file);
 }
