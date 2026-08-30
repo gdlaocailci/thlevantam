@@ -39,7 +39,18 @@ function khoiTaoGiaoDienPhanCong(duLieuSever) {
   let headerHtml = '<tr><th class="py-1 px-2 border border-gray-400 bg-slate-200 sticky left-0 z-30 min-w-[80px]">Mã Lớp</th>';
   if (duLieuSever.monHoc) {
       duLieuSever.monHoc.forEach(mon => {
-        headerHtml += `<th class="py-1 px-2 border border-gray-400 min-w-[120px]">${mon}</th>`;
+        // [NÂNG CẤP]: Bổ sung Icon SVG điều hướng để gọi hàm diChuyenCotMonHoc
+        headerHtml += `<th class="py-1 px-2 border border-gray-400 min-w-[120px] relative group bg-slate-200">
+                          <div class="flex items-center justify-between">
+                              <span onclick="diChuyenCotMonHoc(this, -1)" class="cursor-pointer text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Di chuyển sang trái">
+                                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                              </span>
+                              <span class="px-1 text-center w-full">${mon}</span>
+                              <span onclick="diChuyenCotMonHoc(this, 1)" class="cursor-pointer text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Di chuyển sang phải">
+                                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                              </span>
+                          </div>
+                       </th>`;
       });
   }
   headerHtml += '</tr>';
@@ -76,7 +87,6 @@ function khoiTaoGiaoDienPhanCong(duLieuSever) {
           let tenMon = duLieuSever.monHoc[j];
           let gvHienTai = duLieuCuCuaLop[j + 1] || ''; 
           
-          // [NÂNG CẤP]: Bổ sung onchange="tinhToanTietDay(this.value)" để bắt đúng ID vừa nhập
           bodyHtml += `<td class="p-0 border border-gray-400 transition-all duration-300 bg-white group-hover:bg-slate-50">
                           <input type="text" size="1" list="danhSachGiaoVienPhanCong" data-lop="${maLop}" data-mon="${tenMon}" value="${gvHienTai}" onchange="tinhToanTietDay(this.value)" placeholder="--" class="w-full h-full min-h-[26px] min-w-0 outline-none text-center bg-transparent focus:bg-blue-100 cursor-pointer font-semibold text-slate-800" autocomplete="off" onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()">
                        </td>`;
@@ -89,11 +99,47 @@ function khoiTaoGiaoDienPhanCong(duLieuSever) {
   tinhToanTietDay();
 }
 
+// [NÂNG CẤP BỔ SUNG]: Hàm xử lý logic đảo cột trong DOM
+function diChuyenCotMonHoc(element, huong) {
+    const thHienTai = element.closest('th');
+    const trTieuDe = thHienTai.parentElement;
+    const danhSachCot = Array.from(trTieuDe.children);
+    const viTriHienTai = danhSachCot.indexOf(thHienTai);
+    
+    // Cột đầu tiên (index 0) là "Mã Lớp" được cố định, giới hạn ranh giới di chuyển
+    const viTriDich = viTriHienTai + huong;
+    if (viTriDich < 1 || viTriDich >= danhSachCot.length) {
+        return; 
+    }
+    
+    // Đảo thẻ <th> trên dòng tiêu đề
+    if (huong === -1) {
+        trTieuDe.insertBefore(danhSachCot[viTriHienTai], danhSachCot[viTriDich]);
+    } else {
+        trTieuDe.insertBefore(danhSachCot[viTriDich], danhSachCot[viTriHienTai]);
+    }
+    
+    // Đảo các thẻ <td> tương ứng ở mọi dòng trong lưới dữ liệu
+    const tbodyLopHoc = document.getElementById('duLieuLopHoc');
+    if (tbodyLopHoc) {
+        const danhSachDong = tbodyLopHoc.querySelectorAll('tr');
+        danhSachDong.forEach(dong => {
+            const cacO = Array.from(dong.children);
+            if (cacO.length > Math.max(viTriHienTai, viTriDich)) {
+                if (huong === -1) {
+                    dong.insertBefore(cacO[viTriHienTai], cacO[viTriDich]);
+                } else {
+                    dong.insertBefore(cacO[viTriDich], cacO[viTriHienTai]);
+                }
+            }
+        });
+    }
+}
+
 // =========================================================================
 // KHỐI 3: THỐNG KÊ ĐỊNH MỨC VÀ KIỂM SOÁT TỔNG HỢP CHI TIẾT
 // =========================================================================
 function tinhToanTietDay(maGVVuaChon = null) {
-  // Ghi nhận ID giáo viên vừa tương tác vào biến trạng thái hệ thống
   if (maGVVuaChon !== null) {
       gvDangDuocChon = maGVVuaChon.trim();
   }
@@ -157,7 +203,6 @@ function tinhToanTietDay(maGVVuaChon = null) {
         textClass = 'text-green-700 font-extrabold';
     }
     
-    // [NÂNG CẤP]: Ghi đè màu nền thành màu vàng nếu Giáo viên này đang được chọn
     if (gvDangDuocChon === ma) {
         bgClass = 'bg-yellow-200 border-yellow-400 shadow-inner'; 
     }
@@ -178,9 +223,7 @@ function tinhToanTietDay(maGVVuaChon = null) {
   }
   document.getElementById('duLieuThongKe').innerHTML = tbodyThongKe;
 
-  // [NÂNG CẤP]: Cuộn bảng tĩnh tiến mượt mà
   if (maGVVuaChon) {
-      // Dùng setTimeout 50ms để đảm bảo DOM đã được trình duyệt vẽ xong trước khi cuộn
       setTimeout(() => {
           let idTimKiem = "tk_gv_" + encodeURIComponent(maGVVuaChon.trim()).replace(/%/g, '_');
           let dongGiaoVien = document.getElementById(idTimKiem);
@@ -217,7 +260,6 @@ async function xuLyLuuTru() {
         let tdLop = tr.querySelector('td:first-child');
         if (tdLop) {
             dongDuLieu.push(tdLop.innerText.trim());
-            // [BẢN NÂNG CẤP]: Cập nhật thu thập giá trị từ input
             let cacSelect = tr.querySelectorAll('input[data-lop]');
             cacSelect.forEach(sl => {
                 dongDuLieu.push(sl.value.trim());
@@ -249,7 +291,6 @@ async function xuLyLuuTru() {
   }
 }
 
-// BỔ SUNG 1: HÀM XUẤT DỮ LIỆU PHÂN CÔNG RA FILE EXCEL (CÓ KÈM DROPDOWN LIST)
 async function xuatExcelPhanCong() {
     const btn = document.querySelector('button[onclick="xuatExcelPhanCong()"]');
     let textGoc = btn ? btn.innerHTML : 'Xuất Excel';
@@ -270,20 +311,17 @@ async function xuatExcelPhanCong() {
         const worksheet = workbook.addWorksheet('PHAN_CONG');
         const wsData = workbook.addWorksheet('DM_GV'); 
         
-        // 1. Tạo danh sách Nguồn (Data Source) ở Sheet ẩn
-        let dsMaGV = danhSachGV.map(gv => gv.maGv || gv.hoTen);
+        let dsMaGV = danhSachGV.map(gv => gv.maGv || gv.hoTen).sort((a, b) => a.localeCompare(b, 'vi'));
         dsMaGV.forEach((ma, idx) => {
             wsData.getCell(`A${idx + 1}`).value = ma;
         });
         wsData.state = 'hidden'; 
 
-        // 2. Quét dòng Tiêu đề
         let thead = document.querySelectorAll('#tieuDeMonHoc th');
         let dongTieuDe = [];
         thead.forEach(th => dongTieuDe.push(th.innerText.trim()));
         worksheet.addRow(dongTieuDe);
         
-        // 3. Quét dữ liệu và gắn tính năng Dropdown (Data Validation)
         let cacDongLop = document.querySelectorAll('#duLieuLopHoc tr');
         let rowCount = 2;
         cacDongLop.forEach(tr => {
@@ -291,7 +329,6 @@ async function xuatExcelPhanCong() {
             let tdLop = tr.querySelector('td:first-child');
             if (tdLop) {
                 dong.push(tdLop.innerText.trim());
-                // [BẢN NÂNG CẤP]: Cập nhật thu thập giá trị từ input
                 let cacSelect = tr.querySelectorAll('input[data-lop]');
                 cacSelect.forEach(sl => dong.push(sl.value.trim()));
                 worksheet.addRow(dong);
@@ -300,8 +337,14 @@ async function xuatExcelPhanCong() {
                     worksheet.getCell(rowCount, c).dataValidation = {
                         type: 'list',
                         allowBlank: true,
-                        showErrorMessage: false, 
-                        formulae: [`DM_GV!$A$1:$A$${dsMaGV.length}`]
+                        showErrorMessage: true, 
+                        errorStyle: 'error', 
+                        errorTitle: 'Dữ liệu không hợp lệ',
+                        error: 'Vui lòng chọn hoặc gõ chính xác mã giáo viên có trong danh sách!',
+                        showInputMessage: true,
+                        promptTitle: 'Thao tác tìm kiếm',
+                        prompt: 'Nhấn tổ hợp phím [Alt + ↓] để mở danh sách, sau đó gõ ký tự để lọc nhanh.',
+                        formulae: [`'DM_GV'!$A$1:$A$${dsMaGV.length}`] 
                     };
                 }
                 rowCount++;
@@ -309,7 +352,7 @@ async function xuatExcelPhanCong() {
         });
 
         worksheet.getRow(1).font = { bold: true };
-        worksheet.columns.forEach((col, i) => { col.width = i === 0 ? 12 : 18; });
+        worksheet.columns.forEach((col, i) => { col.width = i === 0 ? 12 : 20; });
 
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -325,7 +368,6 @@ async function xuatExcelPhanCong() {
     }
 }
 
-// BỔ SUNG 2: HÀM NHẬP DỮ LIỆU TỪ FILE EXCEL (.XLSX) VÀO LƯỚI GIAO DIỆN
 function xuLyTaiLenExcelPhanCong(e) {
     if (typeof XLSX === 'undefined') {
         alert("Thư viện hệ thống chưa sẵn sàng, vui lòng thử lại sau vài giây.");
@@ -366,7 +408,6 @@ function xuLyTaiLenExcelPhanCong(e) {
                 }
             }
 
-            // [BẢN NÂNG CẤP]: Cập nhật biến quét từ select sang input
             let cacTheSelect = document.querySelectorAll('#duLieuLopHoc input[data-lop]');
 
             cacTheSelect.forEach(sl => {
