@@ -39,7 +39,6 @@ function khoiTaoGiaoDienPhanCong(duLieuSever) {
   let headerHtml = '<tr><th class="py-1 px-2 border border-gray-400 bg-slate-200 sticky left-0 z-30 min-w-[80px]">Mã Lớp</th>';
   if (duLieuSever.monHoc) {
       duLieuSever.monHoc.forEach(mon => {
-        // [NÂNG CẤP]: Bổ sung Icon SVG điều hướng để gọi hàm diChuyenCotMonHoc
         headerHtml += `<th class="py-1 px-2 border border-gray-400 min-w-[120px] relative group bg-slate-200">
                           <div class="flex items-center justify-between">
                               <span onclick="diChuyenCotMonHoc(this, -1)" class="cursor-pointer text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Di chuyển sang trái">
@@ -87,8 +86,14 @@ function khoiTaoGiaoDienPhanCong(duLieuSever) {
           let tenMon = duLieuSever.monHoc[j];
           let gvHienTai = duLieuCuCuaLop[j + 1] || ''; 
           
+          // [NÂNG CẤP]: Bổ sung lệnh tinhToanTietDay(this.value) vào onclick và onfocus để kích hoạt ngay hiệu ứng trượt/bôi vàng
           bodyHtml += `<td class="p-0 border border-gray-400 transition-all duration-300 bg-white group-hover:bg-slate-50">
-                          <input type="text" size="1" list="danhSachGiaoVienPhanCong" data-lop="${maLop}" data-mon="${tenMon}" value="${gvHienTai}" onchange="tinhToanTietDay(this.value)" placeholder="--" class="w-full h-full min-h-[26px] min-w-0 outline-none text-center bg-transparent focus:bg-blue-100 cursor-pointer font-semibold text-slate-800" autocomplete="off" onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()">
+                          <input type="text" size="1" list="danhSachGiaoVienPhanCong" data-lop="${maLop}" data-mon="${tenMon}" value="${gvHienTai}" 
+                          onchange="tinhToanTietDay(this.value)" 
+                          placeholder="--" class="w-full h-full min-h-[26px] min-w-0 outline-none text-center bg-transparent focus:bg-blue-100 cursor-pointer font-semibold text-slate-800" 
+                          autocomplete="off" 
+                          onclick="if(this.showPicker) this.showPicker(); tinhToanTietDay(this.value);" 
+                          onfocus="this.select(); tinhToanTietDay(this.value);">
                        </td>`;
         }
         bodyHtml += '</tr>';
