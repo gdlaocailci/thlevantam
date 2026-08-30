@@ -150,34 +150,96 @@ async function luuDuLieuDanhMucLopSangMayChu() {
     }
 }
 
-<!-- KHỐI NÚT THAO TÁC CỦA DANH MỤC LỚP -->
-<div class="flex flex-wrap items-center gap-2 mb-4">
-    <!-- Input ẩn để gọi hộp thoại tải file Excel -->
-    <input type="file" id="fileNhapDMLop" accept=".xlsx, .xls" style="display: none;" onchange="nhapExcelDanhMucLop(event)">
+// =========================================================================
+function xuatExcelDanhMucLop() {
+    if (typeof XLSX === 'undefined') { 
+        alert("Thư viện giải mã Excel chưa sẵn sàng. Vui lòng chờ trong giây lát."); 
+        return; 
+    }
     
-    <!-- Nút Nhập Excel -->
-    <button onclick="document.getElementById('fileNhapDMLop').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded shadow transition duration-200 flex items-center gap-1 text-sm">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-        </svg>
-        Nhập Excel
-    </button>
+    // Cập nhật trạng thái mới nhất từ các ô nhập liệu trên giao diện vào mảng
+    dongBoDomLopSangState();
     
-    <!-- Nút Xuất Excel -->
-    <button onclick="xuatExcelDanhMucLop()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded shadow transition duration-200 flex items-center gap-1 text-sm">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-        </svg>
-        Xuất Excel
-    </button>
+    let mangXuat = [TIEU_DE_DM_LOP];
+    duLieuDanhMucLop.forEach(lop => { 
+        mangXuat.push([lop.maLop, lop.tenLop]); 
+    });
+    
+    let wb = XLSX.utils.book_new();
+    let ws = XLSX.utils.aoa_to_sheet(mangXuat);
+    
+    // Tinh chỉnh độ rộng các cột hiển thị
+    ws['!cols'] = [{wch: 15}, {wch: 25}];
+    XLSX.utils.book_append_sheet(wb, ws, "DM_LOP");
+    XLSX.writeFile(wb, "DanhMucLop.xlsx");
+}
 
-    <!-- Nút Thêm Lớp (Đã có sẵn, để nguyên) -->
-    <button onclick="themDongLopMoi()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded shadow transition duration-200 text-sm">
-        Thêm lớp
-    </button>
+function nhapExcelDanhMucLop(event) {
+    if (typeof XLSX === 'undefined') {
+        alert("Thư viện Excel chưa phản hồi."); 
+        return;
+    }
+    const file = event.target.files[0];
+    if (!file) return;
 
-    <!-- Nút Lưu Hệ Thống (Đã có sẵn, để nguyên) -->
-    <button onclick="luuDuLieuDanhMucLopSangMayChu()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded shadow transition duration-200 text-sm">
-        Lưu danh mục
-    </button>
-</div>
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            
+            // Ép cấu trúc mảng, điền chuỗi rỗng để ngăn chặn lỗi undefined
+            const duLieuExcel = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+            if (duLieuExcel.length < 2) {
+                alert("Tệp Excel tải lên trống hoặc định dạng thiếu dòng tiêu đề.");
+                return;
+            }
+            
+            let xoaTrang = confirm("Đồng chí muốn XÓA TRẮNG danh sách lớp hiện tại để nạp mới (OK), hay THÊM NỐI TIẾP vào danh sách cũ (Cancel)?");
+            if (xoaTrang) duLieuDanhMucLop = [];
+            
+            let soLopBiTrung = 0;
+
+            for (let i = 1; i < duLieuExcel.length; i++) {
+                let row = duLieuExcel[i];
+                let maLopMoi = row[0] ? String(row[0]).trim().toUpperCase() : '';
+                let tenLopMoi = row[1] ? String(row[1]).trim().toUpperCase() : '';
+                
+                if (maLopMoi !== '') {
+                    // Thuật toán kiểm tra và chặn trùng lặp mã lớp nếu chọn chế độ nối tiếp
+                    let biTrung = duLieuDanhMucLop.some(lop => lop.maLop === maLopMoi);
+                    if (biTrung && !xoaTrang) {
+                        soLopBiTrung++;
+                        continue; 
+                    }
+
+                    // Tự động sử dụng Mã lớp làm Tên lớp nếu cột Tên lớp bị bỏ trống
+                    if (tenLopMoi === '') tenLopMoi = maLopMoi;
+                    
+                    duLieuDanhMucLop.push({
+                        maLop: maLopMoi,
+                        tenLop: tenLopMoi
+                    });
+                }
+            }
+            
+            // Xóa lưới cũ và kết xuất toàn bộ dữ liệu mới lên UI
+            veBangDanhMucLop();
+            
+            let thongBao = "Đã nạp dữ liệu lớp học từ Excel lên giao diện thành công!";
+            if (soLopBiTrung > 0) {
+                thongBao += `\nĐã tự động loại bỏ ${soLopBiTrung} lớp bị trùng mã.`;
+            }
+            thongBao += "\nĐồng chí hãy kiểm tra bảng và nhấn nút 'Lưu...' để đồng bộ danh sách lên máy chủ.";
+            alert(thongBao);
+            
+        } catch (loi) { 
+            alert("Lỗi trong quá trình giải mã tệp Excel: " + loi.message); 
+        } finally { 
+            event.target.value = ''; // Giải phóng bộ đệm của thẻ input
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
