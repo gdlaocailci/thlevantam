@@ -7,7 +7,7 @@
 const KETNOI = {
     // 1. Thông tin định danh cơ quan/đơn vị
     TEN_DINH_DANH: "Nguyễn Du OS",
-    TIEU_DE_TRANG: "Cổng thông tin Quản trị - Trường Tiểu học Nguyễn Du",
+    TIEU_DE_TRANG: "Cổng thông tin Quản trị - Trường Tiểu học Lê Văn Tám",
     
     // 2. Tài nguyên hình ảnh đại diện (Logo & Giao diện)
     LINK_LOGO: "https://i.ibb.co/8Df1xXsN/Logo-nguyen-du.png",
