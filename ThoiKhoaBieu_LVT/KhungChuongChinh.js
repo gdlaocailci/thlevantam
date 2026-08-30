@@ -320,56 +320,72 @@ function xuatExcelKCT() {
     XLSX.writeFile(wb, `KhungChuongTrinh_KCT.xlsx`);
 }
 
+// ==========================================
+// 5. CHỨC NĂNG TẢI EXCEL (.XLSX) QUA SHEETJS (NÂNG CẤP)
+// Nguyên tắc: Chỉ xử lý trên UI, không gọi API để tránh lag
+// ==========================================
 function nhapExcelKCT(event) {
     const file = event.target.files[0];
     if (!file) return;
-    if (typeof XLSX === 'undefined') { alert("Thư viện giải mã Excel chưa sẵn sàng."); return; }
+    if (typeof XLSX === 'undefined') { 
+        alert("Thư viện giải mã Excel chưa sẵn sàng. Đồng chí vui lòng thử lại sau vài giây."); 
+        return; 
+    }
     
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
+            // Đọc dữ liệu thô vào bộ đệm
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             
-            const rowsArr = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-            if (rowsArr.length < 2) { alert("Bảng Excel trống hoặc thiếu dữ liệu tiêu đề."); return; }
-            
-            let fileClasses = [];
-            let firstRow = rowsArr[0];
-            for (let i = 2; i < firstRow.length; i++) {
-                if (firstRow[i]) fileClasses.push(firstRow[i].toString().trim());
+            // Ép kiểu mảng 2 chiều, điền chuỗi rỗng nếu ô bị khuyết
+            const rowsArr = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+            if (rowsArr.length < 2) { 
+                alert("Bảng Excel trống hoặc thiếu dữ liệu tiêu đề."); 
+                return; 
             }
             
-            let newData = [];
+            // Trích xuất mảng lớp từ dòng tiêu đề của file tải lên
+            const fileClasses = [];
+            const firstRow = rowsArr[0];
+            for (let i = 2; i < firstRow.length; i++) {
+                if (firstRow[i]) fileClasses.push(String(firstRow[i]).trim());
+            }
+            
+            const newData = [];
+            // Thuật toán O(N) quét các dòng dữ liệu môn học
             for (let i = 1; i < rowsArr.length; i++) {
-                let cells = rowsArr[i];
+                const cells = rowsArr[i];
                 if (!cells || cells.length < 1) continue;
                 
-                let monHoc = cells[0] !== undefined ? cells[0].toString().trim() : '';
-                let uuTien = cells[1] !== undefined ? cells[1].toString().trim() : '';
-                if (!monHoc) continue;
+                const monHoc = cells[0] !== undefined ? String(cells[0]).trim() : '';
+                if (!monHoc) continue; // Khử nhiễu các dòng trống
                 
-                let soTietFile = fileClasses.map((lop, index) => {
-                    return cells[index + 2] !== undefined ? cells[index + 2].toString().trim() : '';
-                });
+                const uuTien = cells[1] !== undefined ? String(cells[1]).trim() : '';
                 
-                let mappedSoTiet = danhSachLopKCT.map(lop => {
-                    let idx = fileClasses.indexOf(lop);
-                    return idx !== -1 ? soTietFile[idx] : '';
+                // Ánh xạ 1:1 chính xác tọa độ lớp trên Excel với danhSachLopKCT trên hệ thống
+                const mappedSoTiet = danhSachLopKCT.map(lop => {
+                    const idx = fileClasses.indexOf(lop);
+                    const rawValue = idx !== -1 ? cells[idx + 2] : '';
+                    const parsedValue = parseInt(rawValue, 10);
+                    return isNaN(parsedValue) ? '' : parsedValue; // Đảm bảo kiểu số học chuẩn
                 });
                 
                 newData.push({ monHoc: monHoc, uuTien: uuTien, soTiet: mappedSoTiet });
             }
             
+            // 1. Cập nhật biến toàn cục
             duLieuBangKCT = newData;
+            // 2. Kích hoạt vẽ lại giao diện ngay lập tức
             veBangKhungChuongTrinh();
-            alert("Đã phân tích cấu trúc file .xlsx thành công! Vui lòng kiểm tra lại dữ liệu và nhấn nút 'Lưu Khung CT' để gửi lên máy chủ.");
+            
+            alert("Đã hiển thị dữ liệu từ file Excel! Đồng chí vui lòng kiểm tra UI và nhấn nút 'Lưu Khung CT' để đồng bộ lên máy chủ.");
         } catch (loi) {
             alert("Lỗi đọc dữ liệu tệp XLSX: " + loi.message);
         } finally {
-            event.target.value = ''; // Xóa trạng thái input file
+            event.target.value = ''; // Giải phóng input để tải lại cùng 1 tệp nếu cần
         }
     };
     reader.readAsArrayBuffer(file);
