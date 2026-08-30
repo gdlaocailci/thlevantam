@@ -26,6 +26,9 @@ async function taiDuLieuPhanCongTuMayChu() {
     }
 }
 
+// Bổ sung thêm biến toàn cục này vào đầu file cùng với các biến khác
+let gvDangDuocChon = null; 
+
 // =========================================================================
 // KHỐI 2: KHỞI TẠO VÀ XỬ LÝ LƯỚI GIAO DIỆN PHÂN CÔNG
 // =========================================================================
@@ -73,7 +76,7 @@ function khoiTaoGiaoDienPhanCong(duLieuSever) {
           let tenMon = duLieuSever.monHoc[j];
           let gvHienTai = duLieuCuCuaLop[j + 1] || ''; 
           
-          // [NÂNG CẤP]: Bổ sung truyền tham số this.value vào sự kiện onchange="tinhToanTietDay(this.value)"
+          // [NÂNG CẤP]: Bổ sung onchange="tinhToanTietDay(this.value)" để bắt đúng ID vừa nhập
           bodyHtml += `<td class="p-0 border border-gray-400 transition-all duration-300 bg-white group-hover:bg-slate-50">
                           <input type="text" size="1" list="danhSachGiaoVienPhanCong" data-lop="${maLop}" data-mon="${tenMon}" value="${gvHienTai}" onchange="tinhToanTietDay(this.value)" placeholder="--" class="w-full h-full min-h-[26px] min-w-0 outline-none text-center bg-transparent focus:bg-blue-100 cursor-pointer font-semibold text-slate-800" autocomplete="off" onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()">
                        </td>`;
@@ -89,8 +92,12 @@ function khoiTaoGiaoDienPhanCong(duLieuSever) {
 // =========================================================================
 // KHỐI 3: THỐNG KÊ ĐỊNH MỨC VÀ KIỂM SOÁT TỔNG HỢP CHI TIẾT
 // =========================================================================
-// [NÂNG CẤP]: Bổ sung tham số maGVVuaChon với giá trị mặc định là null
 function tinhToanTietDay(maGVVuaChon = null) {
+  // Ghi nhận ID giáo viên vừa tương tác vào biến trạng thái hệ thống
+  if (maGVVuaChon !== null) {
+      gvDangDuocChon = maGVVuaChon.trim();
+  }
+
   let thongKe = {};
   
   danhSachGV.forEach(gv => { 
@@ -121,7 +128,7 @@ function tinhToanTietDay(maGVVuaChon = null) {
 
   let containerThongKe = document.getElementById('duLieuThongKe').parentElement.parentElement;
   if (containerThongKe) {
-      containerThongKe.className = 'w-[500px] overflow-auto border border-gray-400 shadow-sm bg-white flex-none relative scroll-smooth'; // Bổ sung scroll-smooth
+      containerThongKe.className = 'w-[500px] overflow-auto border border-gray-400 shadow-sm bg-white flex-none relative scroll-smooth';
   }
 
   const theadThongKe = document.querySelector('#duLieuThongKe').previousElementSibling;
@@ -148,15 +155,16 @@ function tinhToanTietDay(maGVVuaChon = null) {
     } else if (soLieu.thucTe === soLieu.dinhMuc && soLieu.dinhMuc > 0) {
         bgClass = 'bg-green-100'; 
         textClass = 'text-green-700 font-extrabold';
-    } else {
-        bgClass = 'bg-white'; 
-        textClass = 'text-blue-700 font-bold';
     }
     
+    // [NÂNG CẤP]: Ghi đè màu nền thành màu vàng nếu Giáo viên này đang được chọn
+    if (gvDangDuocChon === ma) {
+        bgClass = 'bg-yellow-200 border-yellow-400 shadow-inner'; 
+    }
+
     let chiTietHienThi = soLieu.chiTiet.length > 0 ? soLieu.chiTiet.join(' ') : '<span class="text-gray-400 italic text-[11px]">Chưa phân công</span>';
     let hienThiTen = (soLieu.hoTen && soLieu.hoTen !== ma) ? `${soLieu.hoTen} <br><span class="text-[13px] text-gray-500 font-bold italic">(${ma})</span>` : ma;
-
-    // [NÂNG CẤP]: Khởi tạo ID an toàn tuyệt đối (hỗ trợ dấu cách) cho dòng dữ liệu
+    
     let safeId = "tk_gv_" + encodeURIComponent(ma.trim()).replace(/%/g, '_');
 
     tbodyThongKe += `
@@ -170,27 +178,16 @@ function tinhToanTietDay(maGVVuaChon = null) {
   }
   document.getElementById('duLieuThongKe').innerHTML = tbodyThongKe;
 
-  // [NÂNG CẤP]: Thuật toán định vị và cuộn màn hình mượt mà
+  // [NÂNG CẤP]: Cuộn bảng tĩnh tiến mượt mà
   if (maGVVuaChon) {
-      let idTimKiem = "tk_gv_" + encodeURIComponent(maGVVuaChon.trim()).replace(/%/g, '_');
-      let dongGiaoVien = document.getElementById(idTimKiem);
-      
-      if (dongGiaoVien) {
-          // Trượt đến trung tâm bảng
-          dongGiaoVien.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          
-          // Thêm lớp CSS nhấn mạnh màu vàng nhạt trong 1.5 giây để đánh dấu vị trí
-          dongGiaoVien.classList.remove('bg-white', 'bg-red-100', 'bg-green-100');
-          dongGiaoVien.classList.add('bg-yellow-200');
-          
-          setTimeout(() => {
-              dongGiaoVien.classList.remove('bg-yellow-200');
-              // Phục hồi lại màu nền chuẩn sau khi hết hiệu ứng
-              if (thongKe[maGVVuaChon].thucTe > thongKe[maGVVuaChon].dinhMuc) dongGiaoVien.classList.add('bg-red-100');
-              else if (thongKe[maGVVuaChon].thucTe === thongKe[maGVVuaChon].dinhMuc && thongKe[maGVVuaChon].dinhMuc > 0) dongGiaoVien.classList.add('bg-green-100');
-              else dongGiaoVien.classList.add('bg-white');
-          }, 1500);
-      }
+      // Dùng setTimeout 50ms để đảm bảo DOM đã được trình duyệt vẽ xong trước khi cuộn
+      setTimeout(() => {
+          let idTimKiem = "tk_gv_" + encodeURIComponent(maGVVuaChon.trim()).replace(/%/g, '_');
+          let dongGiaoVien = document.getElementById(idTimKiem);
+          if (dongGiaoVien) {
+              dongGiaoVien.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+      }, 50);
   }
 }
 
