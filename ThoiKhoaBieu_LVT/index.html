@@ -333,14 +333,32 @@
                     <div class="w-full md:w-2/3 lg:w-1/2 flex flex-col h-full">
                         <div class="flex justify-between items-center mb-4 flex-none">
                             <h2 class="text-xl font-extrabold text-blue-900 uppercase">QUẢN LÝ DANH MỤC LỚP</h2>
-                            <div class="flex items-center gap-2">
-                                <button onclick="themDongLopMoi()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-1.5">
+                            
+                            <div class="flex items-center gap-2 flex-wrap justify-end">
+                                <!-- Input ẩn để gọi hộp thoại tải file Excel -->
+                                <input type="file" id="tepExcelDanhMucLop" accept=".xlsx, .xls" class="hidden" onchange="nhapExcelDanhMucLop(event)">
+                                
+                                <!-- Nút Nhập Excel -->
+                                <button onclick="document.getElementById('tepExcelDanhMucLop').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                    Nhập Excel
+                                </button>
+                                
+                                <!-- Nút Xuất Excel -->
+                                <button onclick="xuatExcelDanhMucLop()" class="bg-green-700 hover:bg-green-800 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    Xuất Excel
+                                </button>
+                            
+                                <button onclick="themDongLopMoi()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
                                     + Thêm Lớp
                                 </button>
-                                <button onclick="luuDuLieuDanhMucLopSangMayChu()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-5 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-1.5">
+                                
+                                <button onclick="luuDuLieuDanhMucLopSangMayChu()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-4 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
                                     Lưu Hệ Thống
                                 </button>
                             </div>
+                            
                         </div>
                         <div class="overflow-auto border border-gray-400 shadow-sm bg-white relative flex-1">
                             <table class="bang-excel w-full text-center">
