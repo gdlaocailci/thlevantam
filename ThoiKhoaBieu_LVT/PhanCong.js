@@ -145,42 +145,49 @@ function diChuyenCotMonHoc(element, huong) {
 // KHỐI 3: THỐNG KÊ ĐỊNH MỨC VÀ KIỂM SOÁT TỔNG HỢP CHI TIẾT
 // =========================================================================
 function tinhToanTietDay(maGVVuaChon = null) {
-  if (maGVVuaChon !== null) {
-      gvDangDuocChon = maGVVuaChon.trim();
-  }
-
   let thongKe = {};
   
   danhSachGV.forEach(gv => { 
-      let ma = gv.maGv || gv.hoTen;
+      let ma = (gv.maGv || gv.hoTen).trim();
       let ten = gv.hoTen || ma;
       thongKe[ma] = { hoTen: ten, dinhMuc: gv.dinhMuc, thucTe: 0, chiTiet: [] }; 
   });
 
-  const cacTheSelect = document.querySelectorAll('#bangChinh input[data-lop]');
+  if (maGVVuaChon !== null) {
+      let idChon = maGVVuaChon.trim().toLowerCase();
+      let idKhop = Object.keys(thongKe).find(k => k.toLowerCase() === idChon);
+      gvDangDuocChon = idKhop ? idKhop : maGVVuaChon.trim();
+  }
+
+  const cacTheSelect = document.querySelectorAll('input[data-lop]');
+  
   cacTheSelect.forEach(sl => {
-    let maGV = sl.value.trim();
-    if (maGV && thongKe[maGV]) {
-      let tenLop = sl.getAttribute('data-lop');
-      let tenMon = sl.getAttribute('data-mon');
-      
+    let maGV_nhap = sl.value.trim();
+    if (!maGV_nhap) return;
+
+    let maGVKhop = Object.keys(thongKe).find(k => k.toLowerCase() === maGV_nhap.toLowerCase());
+    
+    if (maGVKhop) {
+      let tenLop = sl.getAttribute('data-lop').trim();
+      let tenMon = sl.getAttribute('data-mon').trim();
       let soTiet = 0;
-      if (khungChuongTrinhToanTruong[tenLop] && khungChuongTrinhToanTruong[tenLop][tenMon]) {
-          soTiet = parseInt(khungChuongTrinhToanTruong[tenLop][tenMon]) || 0;
+      
+      let lopKey = Object.keys(khungChuongTrinhToanTruong).find(k => k.trim().toLowerCase() === tenLop.toLowerCase());
+      if (lopKey) {
+          let monKey = Object.keys(khungChuongTrinhToanTruong[lopKey]).find(k => k.trim().toLowerCase() === tenMon.toLowerCase());
+          if (monKey) {
+              soTiet = parseInt(khungChuongTrinhToanTruong[lopKey][monKey]) || 0;
+          }
       }
       
-      thongKe[maGV].thucTe += soTiet; 
-      
+      thongKe[maGVKhop].thucTe += soTiet; 
       if (soTiet > 0) {
-          thongKe[maGV].chiTiet.push(`<span class="inline-block bg-blue-50 text-blue-800 border border-blue-200 rounded px-1.5 py-0.5 m-0.5 text-[11px] whitespace-nowrap shadow-sm">${tenMon} ${tenLop} (${soTiet})</span>`);
+          thongKe[maGVKhop].chiTiet.push(`<span class="inline-block bg-blue-50 text-blue-800 border border-blue-200 rounded px-1.5 py-0.5 m-0.5 text-[11px] whitespace-nowrap shadow-sm">${tenMon} ${tenLop} (${soTiet})</span>`);
       }
     }
   });
 
-  let containerThongKe = document.getElementById('duLieuThongKe').parentElement.parentElement;
-  if (containerThongKe) {
-      containerThongKe.className = 'w-[500px] overflow-auto border border-gray-400 shadow-sm bg-white flex-none relative scroll-smooth';
-  }
+  // [NÂNG CẤP LÕI]: Đã lược bỏ lệnh ép chiều rộng (className = 'w-[500px]...') gây vỡ khung giao diện mới
 
   const theadThongKe = document.querySelector('#duLieuThongKe').previousElementSibling;
   if (theadThongKe) {
@@ -214,7 +221,6 @@ function tinhToanTietDay(maGVVuaChon = null) {
 
     let chiTietHienThi = soLieu.chiTiet.length > 0 ? soLieu.chiTiet.join(' ') : '<span class="text-gray-400 italic text-[11px]">Chưa phân công</span>';
     let hienThiTen = (soLieu.hoTen && soLieu.hoTen !== ma) ? `${soLieu.hoTen} <br><span class="text-[13px] text-gray-500 font-bold italic">(${ma})</span>` : ma;
-    
     let safeId = "tk_gv_" + encodeURIComponent(ma.trim()).replace(/%/g, '_');
 
     tbodyThongKe += `
@@ -228,9 +234,9 @@ function tinhToanTietDay(maGVVuaChon = null) {
   }
   document.getElementById('duLieuThongKe').innerHTML = tbodyThongKe;
 
-  if (maGVVuaChon) {
+  if (gvDangDuocChon) {
       setTimeout(() => {
-          let idTimKiem = "tk_gv_" + encodeURIComponent(maGVVuaChon.trim()).replace(/%/g, '_');
+          let idTimKiem = "tk_gv_" + encodeURIComponent(gvDangDuocChon).replace(/%/g, '_');
           let dongGiaoVien = document.getElementById(idTimKiem);
           if (dongGiaoVien) {
               dongGiaoVien.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -434,6 +440,107 @@ function xuLyTaiLenExcelPhanCong(e) {
         }
     };
     reader.readAsArrayBuffer(file);
+}
+
+// =========================================================================
+// HÀM XUẤT EXCEL CHI TIẾT KHUNG BÊN PHẢI (THỐNG KÊ) - ĐÃ BỔ SUNG STT VÀ GIỮ ID
+// =========================================================================
+async function xuatExcelThongKePhanCong() {
+    const btn = document.querySelector('button[onclick="xuatExcelThongKePhanCong()"]');
+    let textGoc = btn ? btn.innerHTML : 'Xuất Bảng Phân Công Chi Tiết';
+    
+    if (btn) {
+        btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>`;
+        btn.disabled = true;
+    }
+    
+    try {
+        if (typeof ExcelJS === 'undefined') {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('THONG_KE_CHI_TIET');
+        
+        // [CẬP NHẬT 1]: Bổ sung cột STT lên đầu
+        worksheet.columns = [
+            { header: 'STT', key: 'stt', width: 8 },
+            { header: 'Họ và tên Giáo viên', key: 'gv', width: 35 },
+            { header: 'Định mức', key: 'dinhMuc', width: 12 },
+            { header: 'Thực tế', key: 'thucTe', width: 12 },
+            { header: 'Chi tiết phân công (Lớp - Số tiết)', key: 'chiTiet', width: 65 }
+        ];
+
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Times New Roman', size: 12 };
+        worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B5394' } }; 
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+        const cacDongThongKe = document.querySelectorAll('#duLieuThongKe tr');
+        let stt = 1; // Biến đếm số thứ tự
+        
+        cacDongThongKe.forEach(tr => {
+            const cacCot = tr.querySelectorAll('td');
+            if (cacCot.length >= 4) {
+                // [CẬP NHẬT 2]: Giữ lại ID bằng cách chỉ xóa dấu ngoặc, giữ nội dung bên trong, định dạng thành Dấu gạch ngang
+                let tenGV = cacCot[0].innerText.replace(/\n/g, ' - ').replace(/[()]/g, '').replace(/\s+-\s+/g, ' - ').trim(); 
+                let dinhMuc = parseInt(cacCot[1].innerText) || 0;
+                let thucTe = parseInt(cacCot[2].innerText) || 0;
+                let chiTiet = cacCot[3].innerText.replace(/\n/g, ', ').trim();
+
+                const row = worksheet.addRow({
+                    stt: stt,
+                    gv: tenGV,
+                    dinhMuc: dinhMuc,
+                    thucTe: thucTe,
+                    chiTiet: chiTiet
+                });
+                
+                row.font = { name: 'Times New Roman', size: 12 };
+                if (thucTe > dinhMuc) {
+                    row.getCell('thucTe').font = { color: { argb: 'FFDC2626' }, bold: true, name: 'Times New Roman' }; 
+                } else if (thucTe === dinhMuc && dinhMuc > 0) {
+                    row.getCell('thucTe').font = { color: { argb: 'FF15803D' }, bold: true, name: 'Times New Roman' }; 
+                }
+                
+                stt++; // Tăng chỉ số STT
+            }
+        });
+
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber > 1) {
+                row.getCell('stt').alignment = { vertical: 'middle', horizontal: 'center' }; // Căn giữa cột STT
+                row.getCell('dinhMuc').alignment = { vertical: 'middle', horizontal: 'center' };
+                row.getCell('thucTe').alignment = { vertical: 'middle', horizontal: 'center' };
+                row.getCell('chiTiet').alignment = { vertical: 'middle', wrapText: true };
+            }
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        
+        const ngay = new Date();
+        const chuoiNgay = `${String(ngay.getDate()).padStart(2, '0')}${String(ngay.getMonth() + 1).padStart(2, '0')}${ngay.getFullYear()}`;
+        link.download = `PhanCongChiTiet_${chuoiNgay}.xlsx`;
+        
+        link.click();
+        
+    } catch(loi) {
+        console.error("Lỗi khi kết xuất Excel:", loi);
+        alert("Có lỗi khi tạo biểu mẫu Excel, vui lòng thử lại!");
+    } finally {
+        if (btn) {
+            btn.innerHTML = textGoc;
+            btn.disabled = false;
+        }
+    }
 }
 
 // =========================================================================
