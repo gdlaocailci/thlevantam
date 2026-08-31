@@ -82,19 +82,40 @@ function khoiTaoGiaoDienPhanCong(duLieuSever) {
         
         let duLieuCuCuaLop = mapPhanCongDaLuu[maLop] || [];
 
+        // [NÂNG CẤP]: Khớp chuẩn mã lớp với dữ liệu để lấy Khung chương trình tương ứng
+        let lopKey = Object.keys(khungChuongTrinhToanTruong).find(k => k.trim().toLowerCase() === String(maLop).trim().toLowerCase());
+
         for (let j = 0; j < duLieuSever.monHoc.length; j++) {
           let tenMon = duLieuSever.monHoc[j];
-          let gvHienTai = duLieuCuCuaLop[j + 1] || ''; 
           
-          // [NÂNG CẤP]: Bổ sung lệnh tinhToanTietDay(this.value) vào onclick và onfocus để kích hoạt ngay hiệu ứng trượt/bôi vàng
-          bodyHtml += `<td class="p-0 border border-gray-400 transition-all duration-300 bg-white group-hover:bg-slate-50">
-                          <input type="text" size="1" list="danhSachGiaoVienPhanCong" data-lop="${maLop}" data-mon="${tenMon}" value="${gvHienTai}" 
-                          onchange="tinhToanTietDay(this.value)" 
-                          placeholder="--" class="w-full h-full min-h-[26px] min-w-0 outline-none text-center bg-transparent focus:bg-blue-100 cursor-pointer font-semibold text-slate-800" 
-                          autocomplete="off" 
-                          onclick="if(this.showPicker) this.showPicker(); tinhToanTietDay(this.value);" 
-                          onfocus="this.select(); tinhToanTietDay(this.value);">
-                       </td>`;
+          // [NÂNG CẤP]: Kiểm tra xem môn học có tồn tại và có số tiết > 0 trong khung chương trình của lớp này không
+          let monHocHopLe = false;
+          if (lopKey) {
+              let monKey = Object.keys(khungChuongTrinhToanTruong[lopKey]).find(k => k.trim().toLowerCase() === String(tenMon).trim().toLowerCase());
+              if (monKey && parseInt(khungChuongTrinhToanTruong[lopKey][monKey]) > 0) {
+                  monHocHopLe = true;
+              }
+          }
+
+          if (monHocHopLe) {
+              // Trường hợp hợp lệ: Hiển thị ô nhập liệu bình thường
+              let gvHienTai = duLieuCuCuaLop[j + 1] || ''; 
+              bodyHtml += `<td class="p-0 border border-gray-400 transition-all duration-300 bg-white group-hover:bg-slate-50">
+                              <input type="text" size="1" list="danhSachGiaoVienPhanCong" data-lop="${maLop}" data-mon="${tenMon}" value="${gvHienTai}" 
+                              onchange="tinhToanTietDay(this.value)" 
+                              placeholder="--" class="w-full h-full min-h-[26px] min-w-0 outline-none text-center bg-transparent focus:bg-blue-100 cursor-pointer font-semibold text-slate-800" 
+                              autocomplete="off" 
+                              onclick="if(this.showPicker) this.showPicker(); tinhToanTietDay(this.value);" 
+                              onfocus="this.select(); tinhToanTietDay(this.value);">
+                           </td>`;
+          } else {
+              // Trường hợp vô hiệu hóa: Môn học không có trong Khung chương trình (Làm mờ và khóa nhập liệu)
+              bodyHtml += `<td class="p-0 border border-gray-300 bg-slate-200 opacity-70" title="Môn học không có trong Khung chương trình của lớp ${maLop}">
+                              <input type="text" disabled data-lop="${maLop}" data-mon="${tenMon}" value="" 
+                              class="w-full h-full min-h-[26px] min-w-0 outline-none text-center bg-transparent cursor-not-allowed text-slate-500 font-bold" 
+                              placeholder="✖">
+                           </td>`;
+          }
         }
         bodyHtml += '</tr>';
       });
