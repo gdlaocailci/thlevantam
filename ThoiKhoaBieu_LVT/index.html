@@ -52,7 +52,7 @@
                 <img id="logoMenuDoc" src="" alt="Logo" class="w-20 h-20 rounded-full object-cover">
             </div>
             <h2 id="tenDonViMenu" class="text-center text-white font-bold text-base uppercase tracking-wide leading-relaxed">
-                Trường Tiểu học<br>Lê Văn Tám
+                Trường Tiểu học<br>Hợp Thành
             </h2>
         </div>
         <div class="px-6 my-2 flex-none"><hr class="border-dashed border-blue-300 opacity-40"></div>
@@ -228,53 +228,71 @@
                     </table>
                 </div>
 
-                <!-- KHUNG 2: PHÂN CÔNG CHUYÊN MÔN -->
-                <div id="khungPhanCong" class="hidden p-4 w-full h-full flex-col font-sans">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="text-xl font-extrabold text-blue-900 uppercase">BẢNG PHÂN CÔNG CHUYÊN MÔN</h2>
-                        
-                        <div class="flex items-center gap-2">
-                            <input type="file" id="tepExcelPhanCong" accept=".xlsx, .xls" class="hidden" onchange="xuLyTaiLenExcelPhanCong(event)">
-                            <button onclick="document.getElementById('tepExcelPhanCong').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                                Nhập Excel
-                            </button>
-                            <button onclick="xuatExcelPhanCong()" class="bg-green-700 hover:bg-green-800 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                Xuất Excel
-                            </button>
-                            <button onclick="xuLyLuuTru()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
-                                Lưu Phân Công
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="flex gap-4 h-full overflow-hidden">
-                        <div class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative">
-                            <table id="bangChinh" class="bang-excel w-full text-center min-w-[800px]">
-                                <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm" id="tieuDeMonHoc">
-                                    <tr><th class="py-2">Đang tải cấu hình môn học...</th></tr>
-                                </thead>
-                                <tbody id="duLieuLopHoc">
-                                    <tr><td class="text-center py-10 text-slate-500 font-bold">Đang lấy dữ liệu...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
+<!-- KHUNG 2: PHÂN CÔNG CHUYÊN MÔN -->
+<div id="khungPhanCong" class="hidden p-4 w-full h-full flex-col font-sans">
+    <!-- Tiêu đề chung -->
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-xl font-extrabold text-blue-900 uppercase">BẢNG PHÂN CÔNG CHUYÊN MÔN</h2>
+    </div>
+    
+    <div class="flex gap-4 h-full overflow-hidden">
+        <!-- ================= KHUNG TRÁI: BẢNG PHÂN CÔNG CHÍNH ================= -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <!-- Khối nút bấm trên đầu khung trái -->
+            <div class="flex items-center gap-2 mb-2">
+                <input type="file" id="tepExcelPhanCong" accept=".xlsx, .xls" class="hidden" onchange="xuLyTaiLenExcelPhanCong(event)">
+                <button onclick="document.getElementById('tepExcelPhanCong').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Nhập Excel
+                </button>
+                <button onclick="xuatExcelPhanCong()" class="bg-green-700 hover:bg-green-800 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Xuất Excel
+                </button>
+                <button onclick="xuLyLuuTru()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                    Lưu Phân Công
+                </button>
+            </div>
+            
+            <!-- Lưới hiển thị khung trái -->
+            <div class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative">
+                <table id="bangChinh" class="bang-excel w-full text-center min-w-[800px]">
+                    <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm" id="tieuDeMonHoc">
+                        <tr><th class="py-2">Đang tải cấu hình môn học...</th></tr>
+                    </thead>
+                    <tbody id="duLieuLopHoc">
+                        <tr><td class="text-center py-10 text-slate-500 font-bold">Đang lấy dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-                        <div class="w-80 overflow-auto border border-gray-400 shadow-sm bg-white flex-none relative">
-                            <table class="bang-excel w-full text-center">
-                                <thead class="sticky top-0 z-20 bg-purple-100 text-purple-900 shadow-sm">
-                                    <tr>
-                                        <th class="p-2 border border-gray-400">Giáo viên</th>
-                                        <th class="p-2 border border-gray-400">Định mức</th>
-                                        <th class="p-2 border border-gray-400">Thực tế</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="duLieuThongKe"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+        <!-- ================= KHUNG PHẢI: BẢNG THỐNG KÊ CHI TIẾT ================= -->
+        <div class="w-[500px] flex-none flex flex-col overflow-hidden">
+            <!-- Khối nút bấm trên đầu khung phải -->
+            <div class="flex items-center justify-end gap-2 mb-2">
+                <button onclick="xuatExcelThongKePhanCong()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Xuất Bảng Phân Công Chi Tiết
+                </button>
+            </div>
+            
+            <!-- Lưới hiển thị khung phải -->
+            <div class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative scroll-smooth">
+                <table class="bang-excel w-full text-center">
+                    <thead class="sticky top-0 z-20 bg-purple-100 text-purple-900 shadow-sm">
+                        <tr>
+                            <th class="p-2 border border-gray-400">Giáo viên</th>
+                            <th class="p-2 border border-gray-400">Định mức</th>
+                            <th class="p-2 border border-gray-400">Thực tế</th>
+                        </tr>
+                    </thead>
+                    <tbody id="duLieuThongKe"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
                 <!-- KHUNG 3: BÁO CÁO THỐNG KÊ -->
                 <div id="khungThongKe" class="hidden p-4 w-full h-full flex-col font-sans">
@@ -333,32 +351,14 @@
                     <div class="w-full md:w-2/3 lg:w-1/2 flex flex-col h-full">
                         <div class="flex justify-between items-center mb-4 flex-none">
                             <h2 class="text-xl font-extrabold text-blue-900 uppercase">QUẢN LÝ DANH MỤC LỚP</h2>
-                            
-                            <div class="flex items-center gap-2 flex-wrap justify-end">
-                                <!-- Input ẩn để gọi hộp thoại tải file Excel -->
-                                <input type="file" id="tepExcelDanhMucLop" accept=".xlsx, .xls" class="hidden" onchange="nhapExcelDanhMucLop(event)">
-                                
-                                <!-- Nút Nhập Excel -->
-                                <button onclick="document.getElementById('tepExcelDanhMucLop').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                                    Nhập Excel
-                                </button>
-                                
-                                <!-- Nút Xuất Excel -->
-                                <button onclick="xuatExcelDanhMucLop()" class="bg-green-700 hover:bg-green-800 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                    Xuất Excel
-                                </button>
-                            
-                                <button onclick="themDongLopMoi()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                            <div class="flex items-center gap-2">
+                                <button onclick="themDongLopMoi()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-1.5">
                                     + Thêm Lớp
                                 </button>
-                                
-                                <button onclick="luuDuLieuDanhMucLopSangMayChu()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-4 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                                <button onclick="luuDuLieuDanhMucLopSangMayChu()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-5 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-1.5">
                                     Lưu Hệ Thống
                                 </button>
                             </div>
-                            
                         </div>
                         <div class="overflow-auto border border-gray-400 shadow-sm bg-white relative flex-1">
                             <table class="bang-excel w-full text-center">
@@ -484,7 +484,7 @@
 
     <script>
         function chuyenHuongHeThong() {
-            var urlDich = 'https://gdlaocailci.github.io/thlevantam/';
+            var urlDich = 'https://gdlaocailci.github.io/he-thong/';
             window.open(urlDich, '_top');
         }
         function moDongMenuMobile() {
