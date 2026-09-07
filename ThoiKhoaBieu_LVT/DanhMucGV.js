@@ -1,18 +1,6 @@
 let duLieuDanhMucGV = [];
 const TIEU_DE_DM_GV = ['Mã GV', 'Họ Tên', 'Tổ Chuyên Môn', 'Định Mức Tuần', 'Trạng Thái', 'Hộp Thư'];
 
-// Kích hoạt menu khi kiểm soát giao diện
-document.addEventListener('DOMContentLoaded', () => {
-      let checkQuyen = setInterval(() => {
-        if (typeof quyenSuaChua !== 'undefined') {
-            let menuDM = document.getElementById('menuDanhMucGV');
-            if (menuDM) {
-                menuDM.style.display = quyenSuaChua ? 'flex' : 'none';
-            }
-        }
-    }, 1000);
-});
-
 async function taiDuLieuDanhMucGV() {
     const tbody = document.getElementById('vungDuLieuDanhMucGV');
     tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-500 font-bold"><div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang tải Danh mục Giáo viên...</td></tr>`;
