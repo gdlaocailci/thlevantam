@@ -16,7 +16,8 @@ async function taiDuLieuCaiDatHeThong() {
     const tbThamSo = document.getElementById('vungThamSo');
     const tbQuanTri = document.getElementById('vungQuanTri');
     
-    tbThamSo.innerHTML = `<tr><td colspan="4" class="text-center py-10 font-bold text-slate-500">Đang tải cấu hình...</td></tr>`;
+    // Nâng cấp: Sửa colspan thành 3 do đã bỏ cột xoá
+    tbThamSo.innerHTML = `<tr><td colspan="3" class="text-center py-10 font-bold text-slate-500">Đang tải cấu hình...</td></tr>`;
     tbQuanTri.innerHTML = `<tr><td colspan="2" class="text-center py-10 font-bold text-slate-500">Đang tải cấu hình...</td></tr>`;
 
     try {
@@ -44,13 +45,22 @@ function veGiaoDienThamSo() {
     const tbody = document.getElementById('vungThamSo');
     let html = '';
     dsThamSo.forEach((ts, idx) => {
+        // [NÂNG CẤP]: Đặt biến chứa thuộc tính chữ mờ (placeholder)
+        let chuMoGiaTri = '';
+        let classChuMo = '';
+        
+        // Kiểm tra đúng dòng mã tham số TRANG_THAI_WEB để chèn chỉ dẫn
+        if (ts.maThamSo.trim() === 'TRANG_THAI_WEB') {
+            chuMoGiaTri = 'placeholder="Hoạt động/Bảo trì"';
+            // Thêm định dạng chữ mờ nghiêng, nhạt màu để phân biệt với dữ liệu thật
+            classChuMo = 'placeholder:text-gray-400 placeholder:italic placeholder:font-normal';
+        }
+
+        // Nâng cấp: Khoá input Mã tham số (readonly), bỏ onchange, bỏ toàn bộ thẻ td chứa nút Xoá
         html += `<tr class="hover:bg-slate-50">
-            <td class="p-0 border border-gray-300"><input type="text" value="${ts.maThamSo}" onchange="capNhatThamSo(${idx}, 'maThamSo', this.value)" class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent font-extrabold text-blue-900 text-left uppercase"></td>
-            <td class="p-0 border border-gray-300"><input type="text" value="${ts.giaTri}" onchange="capNhatThamSo(${idx}, 'giaTri', this.value)" class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-center font-bold text-slate-800"></td>
+            <td class="p-0 border border-gray-300"><input type="text" value="${ts.maThamSo}" readonly class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent font-extrabold text-blue-900 text-left uppercase cursor-not-allowed"></td>
+            <td class="p-0 border border-gray-300"><input type="text" ${chuMoGiaTri} value="${ts.giaTri}" onchange="capNhatThamSo(${idx}, 'giaTri', this.value)" class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-center font-bold text-slate-800 ${classChuMo}"></td>
             <td class="p-0 border border-gray-300"><input type="text" value="${ts.ghiChu}" onchange="capNhatThamSo(${idx}, 'ghiChu', this.value)" class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-left italic text-gray-600"></td>
-            <td class="p-1 border border-gray-300">
-                <button onclick="xoaThamSo(${idx})" title="Xoá" class="bg-red-100 hover:bg-red-200 text-red-600 font-bold px-2 py-1.5 rounded transition shadow-sm">✕</button>
-            </td>
         </tr>`;
     });
     tbody.innerHTML = html;
@@ -74,12 +84,11 @@ function veGiaoDienQuanTri() {
 // KHỐI ĐỒNG BỘ & THAO TÁC CÀI ĐẶT (ĐÃ NÂNG CẤP KIÊN CỐ)
 // =========================================================================
 
-// Quét trực tiếp dữ liệu từ DOM (Giao diện) để đảm bảo không thất thoát dữ liệu 
-// do trạng thái (State) bất đồng bộ (Ví dụ: sự kiện onchange không kịp kích hoạt khi ấn lưu ngay).
 function dongBoDomSangState() {
     dsThamSo = [];
     document.querySelectorAll('#vungThamSo tr').forEach(tr => {
         let cacInput = tr.querySelectorAll('input');
+        // Nâng cấp: Cấu trúc DOM vẫn giữ nguyên 3 thẻ input (vì input 1 chuyển sang readonly) nên logic đồng bộ không bị vỡ.
         if (cacInput && cacInput.length === 3) {
             dsThamSo.push({ 
                 maThamSo: cacInput[0].value, 
@@ -99,8 +108,7 @@ function dongBoDomSangState() {
 }
 
 function capNhatThamSo(idx, truong, giaTri) { dsThamSo[idx][truong] = giaTri; }
-function themDongThamSo() { dongBoDomSangState(); dsThamSo.push({ maThamSo: '', giaTri: '', ghiChu: '' }); veGiaoDienThamSo(); }
-function xoaThamSo(idx) { if(confirm("Đồng chí chắc chắn muốn xoá Tham số này?")) { dongBoDomSangState(); dsThamSo.splice(idx, 1); veGiaoDienThamSo(); } }
+// Đã loại bỏ hoàn toàn hàm themDongThamSo() và xoaThamSo() theo yêu cầu.
 
 function capNhatQuanTri(idx, giaTri) { dsQuanTri[idx] = giaTri; }
 function themDongQuanTri() { dongBoDomSangState(); dsQuanTri.push(''); veGiaoDienQuanTri(); }
