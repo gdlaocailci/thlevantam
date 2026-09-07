@@ -428,7 +428,7 @@ function ketXuatSoDauBaiLenLuoi() {
                         <th class="border border-gray-500 p-2 min-w-[200px] w-1/2">TÊN BÀI DẠY</th>
                         <th class="border border-gray-500 p-2 min-w-[280px] w-1/2">NHẬN XÉT CỦA GV</th>
                         <th class="border border-gray-500 p-2 min-w-[85px] w-20">XẾP LOẠI</th>
-                        <th class="border border-gray-500 p-2 min-w-[200px]">CHỮ KÝ</th>
+                        <th class="border border-gray-500 p-2 min-w-[200px]">NGƯỜI DẠY</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -503,7 +503,7 @@ function ketXuatSoDauBaiLenLuoi() {
                                 <option value="TB" ${optTB}>TB</option>
                                 <option value="Yếu" ${optYeu}>Yếu</option>
                             </select>`;
-                        theChuKy = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-semibold text-blue-700 placeholder-blue-300" placeholder="Ký..." value="${chuKy}">`;
+                        theChuKy = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-semibold text-blue-700 placeholder-blue-300" placeholder="Ghi rõ họ tên..." value="${chuKy}">`;
                     }
                 }
 
