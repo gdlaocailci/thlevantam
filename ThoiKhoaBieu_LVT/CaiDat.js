@@ -2,16 +2,6 @@ let dsThamSo = [];
 let dsQuanTri = [];
 const TIEU_DE_CAI_DAT = ['MaThamSo', 'GiaTri', 'GhiChu', '', 'Quyền Admin'];
 
-document.addEventListener('DOMContentLoaded', () => {
-    let checkQuyenCD = setInterval(() => {
-        if (typeof quyenSuaChua !== 'undefined') {
-            let menuCD = document.getElementById('menuCaiDat');
-            // Đã sửa 'block' thành 'flex' để chống vỡ cấu trúc giao diện
-            if (menuCD) { menuCD.style.display = quyenSuaChua ? 'flex' : 'none'; }
-        }
-    }, 1000);
-});
-
 async function taiDuLieuCaiDatHeThong() {
     const tbThamSo = document.getElementById('vungThamSo');
     const tbQuanTri = document.getElementById('vungQuanTri');
