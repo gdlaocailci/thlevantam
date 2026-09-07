@@ -384,7 +384,7 @@ function ketXuatSoDauBaiLenLuoi() {
         }
     }
 
-    let danhSachMonUI = dsMonDuocSuaCuaLop.length > 0 ? dsMonDuocSuaCuaLop.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ') : '<span class="text-red-600 font-bold">Không dạy lớp này</span>';
+    let danhSachMonUI = dsMonDuocSuaCuaLop.length > 0 ? dsMonDuocSuaCuaLop.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ') : '<span class="text-red-600 font-bold"> Thầy/cô không dạy lớp này</span>';
     let theHienThiQuyen = `<div class="mb-4 p-2.5 bg-blue-50 border border-blue-300 shadow-sm text-sm rounded flex items-center justify-between animate-pulse-once">
         <div><span class="font-bold text-blue-800">Định danh:</span> <span class="text-blue-700 font-extrabold">${maGvDangNhapHeThong || 'Chưa nhận diện'}</span></div>
         <div><span class="font-bold text-blue-800">Quyền ký tại ${lopChon}:</span> <span class="text-blue-700 font-semibold">${danhSachMonUI}</span></div>
