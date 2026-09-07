@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm text-center">
                             <tr>
                                 <th class="py-2 w-56">Tài khoản (Định danh)</th>
-                                <th class="py-2">Phân quyền Lớp học</th>
+                                <th class="py-2">Quyền xếp thời khoá biểu Lớp học</th>
                                 <th class="py-2">Phân quyền Menu</th>
                                 <th class="py-2">Phân quyền Nút chức năng</th>
                                 <th class="py-2 w-16 text-red-600">Xóa</th>
