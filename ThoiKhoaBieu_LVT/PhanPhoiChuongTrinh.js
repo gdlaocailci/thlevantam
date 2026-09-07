@@ -281,17 +281,22 @@ function veBangKhungLichPPCT(monDangChon) {
     let maTranTkb = {};
     let demTietTuanNay = 0; 
     
+    // [ĐÃ SỬA]: Chuẩn hóa chuỗi môn chọn (Triệt tiêu mọi khoảng trắng thừa ở giữa)
+    const monChonChuan = monDangChon.trim().replace(/\s+/g, ' ').toLowerCase();
+    
     duLieuTkbTuan.forEach(t => {
         if (!maTranTkb[t.thu]) maTranTkb[t.thu] = {};
         if (!maTranTkb[t.thu][t.buoi]) maTranTkb[t.thu][t.buoi] = {};
         maTranTkb[t.thu][t.buoi][t.tiet] = t;
-        if (t.monHoc.trim().toLowerCase() === monDangChon.trim().toLowerCase()) demTietTuanNay++;
+        
+        // [ĐÃ SỬA]: Chuẩn hóa chuỗi môn trong TKB để so sánh chính xác tuyệt đối
+        let monTkbChuan = t.monHoc.trim().replace(/\s+/g, ' ').toLowerCase();
+        if (monTkbChuan === monChonChuan) demTietTuanNay++;
     });
 
     const tuan = parseInt(document.getElementById('locTuanUI').value.trim()) || 1;
     const lop = document.getElementById('locLopPPCT').value.trim();
     
-    // [YÊU CẦU MỚI 3]: Nội suy ngày tự động và gán cờ isTuongLai
     let ngayGocThu2 = null;
     const tuanHienTaiHeThong = (typeof tuanDangXem !== 'undefined') ? parseInt(tuanDangXem) : 1;
     const isTuongLai = tuan > tuanHienTaiHeThong;
@@ -314,7 +319,8 @@ function veBangKhungLichPPCT(monDangChon) {
     let soTiet1Tuan = 0; 
     if (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.KHUNG_CHUONG_TRINH) {
         let dmKhoi = thongSoHocVu.KHUNG_CHUONG_TRINH[lop] || {};
-        let monMatch = Object.keys(dmKhoi).find(m => m.trim().toLowerCase() === monDangChon.trim().toLowerCase());
+        // [ĐÃ SỬA]: Chuẩn hóa khi dò tìm số tiết trong khung chương trình
+        let monMatch = Object.keys(dmKhoi).find(m => m.trim().replace(/\s+/g, ' ').toLowerCase() === monChonChuan);
         if (monMatch) soTiet1Tuan = parseInt(dmKhoi[monMatch]);
     }
     if (!soTiet1Tuan || isNaN(soTiet1Tuan) || soTiet1Tuan === 0) soTiet1Tuan = demTietTuanNay;
@@ -328,8 +334,11 @@ function veBangKhungLichPPCT(monDangChon) {
             cauTrucTiet[buoi].forEach(tiet => {
                 let tietTkb = (maTranTkb[thu] && maTranTkb[thu][buoi] && maTranTkb[thu][buoi][tiet]) ? maTranTkb[thu][buoi][tiet] : null;
                 let tenMonTkb = tietTkb ? tietTkb.monHoc.trim() : '';
+                
+                // [ĐÃ SỬA]: Chuẩn hóa tên môn khi duyệt lưới
+                let monTkbChuan = tenMonTkb.replace(/\s+/g, ' ').toLowerCase();
 
-                if (tenMonTkb.toLowerCase() === monDangChon.trim().toLowerCase() && tenMonTkb !== '') {
+                if (monTkbChuan === monChonChuan && tenMonTkb !== '') {
                     dsTietCuaThu.push({ buoi: buoi, tiet: tiet, tietTkb: tietTkb });
                     tongSoDongMucTieu++;
                 }
@@ -391,19 +400,17 @@ function veBangKhungLichPPCT(monDangChon) {
 
                         let idKhoa = `${thu}_${buoi}_${tiet}`;
 
-                        // [YÊU CẦU MỚI 4]: Ép xuống dòng tự động cho cột Tên bài và Điều chỉnh (bảo toàn cấu trúc td nguyên bản)
                         html += `
                             <td class="border-r border-gray-400 align-middle font-extrabold text-slate-800 text-center">${tiet}</td>
-                            <td class="border-r border-gray-300 align-middle text-center p-3 font-extrabold text-red-600 break-words whitespace-normal" data-ppct-id="${idKhoa}" data-loai="tietPpc">${valTietPPC}</td>
-                            <td class="border-r border-gray-300 align-middle text-center font-bold text-blue-800 break-words whitespace-normal">${tenMonTkb}</td>
+                            <td class="border-r border-gray-300 align-middle text-center p-3 font-extrabold text-red-600 whitespace-normal" data-ppct-id="${idKhoa}" data-loai="tietPpc">${valTietPPC}</td>
+                            <td class="border-r border-gray-300 align-middle text-center font-bold text-blue-800 whitespace-normal">${tenMonTkb}</td>
 
-                     
-                            <td class="border-r border-gray-300 align-middle text-left p-3 break-words whitespace-normal leading-relaxed" style="white-space: normal !important; max-width: 400px; word-break: break-word;">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="font-semibold text-slate-900 flex-1" data-ppct-id="${idKhoa}" data-loai="tenBai">${valTenBai}</span>
+                          <td class="border-r border-gray-300 align-middle text-left p-3 leading-relaxed" style="white-space: normal !important; min-width: 200px; max-width: 300px; word-wrap: break-word; word-break: break-word;">
+                                <div class="flex items-start justify-between gap-2">
+                                    <span class="font-semibold text-slate-900 flex-1 whitespace-normal break-words" style="word-break: break-word;" data-ppct-id="${idKhoa}" data-loai="tenBai">${valTenBai}</span>
                                     
                                     <button onclick="kichHoatXemTruocSGK(document.getElementById('locKhoiPPCT').getAttribute('data-khoi-so'), '${tenMonTkb}', document.querySelector('[data-ppct-id=\\'${idKhoa}\\'][data-loai=\\'tenBai\\']').innerText)" 
-                                            class="p-1.5 rounded bg-blue-50 hover:bg-blue-200 text-blue-700 transition flex-none shadow-sm border border-blue-200" 
+                                            class="p-1.5 rounded bg-blue-50 hover:bg-blue-200 text-blue-700 transition flex-none shadow-sm border border-blue-200 mt-0.5" 
                                             title="Xem và tải trang SGK bài học này">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -413,8 +420,7 @@ function veBangKhungLichPPCT(monDangChon) {
                                 </div>
                             </td>                     
 
-                           
-                            <td class="align-middle text-left p-3 italic text-gray-700 break-words whitespace-normal leading-relaxed" data-ppct-id="${idKhoa}" data-loai="dieuChinh" style="white-space: normal !important; max-width: 300px; word-break: break-word;">${valDieuChinh}</td>
+                            <td class="align-middle text-left p-3 italic text-gray-700 leading-relaxed whitespace-normal break-words" data-ppct-id="${idKhoa}" data-loai="dieuChinh" style="white-space: normal !important; min-width: 250px; max-width: 450px; word-wrap: break-word; word-break: break-word;">${valDieuChinh}</td>
                         </tr>`;
                     });
                 }
