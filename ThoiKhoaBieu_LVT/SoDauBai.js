@@ -428,7 +428,7 @@ function ketXuatSoDauBaiLenLuoi() {
                         <th class="border border-gray-500 p-2 min-w-[200px] w-1/2">TÊN BÀI DẠY</th>
                         <th class="border border-gray-500 p-2 min-w-[280px] w-1/2">NHẬN XÉT CỦA GV</th>
                         <th class="border border-gray-500 p-2 min-w-[85px] w-20">XẾP LOẠI</th>
-                        <th class="border border-gray-500 p-2 min-w-[200px]">NGƯỜI DẠY</th>
+                        <th class="border border-gray-500 p-2 min-w-[200px]">GIÁO VIÊN DẠY</th>
                     </tr>
                 </thead>
                 <tbody>
