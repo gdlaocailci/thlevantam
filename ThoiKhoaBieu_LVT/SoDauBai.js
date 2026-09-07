@@ -480,12 +480,7 @@ function ketXuatSoDauBaiLenLuoi() {
                         let cssNenKhoa = !quyenNhapThuCong ? "bg-slate-100 cursor-not-allowed opacity-70" : "bg-transparent";
                         let placeholderText = !quyenNhapThuCong ? "Không có quyền" : "Nhập...";
 
-                        if (isEmptyTenBai) {
-                            theTenBai = `<input type="text" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-normal text-slate-800 placeholder-slate-400 px-1" placeholder="${placeholderText}" value="">`;
-                        } else {
-                            cssTenBai = !quyenNhapThuCong ? "text-slate-500 font-semibold" : "text-slate-800 font-semibold";
-                            theTenBai = tenBai;
-                        }
+                        theTenBai = `<input type="text" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400 px-1" placeholder="${placeholderText}" value="${tenBai}">`;
 
                         theChuyenCan = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400" placeholder="..." value="${chuyenCan}">`;
                         theNhanXet = `<input type="text" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-normal text-slate-800 placeholder-slate-400 px-1" placeholder="Nhận xét..." value="${nhanXet}">`;
@@ -665,15 +660,13 @@ function dongBoTenBaiHoc() {
                     
                     let baiDay = tuDienPPCTToanCuc[khoaChinh] || tuDienPPCTToanCuc[khoaPhu] || '';
 
-                    if (baiDay !== '') {
-                        oTenBai.innerText = baiDay;
-                        oTenBai.className = "border border-gray-500 p-1 text-slate-800 font-semibold bg-white group-hover:bg-slate-50";
-                    } else {
-                        let trangThaiKhoa = !coQuyenSua ? "disabled" : "";
-                        let cssNenKhoa = !coQuyenSua ? "bg-slate-100 cursor-not-allowed opacity-70" : "bg-transparent";
-                        oTenBai.innerHTML = `<input type="text" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-normal text-slate-800 placeholder-slate-400 px-1" placeholder="Nhập tên bài..." value="">`;
-                        oTenBai.className = "border border-gray-500 p-1 bg-white group-hover:bg-slate-50";
-                    }
+                    // Đúc tên bài vào ô Input để giáo viên có thể chỉnh sửa thêm sau khi đồng bộ
+                    let trangThaiKhoa = !coQuyenSua ? "disabled" : "";
+                    let cssNenKhoa = !coQuyenSua ? "bg-slate-100 cursor-not-allowed opacity-70" : "bg-transparent";
+                    let placeholderText = !coQuyenSua ? "Không có quyền" : "Nhập tên bài...";
+                    
+                    oTenBai.innerHTML = `<input type="text" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400 px-1" placeholder="${placeholderText}" value="${baiDay}">`;
+                    oTenBai.className = "border border-gray-500 p-1 bg-white group-hover:bg-slate-50";
                 }
             }
         });
