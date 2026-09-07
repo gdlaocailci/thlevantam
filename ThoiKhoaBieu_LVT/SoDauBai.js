@@ -384,7 +384,7 @@ function ketXuatSoDauBaiLenLuoi() {
         }
     }
 
-    let danhSachMonUI = dsMonDuocSuaCuaLop.length > 0 ? dsMonDuocSuaCuaLop.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ') : '<span class="text-red-600 font-bold"> Thầy/cô không dạy lớp này</span>';
+    let danhSachMonUI = dsMonDuocSuaCuaLop.length > 0 ? dsMonDuocSuaCuaLop.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join(', ') : '<span class="text-red-600 font-bold">Thầy/cô không dạy lớp này</span>';
     let theHienThiQuyen = `<div class="mb-4 p-2.5 bg-blue-50 border border-blue-300 shadow-sm text-sm rounded flex items-center justify-between animate-pulse-once">
         <div><span class="font-bold text-blue-800">Định danh:</span> <span class="text-blue-700 font-extrabold">${maGvDangNhapHeThong || 'Chưa nhận diện'}</span></div>
         <div><span class="font-bold text-blue-800">Quyền ký tại ${lopChon}:</span> <span class="text-blue-700 font-semibold">${danhSachMonUI}</span></div>
@@ -419,16 +419,16 @@ function ketXuatSoDauBaiLenLuoi() {
             </div>
             <table class="w-full min-w-[950px] border-collapse border border-gray-500 text-sm">
                 <thead class="bg-slate-100 text-center font-bold">
-                    <tr>
-                        <th class="border border-gray-500 p-2 w-16">THỨ</th>
+                <tr>
+                        <th class="border border-gray-500 p-2 w-20">THỨ</th>
                         <th class="border border-gray-500 p-2 w-10">TIẾT</th>
-                        <th class="border border-gray-500 p-2 w-12">C.CẦN</th>
-                        <th class="border border-gray-500 p-2 w-20">MÔN</th>
+                        <th class="border border-gray-500 p-2 min-w-[80px] w-20">C.CẦN</th>
+                        <th class="border border-gray-500 p-2 min-w-[140px] w-40">MÔN</th>
                         <th class="border border-gray-500 p-2 w-12">TIẾT PPCT</th>
-                        <th class="border border-gray-500 p-2 min-w-[200px] w-auto">TÊN BÀI DẠY</th>
-                        <th class="border border-gray-500 p-2 min-w-[180px] w-auto">NHẬN XÉT CỦA GV</th>
-                        <th class="border border-gray-500 p-2 w-16">XẾP LOẠI</th>
-                        <th class="border border-gray-500 p-2 w-24">CHỮ KÝ</th>
+                        <th class="border border-gray-500 p-2 min-w-[200px] w-1/2">TÊN BÀI DẠY</th>
+                        <th class="border border-gray-500 p-2 min-w-[280px] w-1/2">NHẬN XÉT CỦA GV</th>
+                        <th class="border border-gray-500 p-2 min-w-[85px] w-20">XẾP LOẠI</th>
+                        <th class="border border-gray-500 p-2 min-w-[200px]">CHỮ KÝ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -489,7 +489,20 @@ function ketXuatSoDauBaiLenLuoi() {
 
                         theChuyenCan = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400" placeholder="..." value="${chuyenCan}">`;
                         theNhanXet = `<input type="text" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-normal text-slate-800 placeholder-slate-400 px-1" placeholder="Nhận xét..." value="${nhanXet}">`;
-                        theXepLoai = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-bold text-slate-800 placeholder-slate-400" placeholder="XL" value="${xepLoai}">`;
+
+                        let optTot = (xepLoai === 'Tốt') ? 'selected' : '';
+                        let optKha = (xepLoai === 'Khá') ? 'selected' : '';
+                        let optTB = (xepLoai === 'TB') ? 'selected' : '';
+                        let optYeu = (xepLoai === 'Yếu') ? 'selected' : '';
+                        
+                        theXepLoai = `
+                            <select ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-bold text-slate-800 cursor-pointer appearance-none">
+                                <option value="" ${!xepLoai ? 'selected' : ''}>-Chọn-</option>
+                                <option value="Tốt" ${optTot}>Tốt</option>
+                                <option value="Khá" ${optKha}>Khá</option>
+                                <option value="TB" ${optTB}>TB</option>
+                                <option value="Yếu" ${optYeu}>Yếu</option>
+                            </select>`;
                         theChuKy = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-semibold text-blue-700 placeholder-blue-300" placeholder="Ký..." value="${chuKy}">`;
                     }
                 }
@@ -557,8 +570,12 @@ async function luuSoDauBaiSangMayChu() {
                 let mon = cellMon ? cellMon.innerText.trim() : '';
 
                 if (mon && mon !== '') {
-                    // Cấu trúc hàm con quét thẳng vào lõi thẻ td, bắt input hoặc innerText an toàn
-                    let getVal = (cell) => cell ? (cell.querySelector('input') ? cell.querySelector('input').value.trim() : cell.innerText.trim()) : '';
+                    // Cấu trúc hàm con quét thẳng vào lõi thẻ td, bắt input, select hoặc innerText an toàn
+                    let getVal = (cell) => {
+                        if (!cell) return '';
+                        let theNhap = cell.querySelector('input, select');
+                        return theNhap ? theNhap.value.trim() : cell.innerText.trim();
+                    };
 
                     let tiet = getVal(dong.querySelector('td[data-loai="tietSDB"]'));
                     let chuyenCan = getVal(dong.querySelector('td[data-loai="chuyenCan"]'));
