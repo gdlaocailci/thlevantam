@@ -3,7 +3,6 @@
 // File: PhanQuyenAdmin.js
 // =========================================================================
 let duLieuBangPhanQuyen = [];
-
 const DANH_SACH_MENU_HE_THONG = [
     {id: 'menuCaiDat', ten: '1. Cài đặt'}, {id: 'menuDanhMucGV', ten: '2. DM Giáo viên'},
     {id: 'menuDanhMucLop', ten: '3. DM Lớp'}, {id: 'menuKhungChuongTrinh', ten: '4. Khung CT'},
@@ -12,9 +11,13 @@ const DANH_SACH_MENU_HE_THONG = [
 ];
 
 const DANH_SACH_NUT_CHUC_NANG = [
-    {id: 'btnLuuTuan', ten: 'Lưu TKB Tuần'}, {id: 'btnLuuCoDinh', ten: 'Lưu TKB Cố Định'},
-    {id: 'btnKhoiPhuc', ten: 'Khôi phục/Tuần mới'}, {id: 'btnXepTuDong', ten: 'Xếp tự động'},
-    {id: 'btnKiemTra', ten: 'Kiểm tra chuẩn'}
+    {id: 'btnNhapExcelTKB', ten: 'Nhập Excel'},
+    {id: 'btnXuatExcelTKB', ten: 'Xuất Excel'},
+    {id: 'btnKhoiPhuc', ten: 'Tuần mới'},
+    {id: 'btnLuuTuan', ten: 'Lưu TKB Tuần'},
+    {id: 'btnLuuCoDinh', ten: 'TKB Cố Định'},
+    {id: 'btnXepTuDong', ten: 'Xếp Tự Động'},
+    {id: 'btnKiemTra', ten: 'Định Mức tiết'}
 ];
 
 // Khởi tạo và Bơm Giao diện vào index.html lúc tải trang
@@ -99,8 +102,21 @@ async function taiDuLieuPhanQuyenTuMayChu() {
     
     try {
         const phanHoi = await fetchVoiCoCheThuLai(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layPhanQuyenHethong`);
-        duLieuBangPhanQuyen = await phanHoi.json();
-        if (duLieuBangPhanQuyen.trangThai === 'loi_he_thong') throw new Error(duLieuBangPhanQuyen.thongBao);
+        let ketQua = await phanHoi.json();
+        
+        if (ketQua && ketQua.trangThai === 'loi_he_thong') {
+            throw new Error(ketQua.thongBao);
+        }
+        
+        // [CHỐT CHẶN AN TOÀN]: Đảm bảo dữ liệu nhận được phải là một mảng
+        if (Array.isArray(ketQua)) {
+            duLieuBangPhanQuyen = ketQua;
+        } else if (ketQua && ketQua.trangThai === 'thanh_cong') {
+            // Cảnh báo khi người dùng quên Deploy mã Google Apps Script
+            throw new Error("Mã máy chủ chưa được đồng bộ. Đồng chí vui lòng chọn Manage Deployments -> New version trên Google Apps Script.");
+        } else {
+            duLieuBangPhanQuyen = [];
+        }
         
         hienThiBangPhanQuyen();
     } catch (loi) {
