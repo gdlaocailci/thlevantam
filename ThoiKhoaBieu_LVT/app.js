@@ -1,8 +1,9 @@
 let thongSoHocVu = {};
 let quyenSuaChua = false; 
+let quyenChiTiet = { menu: [], nut: [], lop: [] }; 
 let duLieuTkbHienTai = []; 
 let tuanDangXem = 1; 
-let ngayDauTuanUI = ''; 
+let ngayDauTuanUI = '';
 
 document.addEventListener('DOMContentLoaded', () => { khoiTaoGiaoDien(); });
 
@@ -44,30 +45,54 @@ async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3) {
 // =========================================================================
 // KHỐI QUẢN LÝ GIAO DIỆN & PHÂN QUYỀN TRUNG TÂM
 // =========================================================================
+// =========================================================================
+// KHỐI QUẢN LÝ GIAO DIỆN & PHÂN QUYỀN TRUNG TÂM
+// =========================================================================
 function kiemSoatGiaoDien() {
+    // 1. Bọc thép dữ liệu: Đảm bảo luôn trả về mảng dù lỗi mạng
+    const menuDuocCap = (quyenChiTiet && quyenChiTiet.menu) ? quyenChiTiet.menu : [];
+    const nutDuocCap = (quyenChiTiet && quyenChiTiet.nut) ? quyenChiTiet.nut : [];
+
+    // 2. Mở khóa Nút Bấm
     const dsNut = ['btnLuuTuan', 'btnLuuCoDinh', 'btnKhoiPhuc', 'btnXepTuDong', 'btnKiemTra', 'btnNhapExcelTKB'];
     dsNut.forEach(idNut => {
         let nut = document.getElementById(idNut);
         if (nut) {
-            if (quyenSuaChua) { nut.style.display = 'flex'; nut.disabled = false; } 
+            // [LOGIC CỐT LÕI]: Hoặc là Admin, Hoặc là được cấp phép nút này
+            let duocPhep = quyenSuaChua || nutDuocCap.includes(idNut);
+            if (duocPhep) { nut.style.display = 'flex'; nut.disabled = false; } 
             else { nut.style.display = 'none'; nut.disabled = true; }
         }
     });
 
-    // [ĐÃ SỬA LỖI]: Chỉ khóa đúng các Menu Quản trị thực sự. Trả lại hiển thị cho Phân phối chương trình.
-    const dsMenuQuanTri = ['nhanHeThong', 'menuCaiDat', 'menuDanhMucGV', 'menuDanhMucLop', 'menuPhanCong', 'menuKhungChuongTrinh', 'menuDanhMucSGK'];
+    // 3. Mở khóa Menu (Đã tách 'nhanHeThong' ra ngoài để xử lý riêng)
+    const dsMenuQuanTri = ['menuCaiDat', 'menuDanhMucGV', 'menuDanhMucLop', 'menuPhanCong', 'menuKhungChuongTrinh', 'menuDanhMucSGK'];
+    let coMenuQuanTriDuocMo = false;
+
     dsMenuQuanTri.forEach(idMenu => {
         let menu = document.getElementById(idMenu);
         if (menu) {
-            menu.style.display = quyenSuaChua ? 'flex' : 'none'; 
+            // [LOGIC CỐT LÕI]: Hoặc là Admin, Hoặc là được cấp phép Menu này
+            let duocXem = quyenSuaChua || menuDuocCap.includes(idMenu);
+            menu.style.display = duocXem ? 'flex' : 'none'; 
+            if (duocXem) coMenuQuanTriDuocMo = true;
         }
     });
 
+    // 4. Nếu có bất kỳ Menu quản trị nào được mở, thì mới hiện chữ "Hệ thống"
+    let nhanHT = document.getElementById('nhanHeThong');
+    if (nhanHT) {
+        nhanHT.style.display = coMenuQuanTriDuocMo ? 'flex' : 'none';
+    }
+
+    // 5. Mở khóa tương tác Ngày/Tuần
     let btnTuanTruoc = document.querySelector('button[onclick="chuyenTuan(-1)"]');
     let btnTuanTiep = document.querySelector('button[onclick="chuyenTuan(1)"]');
     let inputNgay = document.getElementById('chonNgayDauTuan');
 
-    if (quyenSuaChua) {
+    let coQuyenThaoTac = quyenSuaChua || nutDuocCap.length > 0 || menuDuocCap.length > 0;
+
+    if (coQuyenThaoTac) {
         if (btnTuanTruoc) { btnTuanTruoc.disabled = false; btnTuanTruoc.classList.remove('opacity-50', 'cursor-not-allowed'); }
         if (btnTuanTiep) { btnTuanTiep.disabled = false; btnTuanTiep.classList.remove('opacity-50', 'cursor-not-allowed'); }
         if (inputNgay) { inputNgay.disabled = false; inputNgay.classList.remove('cursor-not-allowed', 'opacity-80'); }
@@ -266,18 +291,26 @@ function locTheoGiaoVien() { xuatMaTranBang(duLieuTkbHienTai); }
 
 function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '') {
     let idThocTinh = idPhanTu ? `id="${idPhanTu}"` : '';
-    let thuocTinhKhoa = quyenSuaChua ? '' : 'disabled'; 
-    let cssKhoa = quyenSuaChua ? 'cursor-pointer' : 'cursor-not-allowed opacity-80';
+    
+    // [NÂNG CẤP LÕI]: Bóc tách tên Lớp học từ idPhanTu để đối chiếu phân quyền
+    let lopCuaO = "";
+    if (idPhanTu) {
+        let parts = idPhanTu.split('_');
+        if (parts.length > 4) {
+            lopCuaO = parts.slice(4).join('_'); // Lấy tên lớp ở cuối chuỗi
+        }
+    }
+    
+    // Cho phép sửa nếu là Admin HOẶC lớp này nằm trong danh sách được cấp quyền
+    let duocSuaLop = quyenSuaChua || (quyenChiTiet && quyenChiTiet.lop && quyenChiTiet.lop.includes(lopCuaO));
+    
+    let thuocTinhKhoa = duocSuaLop ? '' : 'disabled'; 
+    let cssKhoa = duocSuaLop ? 'cursor-pointer' : 'cursor-not-allowed opacity-80';
     let cssAn = !isTarget ? 'opacity-0 pointer-events-none select-none' : ''; 
     
-    // [NÂNG CẤP TỐC ĐỘ]: Dùng chung Datalist toàn cục (đã được tạo ở xuatMaTranBang)
     let idDatalist = loaiDanhSach === 'mon' ? 'datalistChung_Mon' : 'datalistChung_GV';
-    
-    // [NÂNG CẤP UI]: Bắt trực tiếp sự kiện gõ phím, chọn danh sách và thoát chuột cho cột Giáo viên
     let suKienKiemTra = (idPhanTu && idPhanTu.startsWith('gv_')) ? `oninput="if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang()" onchange="if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang()" onblur="if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang()"` : '';
 
-    // Thuộc tính autocomplete="off" để tránh Google chèn gợi ý cá nhân đè lên danh sách của trường
-    // Thêm size="1" và min-w-0 để triệt tiêu độ rộng mặc định của input, giúp cột co về đúng kích thước chuẩn
     let html = `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()" ${suKienKiemTra}>`; 
     
     return html;
@@ -595,13 +628,18 @@ function xuatMaTranBang(danhSachTiet) {
 // =========================================================================
 // KHỐI 4: TRÌNH LƯU TRỮ VÀ XỬ LÝ DỮ LIỆU ĐA TẦNG (ĐÃ NÂNG CẤP TỐC ĐỘ CAO O(N))
 // =========================================================================
+// =========================================================================
+// KHỐI 4: TRÌNH LƯU TRỮ VÀ XỬ LÝ DỮ LIỆU ĐA TẦNG
+// =========================================================================
 async function luuDuLieu(event, loaiLuu) {
-    if (!quyenSuaChua) return;
+    let coQuyenThaoTac = quyenSuaChua || (quyenChiTiet && (quyenChiTiet.lop.length > 0 || quyenChiTiet.nut.length > 0));
+    if (!coQuyenThaoTac) return;
     
     if (loaiLuu === 'codinh') { if (!confirm("CẢNH BÁO: Thao tác này sẽ ghi đè toàn bộ TKB hiện tại làm TKB Gốc Cố Định cho toàn trường. Bấm OK để tiếp tục.")) return; }
     
     if (loaiLuu === 'khoiphuc') { if (!confirm(`Xác nhận: Lưu trữ toàn bộ TKB Tuần ${tuanDangXem}, tự động chuyển sang tuần tiếp theo?`)) return; }
 
+    
     const btn = event.currentTarget; 
     const textGoc = btn.innerHTML;
     if(btn.disabled === undefined) { } else {
@@ -841,14 +879,11 @@ function khoiDongDangNhap() {
 async function xuLyLayThongTin(maTokenTruyCap) {
     let nutDangNhap = document.getElementById('nutDangNhapG');
     try {
-        // [NÂNG CẤP ĐỒNG BỘ]: Sử dụng fetchVoiCoCheThuLai thay cho fetch nguyên thủy
-        // Đảm bảo phiên đăng nhập không bị gián đoạn nếu mạng nội bộ chập chờn
         const phanHoi = await fetchVoiCoCheThuLai('https://www.googleapis.com/oauth2/v3/userinfo', { 
             headers: { Authorization: `Bearer ${maTokenTruyCap}` } 
         });
         const duLieuXacThuc = await phanHoi.json();
         
-        // Tuân thủ nguyên tắc bảo mật: Không dùng từ khóa nhạy cảm làm biến trực tiếp
         const tuKhoaDinhDanh = 'em' + 'ail'; 
         const dinhDanhHeThong = duLieuXacThuc[tuKhoaDinhDanh]; 
         const tenHienThi = duLieuXacThuc.name; 
@@ -860,26 +895,34 @@ async function xuLyLayThongTin(maTokenTruyCap) {
             nutDangNhap.classList.replace('bg-slate-700', 'bg-green-700'); 
             nutDangNhap.classList.replace('hover:bg-slate-600', 'hover:bg-green-600');
             nutDangNhap.classList.replace('border-slate-500', 'border-green-500'); 
-            nutDangNhap.onclick = null; // Khóa nút sau khi thành công
+            nutDangNhap.onclick = null; 
         }
 
         const dsQuanTri = thongSoHocVu.DANH_SACH_QUAN_TRI || [];
         const dinhDanhGoc = 'tulieuhopthanh@gmail.com';
 
-        let quyenTruocDo = quyenSuaChua; // Ghi nhớ trạng thái phân quyền cũ
+        let quyenTruocDo = quyenSuaChua; 
 
+        // 1. KIỂM TRA QUYỀN ADMIN TOÀN NĂNG
         if (dsQuanTri.includes(dinhDanhHeThong) || dinhDanhHeThong === dinhDanhGoc) { 
             quyenSuaChua = true; 
         } else { 
             quyenSuaChua = false; 
         }
         
-        // Cập nhật lại giao diện menu
+        // 2. KIỂM TRA VÀ GÁN ĐẶC QUYỀN CHI TIẾT TỪ MA TRẬN
+        quyenChiTiet = { menu: [], nut: [], lop: [] }; 
+        if (thongSoHocVu.MA_TRAN_PHAN_QUYEN && thongSoHocVu.MA_TRAN_PHAN_QUYEN[dinhDanhHeThong]) {
+            quyenChiTiet.menu = thongSoHocVu.MA_TRAN_PHAN_QUYEN[dinhDanhHeThong].menu || [];
+            quyenChiTiet.nut = thongSoHocVu.MA_TRAN_PHAN_QUYEN[dinhDanhHeThong].nut || [];
+            quyenChiTiet.lop = thongSoHocVu.MA_TRAN_PHAN_QUYEN[dinhDanhHeThong].lop || [];
+        }
+        
+        // 3. Tiến hành vẽ lại Menu dựa trên sự kết hợp quyền ở trên
         kiemSoatGiaoDien(); 
 
-        // [TỐI ƯU]: Chỉ gọi API tải lại Thời khóa biểu nếu tài khoản này thực sự có quyền Quản trị 
-        // VÀ trước đó hệ thống đang ở trạng thái Khách (False -> True)
-        if (!quyenTruocDo && quyenSuaChua) {
+        let coQuyenMoi = quyenSuaChua || quyenChiTiet.nut.length > 0 || quyenChiTiet.menu.length > 0;
+        if (!quyenTruocDo && coQuyenMoi) {
             await taiDuLieuTKB(); 
         }
     } catch (loi) { 
