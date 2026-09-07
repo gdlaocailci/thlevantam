@@ -565,9 +565,8 @@ async function luuSoDauBaiSangMayChu() {
                 let mon = cellMon ? cellMon.innerText.trim() : '';
 
                 if (mon && mon !== '') {
-                    // Cấu trúc hàm con quét thẳng vào lõi thẻ td, bắt input, select hoặc innerText an toàn
+                    // Cấu trúc hàm con quét thẳng vào lõi thẻ td, bắt input, select hoặc textarea an toàn
                     let getVal = (cell) => {
-                        let getVal = (cell) => {
                         if (!cell) return '';
                         let theNhap = cell.querySelector('input, select, textarea');
                         return theNhap ? theNhap.value.trim() : cell.innerText.trim();
