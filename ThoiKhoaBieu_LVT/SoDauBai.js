@@ -480,14 +480,12 @@ function ketXuatSoDauBaiLenLuoi() {
                         let cssNenKhoa = !quyenNhapThuCong ? "bg-slate-100 cursor-not-allowed opacity-70" : "bg-transparent";
                         let placeholderText = !quyenNhapThuCong ? "Không có quyền" : "Nhập...";
 
-                        // [NÂNG CẤP]: Đổi input thành textarea để tự động xuống dòng khi gõ dài
-                        theTenBai = `<textarea rows="2" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400 px-1 resize-none" placeholder="${placeholderText}">${tenBai}</textarea>`;
+                        theTenBai = `<textarea rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px';" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400 px-1 resize-none overflow-hidden align-middle" placeholder="${placeholderText}">${tenBai}</textarea>`;
 
                         theChuyenCan = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400" placeholder="..." value="${chuyenCan}">`;
                         
-                        // [NÂNG CẤP]: Đổi input thành textarea cho cột Nhận xét
-                        theNhanXet = `<textarea rows="2" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-normal text-slate-800 placeholder-slate-400 px-1 resize-none" placeholder="Nhận xét...">${nhanXet}</textarea>`;
-
+                        theNhanXet = `<textarea rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px';" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-normal text-slate-800 placeholder-slate-400 px-1 resize-none overflow-hidden align-middle" placeholder="Nhận xét...">${nhanXet}</textarea>`;
+                       
                         let optTot = (xepLoai === 'Tốt') ? 'selected' : '';
                         let optKha = (xepLoai === 'Khá') ? 'selected' : '';
                         let optTB = (xepLoai === 'TB') ? 'selected' : '';
@@ -533,6 +531,13 @@ function ketXuatSoDauBaiLenLuoi() {
 
     htmlBang += `</tbody></table></div>`;
     vungHienThi.innerHTML = theTrangThaiHtml + thanhCanhBaoRender + theHienThiQuyen + htmlBang;
+    setTimeout(() => {
+        let cacOVanBan = vungHienThi.querySelectorAll('textarea');
+        cacOVanBan.forEach(ta => {
+            ta.style.height = 'auto';
+            ta.style.height = (ta.scrollHeight) + 'px';
+        });
+    }, 50);
 }
 
 // =========================================================================
@@ -671,21 +676,27 @@ function dongBoTenBaiHoc() {
                     let cssNenKhoa = !coQuyenSua ? "bg-slate-100 cursor-not-allowed opacity-70" : "bg-transparent";
                     let placeholderText = !coQuyenSua ? "Không có quyền" : "Nhập tên bài...";
                     
-                    // [ĐÃ SỬA]: Sinh ra textarea và chèn style ép xuống dòng
-                    oTenBai.innerHTML = `<textarea rows="2" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400 px-1 resize-none" placeholder="${placeholderText}">${baiDay}</textarea>`;
+                    oTenBai.innerHTML = `<textarea rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px';" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400 px-1 resize-none overflow-hidden align-middle" placeholder="${placeholderText}">${baiDay}</textarea>`;
                     oTenBai.className = "border border-gray-500 p-1 bg-white group-hover:bg-slate-50 align-middle";
                     oTenBai.style.whiteSpace = "normal"; 
                     oTenBai.style.wordWrap = "break-word";
-                }
-            }
-        });
+                    
+                    // Kích hoạt tự giãn dòng ngay lập tức cho tên bài vừa được đồng bộ
+                    let ta = oTenBai.querySelector('textarea');
+                    if (ta) {
+                        ta.style.height = 'auto';
+                        ta.style.height = (ta.scrollHeight) + 'px';
+                    }
+                } // Đóng if (mon && tiet)
+            } // Đóng if (oMon && oTiet && oTenBai)
+        }); // Đóng forEach
         
         if (btn) { 
             btn.innerHTML = textGoc; 
             btn.disabled = false; 
         }
     }, 100); 
-}
+} // Đóng hàm dongBoTenBaiHoc
 
 
 function xuatWordSoDauBai() {
