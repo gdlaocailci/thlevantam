@@ -133,8 +133,8 @@ async function chuyenTuan(buocNhay) {
     
     if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) { duLieuTkbHienTai = []; }
     
-    // Khi chuyển tuần thủ công, bắt buộc gọi API lấy TKB mới
-    await taiDuLieuTKB(); 
+    // TRUYỀN THAM SỐ FALSE ĐỂ HIỂN THỊ VÒNG XOAY KHI BẤM CHUYỂN TUẦN
+    await taiDuLieuTKB(false); 
 }
 
 let timerCapNhatNgay;
@@ -153,7 +153,7 @@ function capNhatNgayDauTuan() {
 }
 
 // =========================================================================
-// KHỐI 1: KHỞI TẠO VÀ TẢI DỮ LIỆU CƠ BẢN
+// KHỐI 1: KHỞI TẠO VÀ TẢI DỮ LIỆU CƠ BẢN (NÂNG CẤP CACHE LOCALSTORAGE)
 // =========================================================================
 async function khoiTaoGiaoDien() {
     try {
@@ -166,15 +166,44 @@ async function khoiTaoGiaoDien() {
             if (logoMenu) logoMenu.src = CAU_HINH_FRONTEND.LINK_LOGO_TRANG_CHU;
         }
 
-        // [SỬA LỖI CỐT LÕI]: Áp dụng fetchVoiCoCheThuLai để chống ngắt kết nối
-        // Hàm này sẽ tự động thử lại tối đa 3 lần nếu Google Apps Script từ chối
+        // --- BƯỚC 1: RENDER SIÊU TỐC TỪ BỘ NHỚ ĐỆM (CACHE) ---
+        let coCache = false;
+        try {
+            let cacheCauHinh = localStorage.getItem('SmartTKB_CauHinh');
+            let cacheTkb = localStorage.getItem('SmartTKB_DuLieuTuan');
+            
+            if (cacheCauHinh && cacheTkb) {
+                thongSoHocVu = JSON.parse(cacheCauHinh);
+                duLieuTkbHienTai = JSON.parse(cacheTkb);
+                
+                kiemSoatGiaoDien(); 
+                napDuLieuBoLocGiaoVien();
+                
+                if(thongSoHocVu.NAM_HOC) { 
+                    let menuNam = document.getElementById('menuHienThiNamHoc'); 
+                    if (menuNam) menuNam.innerText = thongSoHocVu.NAM_HOC; 
+                }
+
+                tuanDangXem = parseInt(thongSoHocVu.TUAN_HIEN_TAI) || 1;
+                let hienThiTuan = document.getElementById('hienThiTuanHienTai');
+                if (hienThiTuan) hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
+
+                // Vẽ ngay lập tức dữ liệu cũ, không để màn hình trắng chờ đợi
+                xuatMaTranBang(duLieuTkbHienTai);
+                coCache = true;
+            }
+        } catch(e) { console.warn("Cache hỏng, tải lại từ đầu."); }
+
+        // --- BƯỚC 2: GỌI API NGẦM ĐỂ LẤY DỮ LIỆU MỚI NHẤT ĐỒNG BỘ LẠI ---
         const phanHoi = await fetchVoiCoCheThuLai(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layCauHinh`);
+        const thongSoMoi = await phanHoi.json();
         
-        thongSoHocVu = await phanHoi.json();
-        if (thongSoHocVu.trangThai === 'loi_he_thong') throw new Error(thongSoHocVu.thongBao);
+        if (thongSoMoi.trangThai === 'loi_he_thong') throw new Error(thongSoMoi.thongBao);
+        
+        thongSoHocVu = thongSoMoi;
+        localStorage.setItem('SmartTKB_CauHinh', JSON.stringify(thongSoHocVu)); 
         
         kiemSoatGiaoDien(); 
-        
         napDuLieuBoLocGiaoVien();
         
         if(thongSoHocVu.NAM_HOC) { 
@@ -199,10 +228,17 @@ async function khoiTaoGiaoDien() {
         if (hienThiTuan) hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
         
         if (thongSoHocVu.TKB_TUAN && thongSoHocVu.TKB_TUAN.length > 0) {
-            duLieuTkbHienTai = thongSoHocVu.TKB_TUAN;
-            xuatMaTranBang(duLieuTkbHienTai);
+            let chuoiTkbMoi = JSON.stringify(thongSoHocVu.TKB_TUAN);
+            let chuoiTkbCu = localStorage.getItem('SmartTKB_DuLieuTuan');
+            
+            // Chỉ cập nhật và render lại UI nếu TKB ngầm trả về có sự thay đổi
+            if (chuoiTkbMoi !== chuoiTkbCu) {
+                duLieuTkbHienTai = thongSoHocVu.TKB_TUAN;
+                localStorage.setItem('SmartTKB_DuLieuTuan', chuoiTkbMoi);
+                xuatMaTranBang(duLieuTkbHienTai);
+            }
         } else {
-            await taiDuLieuTKB(); 
+            await taiDuLieuTKB(coCache); 
         }
         
     } catch (loi) { 
@@ -238,21 +274,22 @@ function napDuLieuBoLocGiaoVien() {
     }
 }
 
-async function taiDuLieuTKB() {
+async function taiDuLieuTKB(coCache = false) {
     const vungHienThi = document.getElementById('vungHienThiDuLieu');
-    vungHienThi.innerHTML = `<tr><td class="text-center text-blue-600 font-bold py-10 reactbits-fade-in text-lg" style="font-family:'Times New Roman',Times,serif;">Đang tải TKB Tuần ${tuanDangXem}...</td></tr>`;
+    
+    // Nếu chưa có bộ nhớ đệm, hiện UI loading vòng xoay
+    if (!coCache) {
+        vungHienThi.innerHTML = `<tr><td class="text-center text-blue-600 font-bold py-10 reactbits-fade-in text-lg" style="font-family:'Times New Roman',Times,serif;"><div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang tải TKB Tuần ${tuanDangXem}...</td></tr>`;
+    }
     
     try {
-        // Tích hợp Hàm Fetch chống 404
         const phanHoi = await fetchVoiCoCheThuLai(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTKB&tuan=${tuanDangXem}`);
-        
         const textPhanHoi = await phanHoi.text();
         let duLieu;
 
         try {
             duLieu = JSON.parse(textPhanHoi);
         } catch (loiParse) {
-            console.error("Payload lỗi từ máy chủ:", textPhanHoi);
             throw new Error("Máy chủ trả về dữ liệu hỏng. Hãy kiểm tra lại mã nguồn CODE.gs.");
         }
 
@@ -261,8 +298,15 @@ async function taiDuLieuTKB() {
         }
 
         if (Array.isArray(duLieu)) {
-            duLieuTkbHienTai = duLieu;
-            xuatMaTranBang(duLieuTkbHienTai);
+            let chuoiTkbMoi = JSON.stringify(duLieu);
+            let chuoiTkbCu = localStorage.getItem('SmartTKB_DuLieuTuan');
+            
+            // Cập nhật ngầm: Chỉ render lưới nếu bản vẽ mới khác bản vẽ đệm
+            if (!coCache || chuoiTkbMoi !== chuoiTkbCu) {
+                duLieuTkbHienTai = duLieu;
+                localStorage.setItem('SmartTKB_DuLieuTuan', chuoiTkbMoi);
+                xuatMaTranBang(duLieuTkbHienTai);
+            }
         } else {
             throw new Error("Dữ liệu nhận được không đúng cấu trúc mảng.");
         }
