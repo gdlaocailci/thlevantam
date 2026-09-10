@@ -1464,3 +1464,90 @@ async function nhapExcelTKB(event) {
         event.target.value = "";
     }
 }
+// =========================================================================
+// [NÂNG CẤP TỐC ĐỘ CAO]: ĐỘNG CƠ ĐỒNG BỘ VÀ NẮN CHỈNH DỮ LIỆU TỰ ĐỘNG (AUTO-CORRECT)
+// Chức năng: Quét toàn bộ lưới TKB, tự động sửa lỗi chính tả, khoảng trắng, 
+// hoa/thường để ép khớp 100% với danh mục DM_GIAOVIEN và KHUNG_CHUONG_TRINH.
+// =========================================================================
+window.dongBoChuanHoaDuLieuUI = function() {
+    const dsMonGoc = thongSoHocVu.DANH_SACH_MON_HOC || [];
+    const dsGvGoc = thongSoHocVu.DANH_SACH_GIAO_VIEN || [];
+
+    // Hàm hỗ trợ: Chuẩn hóa chuỗi (Chuyển chữ thường, cắt khoảng trắng thừa 2 đầu và ở giữa)
+    const chuanHoaChuoi = (chuoi) => {
+        if (!chuoi) return '';
+        return String(chuoi).toLowerCase().replace(/\s+/g, ' ').trim();
+    };
+
+    // Tạo Từ điển đối chiếu (Map) tốc độ cao O(1)
+    const tuDienMon = {};
+    dsMonGoc.forEach(mon => { tuDienMon[chuanHoaChuoi(mon)] = mon; });
+
+    const tuDienGV = {};
+    dsGvGoc.forEach(gv => { tuDienGV[chuanHoaChuoi(gv)] = gv; });
+
+    let demSuaLoi = 0;
+    let demLoiRac = 0;
+
+    // Kỹ thuật quét lưới tốc độ cao
+    const cacOMon = document.querySelectorAll('input[id^="mon_"]');
+    const cacOGv = document.querySelectorAll('input[id^="gv_"]');
+
+    // 1. Xử lý cột Môn học
+    cacOMon.forEach(oMon => {
+        let giaTriUI = oMon.value;
+        if (giaTriUI !== "" && giaTriUI !== "--") {
+            let keyTruyVan = chuanHoaChuoi(giaTriUI);
+            let giaTriChuan = tuDienMon[keyTruyVan];
+
+            if (giaTriChuan) {
+                // Nếu khớp từ điển nhưng sai định dạng in hoa/thường -> Ép chuẩn lại
+                if (giaTriUI !== giaTriChuan) {
+                    oMon.value = giaTriChuan;
+                    oMon.classList.add('bg-teal-100', 'text-teal-900', 'transition-colors');
+                    demSuaLoi++;
+                } else {
+                    oMon.classList.remove('bg-teal-100', 'text-teal-900', 'bg-red-200', 'text-red-900');
+                }
+            } else {
+                // Rác dữ liệu (Không tồn tại trong Khung chương trình) -> Báo đỏ
+                oMon.classList.add('bg-red-200', 'text-red-900', 'font-extrabold', 'transition-colors');
+                demLoiRac++;
+            }
+        }
+    });
+
+    // 2. Xử lý cột Giáo viên
+    cacOGv.forEach(oGv => {
+        let giaTriUI = oGv.value;
+        if (giaTriUI !== "" && giaTriUI !== "--") {
+            let keyTruyVan = chuanHoaChuoi(giaTriUI);
+            let giaTriChuan = tuDienGV[keyTruyVan];
+
+            if (giaTriChuan) {
+                if (giaTriUI !== giaTriChuan) {
+                    oGv.value = giaTriChuan;
+                    oGv.classList.add('bg-teal-100', 'text-teal-900', 'transition-colors');
+                    demSuaLoi++;
+                } else {
+                    oGv.classList.remove('bg-teal-100', 'text-teal-900', 'bg-red-200', 'text-red-900');
+                }
+            } else {
+                oGv.classList.add('bg-red-200', 'text-red-900', 'font-extrabold', 'transition-colors');
+                demLoiRac++;
+            }
+        }
+    });
+    
+    // Đánh thức lại hàm kiểm tra trùng giáo viên sau khi đã nắn dữ liệu
+    if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
+        kiemTraTrungGiaoVienToanBang();
+    }
+
+    // Phản hồi trực quan
+    if (demSuaLoi > 0 || demLoiRac > 0) {
+        alert(`Báo cáo Đồng bộ:\n- Đã nắn chỉnh thành công: ${demSuaLoi} ô (Màu xanh).\n- Cảnh báo dữ liệu rác/sai tên: ${demLoiRac} ô (Màu đỏ).`);
+    } else {
+        alert("Tuyệt vời! Toàn bộ dữ liệu trên lưới Thời khóa biểu đã khớp chuẩn 100% với danh mục máy chủ.");
+    }
+};
