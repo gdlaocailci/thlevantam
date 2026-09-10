@@ -4,9 +4,7 @@
     <script src="ketnoi.js"></script>
     <link id="sys-favicon" rel="icon" href="">
     <meta charset="UTF-8">
-    
-  
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2c3e50">
     
     <meta name="author" content="Phát triển Hoàng Ngọc Lâm">
@@ -331,14 +329,16 @@
                     <label>Tên dự án / phân hệ (Cột A): <span style="color: red;">*</span></label>
                     <input type="text" id="hs-td1" placeholder="Nhập tên dự án hoặc thư mục...">
                 </div>
-                <div class="form-group">
+                
+               <div class="form-group">
                     <label>Tệp hồ sơ trên Drive (Cột B): <span style="color: red;">*</span></label>
                     <input type="text" id="hs-td2" placeholder="Dán link hoặc chọn từ hệ thống..." style="margin-bottom: 8px;">
                     <div class="input-group">
-                       
-                        <button class="btn-picker" style="background: #546E7A; color: white;" onclick="moDriveTaiKhoanKhac()"><span class="material-icons" style="font-size: 16px;">switch_account</span>Mở nơi lưu hồ sơ</button>
+                        <button class="btn-picker" style="background: #1976D2; color: white;" onclick="khoiTaoGooglePicker('gan')"><span class="material-icons" style="font-size: 16px;">add_to_drive</span>Chọn tệp từ Drive</button>
+                        <button class="btn-picker" style="background: #546E7A; color: white;" onclick="moDriveTaiKhoanKhac()"><span class="material-icons" style="font-size: 16px;">switch_account</span>Mở Drive tab mới</button>
                     </div>
                 </div>
+                
                 <div class="form-group">
                     <label>Lĩnh vực Dự án (Cột C): <span style="color: red;">*</span></label>
                     <select id="hs-loaiicon">
@@ -601,10 +601,15 @@
                     <label>Cập nhật Tên hiển thị mới:</label>
                     <input type="text" id="edit-td1" placeholder="Nhập tên mới...">
                 </div>
+                
                 <div class="form-group">
                     <label>Cập nhật Tệp hồ sơ (Link Drive) mới:</label>
-                    <input type="text" id="edit-td2" placeholder="Dán link mới...">
+                    <input type="text" id="edit-td2" placeholder="Dán link mới..." style="margin-bottom: 8px;">
+                    <div class="input-group">
+                        <button class="btn-picker" style="background: #F57C00; color: white;" onclick="khoiTaoGooglePicker('sua')"><span class="material-icons" style="font-size: 16px;">add_to_drive</span>Chọn tệp từ Drive</button>
+                    </div>
                 </div>
+                
                 <div class="form-group">
                     <label>Thay đổi Icon lĩnh vực (Cột C):</label>
                     <select id="edit-loaiicon">
@@ -639,7 +644,7 @@
                             <option value="cntt">Công nghệ thông tin & Tin học (Máy tính)</option>
                             <option value="vimach">Vi mạch & Điện tử (Bo mạch)</option>
                             <option value="hieuung">Hiệu ứng & Đồ họa (Gậy phép)</option>
-                            <option value="trangchu">Trang chủ & Cổng thông tin (Ngôi nhà)</option>
+                            <option value="trangchu">Trang chủ & Cổng thông tin (Ảnh Logo)</option>
                             <option value="suaicon">Sửa chữa & Tùy chỉnh Icon (Cờ lê)</option>
                             <option value="sualink">Sửa chữa & Quản lý Link (Liên kết)</option>
                             <option value="mang">Mạng Internet & Viễn thông (Wifi)</option>
@@ -760,14 +765,13 @@
             <div class="phanquyen-layout">
                 <div class="pq-panel pq-form">
                     <h3>Thông số Cấp quyền</h3>
-                    <div class="form-group">
-                        <label>Tên định danh hiển thị:</label>
-                        <input type="text" id="pq-tsa" class="form-native" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Nhập tên hiển thị...">
+                    
+                   <div class="form-group">
+                        <label>Danh sách Cán bộ / Giáo viên:</label>
+                        <textarea id="pq-danhsach-bulk" class="form-native" style="width: 100%; height: 95px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 13px;" placeholder="Nhập 1 người, hoặc DÁN NHIỀU NGƯỜI TỪ EXCEL:&#10;Cột Tên [Khoảng Tab] Cột ID&#10;&#10;VD: Nguyễn Văn A       nguyenvana"></textarea>
+                        <small style="color: #2e7d32; font-weight: bold; margin-top: 5px; display: block;">💡 Mẹo: Bôi đen 2 cột (Tên & ID) trên Excel và Paste thẳng vào ô này.</small>
                     </div>
-                    <div class="form-group">
-                        <label>Định danh hệ thống (ID nội bộ):</label>
-                        <input type="text" id="pq-tsb" class="form-native" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Nhập ID tham chiếu hệ thống...">
-                    </div>
+                    
                     <div class="form-group">
                         <label>Chỉ định Phân quyền:</label>
                         <div class="checkbox-group">
@@ -781,9 +785,11 @@
                     </div>
                     <div class="form-group">
                         <label>Ma trận quyền truy cập thư mục (Dấu x):</label>
+                        <input type="text" id="pq-icon-search-filter" onkeyup="locMaTranQuyen()" placeholder="🔍 Gõ tên hồ sơ/thư mục để lọc..." style="width: 100%; padding: 6px 10px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; outline: none; box-sizing: border-box; transition: border-color 0.2s;" onfocus="this.style.borderColor='#8E24AA'" onblur="this.style.borderColor='#ccc'">
                         <div class="checkbox-group" id="icon-permission-list" style="max-height: 200px; overflow-y: auto;">
                         </div>
                     </div>
+                    
                     <button class="form-native btn-submit" style="background-color: #8E24AA; color: white;" onclick="ghiNhanQuyen()">Ghi Nhận Thay Đổi</button>
                     <button class="form-native btn-submit" style="background-color: #757575; color: white;" onclick="lamMoiBieuMauQuyen()">Làm Mới Biểu Mẫu</button>
                     <div id="pq-status" class="status-text" style="color:#8E24AA;">Đang đồng bộ...</div>
@@ -791,8 +797,12 @@
                 
                 <div class="pq-panel pq-table-container">
                     <h3>Danh mục Cán bộ trực thuộc</h3>
+                    <!-- Bổ sung ô tìm kiếm nhanh -->
+                    <input type="text" id="pq-search-filter" onkeyup="locDanhSachCanBo()" placeholder="🔍 Gõ từ khóa để lọc nhanh Tên hoặc ID cán bộ..." style="width: 100%; padding: 8px 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; outline: none; box-sizing: border-box; transition: border-color 0.2s;" onfocus="this.style.borderColor='#8E24AA'" onblur="this.style.borderColor='#ccc'">
+                    
                     <table class="pq-table">
                         <thead>
+                            
                             <tr><th>Tên định danh</th><th>ID Hệ thống</th><th>Chi tiết Phân quyền</th><th width="100">Cơ chế</th></tr>
                         </thead>
                         <tbody id="bang-phanquyen-body">
@@ -809,6 +819,10 @@
             <div class="window-titlebar" style="background: #2c3e50;">
                 <div class="window-title" id="folder-view-title" style="color: #ffffff;"><span class="material-icons" style="color: #ffffff;">folder_open</span> Đang trích xuất dữ liệu thư mục...</div>
                 <button class="window-close" style="color: #ffffff;" onclick="dongCuaSoThuMuc()">✕</button>
+            </div>
+            <!-- BỔ SUNG Ô TÌM KIẾM NHANH HỒ SƠ -->
+            <div style="padding: 15px 25px 0 25px; background: rgba(30, 30, 30, 0.45);">
+                <input type="text" id="folder-search-filter" onkeyup="locDanhSachTrongThuMuc()" placeholder="🔍 Gõ từ khóa để lọc nhanh tên hồ sơ trong thư mục..." style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; outline: none; box-sizing: border-box; transition: border-color 0.2s;" onfocus="this.style.borderColor='#1976D2'" onblur="this.style.borderColor='#ccc'">
             </div>
             <div class="window-content" id="folder-content-area" style="position: relative; background: rgba(30, 30, 30, 0.45); backdrop-filter: blur(20px); padding: 25px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 20px; align-content: flex-start;">
             </div>
@@ -1115,7 +1129,7 @@ function apDungPhanQuyen(roles) {
             case 'cntt': iconContent = '<span class="material-icons">computer</span>'; bgClass = 'bg-9'; break;
             case 'vimach': iconContent = '<span class="material-icons">developer_board</span>'; bgClass = 'bg-9'; break;
             case 'hieuung': iconContent = '<span class="material-icons">auto_fix_high</span>'; bgClass = 'bg-5'; break;
-            case 'trangchu': iconContent = '<span class="material-icons">home</span>'; bgClass = 'bg-1'; break;
+            case 'trangchu': iconContent = '<img src="' + KETNOI.LINK_ICON_TRANG_CHU + '" class="custom-avatar" alt="Trang chủ">'; bgClass = 'bg-avatar'; break;
             case 'suaicon': iconContent = '<span class="material-icons">build</span>'; bgClass = 'bg-2'; break;
             case 'sualink': iconContent = '<span class="material-icons">link</span>'; bgClass = 'bg-4'; break;
             case 'mang': iconContent = '<span class="material-icons">wifi</span>'; bgClass = 'bg-1'; break;
@@ -1260,8 +1274,13 @@ function renderIconsFromData(data) {
     }
 
 function moCuaSoThuMuc(tenThuMuc) {
+
+    var searchInput = document.getElementById('folder-search-filter');
+        if (searchInput) searchInput.value = '';
+
         document.getElementById('folder-view-title').innerHTML = `<span class="material-icons">folder_open</span> Thư mục phân hệ: ${tenThuMuc}`;
         const folderArea = document.getElementById('folder-content-area');
+    
         folderArea.innerHTML = ''; 
 
         let childItems = globalProfiles.filter(item => item.vitri === tenThuMuc);
@@ -1972,7 +1991,11 @@ function xuLySuaHoSo() {
 
     function moDriveTaiKhoanKhac() { window.open('https://accounts.google.com/AccountChooser?continue=https://drive.google.com/drive/', '_blank'); }
 
-    function khoiTaoGooglePicker() {
+    // Biến toàn cục xác định tiến trình đang gọi Picker (Gán hồ sơ hay Sửa hồ sơ)
+    let kieuGoiPicker = 'gan';
+
+    function khoiTaoGooglePicker(kieu) {
+        kieuGoiPicker = kieu || 'gan';
         if (pickerAccessToken === null) { 
             tokenClient.requestAccessToken({prompt: 'consent'}); 
         } else { 
@@ -1981,14 +2004,29 @@ function xuLySuaHoSo() {
     }
 
     function hienThiGooglePicker(token) {
-        document.getElementById('window-gan-hoso').style.display = 'none';
+        // Tự động nội suy ID của Modal và ID của ô Input cần nhận dữ liệu dựa trên tiến trình gọi
+        let modalId = (kieuGoiPicker === 'gan') ? 'window-gan-hoso' : 'window-sua-hoso';
+        let inputId = (kieuGoiPicker === 'gan') ? 'hs-td2' : 'edit-td2';
+
+        document.getElementById(modalId).style.display = 'none';
+        
         gapi.load('picker', function() {
             var folderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true);
-            var picker = new google.picker.PickerBuilder().enableFeature(google.picker.Feature.SUPPORT_DRIVES).addView(folderView).addView(google.picker.ViewId.DOCS).setOAuthToken(token)
+            var picker = new google.picker.PickerBuilder()
+                .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
+                .addView(folderView)
+                .addView(google.picker.ViewId.DOCS)
+                .setOAuthToken(token)
                 .setCallback(function(data) {
-                    if (data.action == google.picker.Action.PICKED) { document.getElementById('hs-td2').value = data.docs[0].url; document.getElementById('hs-td2').style.borderColor = '#ccc'; document.getElementById('window-gan-hoso').style.display = 'flex';
-                    } else if (data.action == google.picker.Action.CANCEL) { document.getElementById('window-gan-hoso').style.display = 'flex'; }
-                }).build(); picker.setVisible(true);
+                    if (data.action == google.picker.Action.PICKED) { 
+                        document.getElementById(inputId).value = data.docs[0].url; 
+                        document.getElementById(inputId).style.borderColor = '#ccc'; 
+                        document.getElementById(modalId).style.display = 'flex';
+                    } else if (data.action == google.picker.Action.CANCEL) { 
+                        document.getElementById(modalId).style.display = 'flex'; 
+                    }
+                }).build(); 
+            picker.setVisible(true);
         });
     }
 
@@ -2045,6 +2083,10 @@ function xuLySuaHoSo() {
     function togglePhanQuyenModal(isShow) {
         document.getElementById('window-phanquyen').style.display = isShow ? 'flex' : 'none';
         if (isShow) { 
+            // [NÂNG CẤP] Xóa trắng ô tìm kiếm ma trận quyền nếu có
+            var searchIconInput = document.getElementById('pq-icon-search-filter');
+            if (searchIconInput) searchIconInput.value = '';
+
             const iconListContainer = document.getElementById('icon-permission-list');
             iconListContainer.innerHTML = '';
             globalProfiles.forEach(profile => {
@@ -2102,8 +2144,36 @@ function xuLySuaHoSo() {
         });
     }
 
+    // =========================================================================
+    // THUẬT TOÁN LỌC TÌM KIẾM CÁN BỘ TRONG BẢNG PHÂN QUYỀN
+    // =========================================================================
+    function locDanhSachCanBo() {
+        var input = document.getElementById("pq-search-filter");
+        var filter = input.value.toUpperCase();
+        var tbody = document.getElementById("bang-phanquyen-body");
+        var tr = tbody.getElementsByTagName("tr");
+
+        for (var i = 0; i < tr.length; i++) {
+            // Lấy dữ liệu ở cột Tên định danh (cột 0) và cột ID Hệ thống (cột 1)
+            var tdName = tr[i].getElementsByTagName("td")[0];
+            var tdId = tr[i].getElementsByTagName("td")[1];
+            
+            if (tdName || tdId) {
+                var txtValueName = tdName.textContent || tdName.innerText;
+                var txtValueId = tdId.textContent || tdId.innerText;
+                
+                // So khớp từ khóa (không phân biệt hoa/thường)
+                if (txtValueName.toUpperCase().indexOf(filter) > -1 || txtValueId.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+
     function dieuChinhQuyen(tsa, tsb, roles, iconRoles) {
-        document.getElementById('pq-tsa').value = tsa; document.getElementById('pq-tsb').value = tsb;
+        document.getElementById('pq-danhsach-bulk').value = tsa + '\t' + tsb;
         document.getElementById('role-taohoso').checked = roles.includes('taohoso');
         document.getElementById('role-ganhoso').checked = roles.includes('ganhoso');
         document.getElementById('role-xoahoso').checked = roles.includes('xoahoso');
@@ -2116,14 +2186,35 @@ function xuLySuaHoSo() {
     }
 
     function lamMoiBieuMauQuyen() {
-        document.getElementById('pq-tsa').value = ''; document.getElementById('pq-tsb').value = '';
+        document.getElementById('pq-danhsach-bulk').value = '';
         document.getElementById('role-taohoso').checked = false; document.getElementById('role-ganhoso').checked = false; document.getElementById('role-xoahoso').checked = false; document.getElementById('role-xx').checked = false;
         document.querySelectorAll('.icon-role-cb').forEach(cb => cb.checked = false);
     }
 
-function ghiNhanQuyen() {
-        const tsa = document.getElementById('pq-tsa').value.trim(); const tsb = document.getElementById('pq-tsb').value.trim();
-        if (!tsa || !tsb) { alert("Yêu cầu hệ thống: Bắt buộc điền đủ các trường định danh!"); return; }
+    async function ghiNhanQuyen() {
+        const rawData = document.getElementById('pq-danhsach-bulk').value.trim();
+        if (!rawData) { alert("Yêu cầu hệ thống: Vui lòng nhập hoặc dán danh sách định danh!"); return; }
+
+        let lines = rawData.split('\n');
+        let danhSachCapQuyen = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+            if (!line) continue;
+            
+            let parts = line.split(/\t/);
+            if (parts.length < 2) {
+                parts = line.split(/[,]/).map(p => p.trim());
+            }
+            
+            if (parts.length >= 2) {
+                danhSachCapQuyen.push({ tsa: parts[0].trim(), tsb: parts[1].trim() });
+            } else {
+                alert(`Dòng dữ liệu số ${i+1} không đúng định dạng. Cần có đủ Tên và ID (cách nhau bằng phím Tab hoặc dấu phẩy).`);
+                return;
+            }
+        }
+
         let roles = [];
         if (document.getElementById('role-taohoso').checked) roles.push('taohoso');
         if (document.getElementById('role-ganhoso').checked) roles.push('ganhoso');
@@ -2134,33 +2225,46 @@ function ghiNhanQuyen() {
         document.querySelectorAll('.icon-role-cb:checked').forEach(cb => selectedIcons.push(cb.value));
         let iconRolesStr = selectedIcons.join('|');
 
-        document.getElementById('pq-status').style.display = 'block';
+        let statusEl = document.getElementById('pq-status');
+        statusEl.style.display = 'block';
         
-        fetch(KETNOI.WEB_APP_URL, {
-            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'saveAccount', tsa: tsa, tsb: tsb, roles: roles.join(','), iconRoles: iconRolesStr, khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') })
-        })
-        .then(response => response.text())
-        .then(text => {
-            document.getElementById('pq-status').style.display = 'none';
+        let soLuong = danhSachCapQuyen.length;
+        let thanhCong = 0;
+
+        for (let i = 0; i < soLuong; i++) {
+            statusEl.innerText = `Đang đồng bộ (${i+1}/${soLuong}): ${danhSachCapQuyen[i].tsa}...`;
             try {
+                let response = await fetch(KETNOI.WEB_APP_URL, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        action: 'saveAccount', 
+                        tsa: danhSachCapQuyen[i].tsa, 
+                        tsb: danhSachCapQuyen[i].tsb, 
+                        roles: roles.join(','), 
+                        iconRoles: iconRolesStr, 
+                        khoaBaoMat: localStorage.getItem(PREFIX_MEM + 'session') 
+                    })
+                });
+                let text = await response.text();
                 let result = JSON.parse(text);
-                if (result.status === 'success') { 
-                    lamMoiBieuMauQuyen(); 
-                    taiDuLieuQuyen(); 
-                    
-                    // [NÂNG CẤP]: Trì hoãn luồng xác thực 1.2s để tránh đụng độ luồng đọc/ghi, chống nghẽn máy chủ Google
-                    setTimeout(() => {
-                        xacThucPhienDangNhap(localStorage.getItem(PREFIX_MEM + 'session')); 
-                    }, 1200);
-                } else { 
-                    alert("Cảnh báo: " + result.message); 
-                }
-            } catch (jsonError) {
-                console.error("Lỗi từ backend:", text);
-                alert("Cảnh báo từ hệ thống: Backend trả về lỗi định dạng HTML. Vui lòng kiểm tra lại log hoạt động.");
+                if (result.status === 'success') thanhCong++;
+            } catch (error) {
+                console.error("Lỗi đồng bộ cán bộ:", error);
             }
-        });
+        }
+
+        statusEl.style.display = 'none';
+        if (thanhCong > 0) {
+            lamMoiBieuMauQuyen(); 
+            taiDuLieuQuyen(); 
+            setTimeout(() => { xacThucPhienDangNhap(localStorage.getItem(PREFIX_MEM + 'session')); }, 1200);
+            
+            if (soLuong > 1) {
+                alert(`TUYỆT VỜI! Đã hoàn tất cấp quyền hàng loạt cho ${thanhCong}/${soLuong} cán bộ!`);
+            }
+        } else {
+            alert("Sự cố hệ thống: Không thể đồng bộ! Vui lòng kiểm tra lại cấu hình Web App.");
+        }
     }
 
     function goBoQuyen(tsb) {
@@ -2341,6 +2445,50 @@ function ghiNhanQuyen() {
         if (isLoggedIn) kiemTraCongVanMoi();
     }, 60000);
 
+   // =========================================================================
+    // [NÂNG CẤP] THUẬT TOÁN LỌC TÌM KIẾM HỒ SƠ TRONG THƯ MỤC
+    // =========================================================================
+    function locDanhSachTrongThuMuc() {
+        var input = document.getElementById("folder-search-filter");
+        var filter = input.value.toUpperCase();
+        var container = document.getElementById("folder-content-area");
+        var icons = container.getElementsByClassName("desktop-icon");
+
+        for (var i = 0; i < icons.length; i++) {
+            var textSpan = icons[i].getElementsByClassName("icon-text")[0];
+            if (textSpan) {
+                var txtValue = textSpan.textContent || textSpan.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    icons[i].style.display = "";
+                } else {
+                    icons[i].style.display = "none";
+                }
+            }
+        }
+    } 
+
+    // =========================================================================
+    // THUẬT TOÁN LỌC TÌM KIẾM MA TRẬN QUYỀN THƯ MỤC
+    // =========================================================================
+    function locMaTranQuyen() {
+        var input = document.getElementById("pq-icon-search-filter");
+        var filter = input.value.toUpperCase();
+        var container = document.getElementById("icon-permission-list");
+        var labels = container.getElementsByClassName("checkbox-label");
+
+        for (var i = 0; i < labels.length; i++) {
+            // Lấy thẻ span chứa tên hồ sơ bên trong thẻ label
+            var span = labels[i].getElementsByTagName("span")[0];
+            if (span) {
+                var txtValue = span.textContent || span.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    labels[i].style.display = "flex"; // Hiển thị lại bằng flex theo class chuẩn
+                } else {
+                    labels[i].style.display = "none";
+                }
+            }
+        }
+    }
 </script>
 </body>
 </html>
