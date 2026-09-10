@@ -7,7 +7,6 @@ let ngayDauTuanUI = '';
 
 document.addEventListener('DOMContentLoaded', () => { khoiTaoGiaoDien(); });
 
-
 async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3) {
     for (let i = 0; i < soLanThu; i++) {
         try {
@@ -50,8 +49,8 @@ function kiemSoatGiaoDien() {
     const menuDuocCap = (quyenChiTiet && quyenChiTiet.menu) ? quyenChiTiet.menu : [];
     const nutDuocCap = (quyenChiTiet && quyenChiTiet.nut) ? quyenChiTiet.nut : [];
 
-    // 2. Mở khóa Nút Bấm
-    const dsNut = ['btnLuuTuan', 'btnLuuCoDinh', 'btnKhoiPhuc', 'btnXepTuDong', 'btnKiemTra', 'btnNhapExcelTKB'];
+    // 2. Mở khóa Nút Bấm (Đã bổ sung btnDongBoChuan)
+    const dsNut = ['btnLuuTuan', 'btnLuuCoDinh', 'btnKhoiPhuc', 'btnXepTuDong', 'btnKiemTra', 'btnNhapExcelTKB', 'btnDongBoChuan'];
     dsNut.forEach(idNut => {
         let nut = document.getElementById(idNut);
         if (nut) {
@@ -82,22 +81,15 @@ function kiemSoatGiaoDien() {
         nhanHT.style.display = coMenuQuanTriDuocMo ? 'flex' : 'none';
     }
 
-    // 5. Mở khóa tương tác Ngày/Tuần
+    // 5. Mở khóa tương tác Ngày/Tuần (Đã mở công khai cho toàn trường)
     let btnTuanTruoc = document.querySelector('button[onclick="chuyenTuan(-1)"]');
     let btnTuanTiep = document.querySelector('button[onclick="chuyenTuan(1)"]');
     let inputNgay = document.getElementById('chonNgayDauTuan');
 
-    let coQuyenThaoTac = quyenSuaChua || nutDuocCap.length > 0 || menuDuocCap.length > 0;
-
-    if (coQuyenThaoTac) {
-        if (btnTuanTruoc) { btnTuanTruoc.disabled = false; btnTuanTruoc.classList.remove('opacity-50', 'cursor-not-allowed'); }
-        if (btnTuanTiep) { btnTuanTiep.disabled = false; btnTuanTiep.classList.remove('opacity-50', 'cursor-not-allowed'); }
-        if (inputNgay) { inputNgay.disabled = false; inputNgay.classList.remove('cursor-not-allowed', 'opacity-80'); }
-    } else {
-        if (btnTuanTruoc) { btnTuanTruoc.disabled = true; btnTuanTruoc.classList.add('opacity-50', 'cursor-not-allowed'); }
-        if (btnTuanTiep) { btnTuanTiep.disabled = true; btnTuanTiep.classList.add('opacity-50', 'cursor-not-allowed'); }
-        if (inputNgay) { inputNgay.disabled = true; inputNgay.classList.add('cursor-not-allowed', 'opacity-80'); }
-    }
+    // Luôn luôn kích hoạt các nút này, không phụ thuộc vào quyền đăng nhập
+    if (btnTuanTruoc) { btnTuanTruoc.disabled = false; btnTuanTruoc.classList.remove('opacity-50', 'cursor-not-allowed'); }
+    if (btnTuanTiep) { btnTuanTiep.disabled = false; btnTuanTiep.classList.remove('opacity-50', 'cursor-not-allowed'); }
+    if (inputNgay) { inputNgay.disabled = false; inputNgay.classList.remove('cursor-not-allowed', 'opacity-80'); }
 }
 
 // =========================================================================
@@ -427,19 +419,70 @@ function locTheoGiaoVien() {
     });
 }
 
-function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '', duocSuaLop = false) {
+function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '') {
     let idThocTinh = idPhanTu ? `id="${idPhanTu}"` : '';
-    
-    // [THUẬT TOÁN]: Quyền đã được tính toán 1 lần duy nhất ở vòng ngoài, chỉ việc nhận biến duocSuaLop
-    let thuocTinhKhoa = duocSuaLop ? '' : 'disabled'; 
-    let cssKhoa = duocSuaLop ? 'cursor-pointer' : 'cursor-not-allowed opacity-80';
+    let thuocTinhKhoa = quyenSuaChua ? '' : 'disabled'; 
+    let cssKhoa = quyenSuaChua ? 'cursor-pointer' : 'cursor-not-allowed opacity-80';
     let cssAn = !isTarget ? 'opacity-0 pointer-events-none select-none' : ''; 
     
     let idDatalist = loaiDanhSach === 'mon' ? 'datalistChung_Mon' : 'datalistChung_GV';
-    let suKienKiemTra = (idPhanTu && idPhanTu.startsWith('gv_')) ? `oninput="if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang()" onchange="if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang()" onblur="if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang()"` : '';
+    
+    // [LÕI NÂNG CẤP]: Tích hợp hàm Xác thực Giá trị hợp lệ vào sự kiện onchange và onblur
+    let kieuKiemTraGV = (idPhanTu && idPhanTu.startsWith('gv_')) ? `if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang();` : '';
+    let suKienMoi = `oninput="${kieuKiemTraGV}" onchange="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV}" onblur="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV}"`;
 
-    return `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()" ${suKienKiemTra}>`; 
+    let html = `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()" ${suKienMoi}>`; 
+    
+    return html;
 }
+
+// HÀM BỔ SUNG: Bức tường lửa ngăn chặn dữ liệu rác trên lưới UI (Auto-Revert & Validation)
+window.xacThucGiaTriHopLe = function(inputEl, loaiDanhSach) {
+    if (!inputEl) return;
+    let giaTri = inputEl.value.trim();
+
+    // 1. Cho phép xóa trắng hoặc để nguyên gạch ngang
+    if (giaTri === '' || giaTri === '--') {
+        inputEl.value = '';
+        return;
+    }
+
+    // 2. Lấy hệ quy chiếu chuẩn
+    let danhSachChuan = (loaiDanhSach === 'mon') ? (thongSoHocVu.DANH_SACH_MON_HOC || []) : (thongSoHocVu.DANH_SACH_GIAO_VIEN || []);
+
+    // 3. Khớp tuyệt đối -> Bỏ qua
+    if (danhSachChuan.includes(giaTri)) {
+        inputEl.value = giaTri;
+        return;
+    }
+
+    // 4. Khớp tương đối (Auto-correct): Bỏ qua lỗi hoa/thường, Unicode, khoảng trắng
+    let giaTriChuanHoa = giaTri.normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
+    let giaTriDung = null;
+
+    for (let i = 0; i < danhSachChuan.length; i++) {
+        let itemChuanHoa = danhSachChuan[i].normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
+        if (giaTriChuanHoa === itemChuanHoa) {
+            giaTriDung = danhSachChuan[i];
+            break;
+        }
+    }
+
+    if (giaTriDung) {
+        // Tự động nắn thẳng lại giá trị đúng chuẩn cho người dùng
+        inputEl.value = giaTriDung;
+    } else {
+        // 5. Khước từ dữ liệu: Xóa trắng và nháy cảnh báo nền Đỏ
+        inputEl.value = '';
+        if (inputEl.parentElement && inputEl.parentElement.tagName === 'TD') {
+            let theTd = inputEl.parentElement;
+            theTd.classList.add('bg-red-300', 'transition-colors', 'duration-300');
+            setTimeout(() => {
+                theTd.classList.remove('bg-red-300');
+            }, 800);
+        }
+    }
+};
 
 // =========================================================================
 // KHỐI 2: ĐỐI CHIẾU ĐỊNH MỨC VÀ KIỂM TRA
@@ -1464,36 +1507,153 @@ async function nhapExcelTKB(event) {
         event.target.value = "";
     }
 }
+
+// =========================================================================
+// [NÂNG CẤP UI]: KHỐI THỐNG KÊ SỐ TIẾT DẠY THỰC TẾ TRÊN LƯỚI
+// Bao gồm: Động cơ lọc Real-time theo ID giáo viên
+// =========================================================================
+window.hienThiThongKeSoTietGiaoVien = function() {
+    let thongKeThucTe = {};
+    const cacOGiaoVien = document.querySelectorAll('input[id^="gv_"]');
+    
+    cacOGiaoVien.forEach(oGv => {
+        let tenGv = oGv.value.trim();
+        if (tenGv !== "" && tenGv !== "--") {
+            thongKeThucTe[tenGv] = (thongKeThucTe[tenGv] || 0) + 1;
+        }
+    });
+
+    const danhSachGV = thongSoHocVu.DANH_SACH_GIAO_VIEN || [];
+    const dinhMucGV = thongSoHocVu.DINH_MUC_GIAO_VIEN || {}; 
+
+    let htmlKetQua = '';
+    let tongDinhMuc = 0;
+    let tongThucTe = 0;
+
+    danhSachGV.forEach(gv => {
+        let thucTe = thongKeThucTe[gv] || 0;
+        let dinhMuc = parseInt(dinhMucGV[gv]) || 0; 
+        
+        tongThucTe += thucTe;
+        tongDinhMuc += dinhMuc;
+
+        let trangThaiCSS = "text-slate-800 font-semibold";
+        let badge = "";
+
+        if (dinhMuc > 0) {
+            if (thucTe > dinhMuc) {
+                trangThaiCSS = "text-orange-600 font-extrabold bg-orange-50";
+                badge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-orange-200 text-orange-800">Vượt mức</span>`;
+            } else if (thucTe < dinhMuc) {
+                trangThaiCSS = "text-red-600 font-bold bg-red-50";
+                badge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-red-200 text-red-800">Chưa đủ</span>`;
+            } else {
+                trangThaiCSS = "text-green-700 font-extrabold bg-green-50";
+                badge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-green-200 text-green-800">Khớp chuẩn</span>`;
+            }
+        } else {
+            trangThaiCSS = thucTe > 0 ? "text-blue-700 font-bold bg-blue-50" : "text-slate-700";
+            dinhMuc = "--"; 
+        }
+
+        // Đã bổ sung class "dong-gv" và "ten-gv" để động cơ lọc dễ dàng bóc tách dữ liệu
+        htmlKetQua += `
+        <tr class="dong-gv hover:bg-slate-100 transition-colors border-b border-slate-300">
+            <td class="ten-gv border-r border-slate-300 p-2 text-left font-bold text-slate-800 pl-4">${gv}</td>
+            <td class="border-r border-slate-300 p-2 font-bold text-slate-600 text-lg">${dinhMuc}</td>
+            <td class="p-2 text-lg ${trangThaiCSS}">${thucTe} ${badge}</td>
+        </tr>`;
+    });
+
+    Object.keys(thongKeThucTe).forEach(gvNgoai => {
+        if (!danhSachGV.includes(gvNgoai)) {
+            htmlKetQua += `
+            <tr class="dong-gv bg-red-50 hover:bg-red-100 border-b border-slate-300">
+                <td class="ten-gv border-r border-slate-300 p-2 text-left font-bold text-red-700 pl-4">${gvNgoai} <span class="text-[10px] bg-red-200 text-red-800 px-1 rounded ml-1">Ngoài danh sách</span></td>
+                <td class="border-r border-slate-300 p-2 font-bold text-slate-500">--</td>
+                <td class="p-2 text-lg font-extrabold text-red-600">${thongKeThucTe[gvNgoai]}</td>
+            </tr>`;
+        }
+    });
+
+    // Dòng tổng cộng được bọc lớp "dong-tong" để miễn nhiễm với bộ lọc tìm kiếm
+    htmlKetQua += `
+    <tr class="dong-tong bg-slate-200 text-slate-900 font-black border-t-2 border-slate-500 uppercase">
+        <td class="border-r border-slate-400 p-3 text-right">TỔNG TOÀN TRƯỜNG:</td>
+        <td class="border-r border-slate-400 p-3 text-lg text-slate-700">${tongDinhMuc > 0 ? tongDinhMuc : '--'}</td>
+        <td class="p-3 text-xl text-indigo-700">${tongThucTe}</td>
+    </tr>`;
+
+    document.getElementById('noiDungThongKeGV').innerHTML = htmlKetQua;
+    
+    // Tự động xóa nội dung ô tìm kiếm khi mở lại hộp thoại (reset UI)
+    let boLoc = document.getElementById('locThongKeGV');
+    if (boLoc) boLoc.value = '';
+
+    const modal = document.getElementById('modalThongKeGV');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+// [HÀM ĐỘNG CƠ]: Xử lý sự kiện gõ phím trực tiếp để lọc lưới
+window.locBangThongKeGV = function() {
+    const inputLoc = document.getElementById('locThongKeGV');
+    if (!inputLoc) return;
+    
+    const tuKhoa = inputLoc.value.toLowerCase().trim();
+    const cacDongGV = document.querySelectorAll('#noiDungThongKeGV .dong-gv');
+    
+    cacDongGV.forEach(dong => {
+        const theTen = dong.querySelector('.ten-gv');
+        if (theTen) {
+            const tenGiaoVien = theTen.textContent.toLowerCase();
+            
+            // Xử lý logic: Nếu ô tìm kiếm rỗng, hoặc chọn "toàn trường", thì hiển thị tất cả
+            if (tuKhoa === '' || tuKhoa === 'toàn trường' || tenGiaoVien.includes(tuKhoa)) {
+                dong.style.display = ''; // Khôi phục hiển thị
+            } else {
+                dong.style.display = 'none'; // Ẩn dòng không khớp
+            }
+        }
+    });
+};
+
+window.dongModalThongKeGV = function() {
+    const modal = document.getElementById('modalThongKeGV');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+};
 // =========================================================================
 // [NÂNG CẤP TỐC ĐỘ CAO]: ĐỘNG CƠ ĐỒNG BỘ VÀ NẮN CHỈNH DỮ LIỆU TỰ ĐỘNG (AUTO-CORRECT)
-// Chức năng: Quét toàn bộ lưới TKB, tự động sửa lỗi chính tả, khoảng trắng, 
-// hoa/thường để ép khớp 100% với danh mục DM_GIAOVIEN và KHUNG_CHUONG_TRINH.
+// BẢN V3: Bổ sung Trích xuất Tọa độ báo lỗi trực tiếp lên màn hình
 // =========================================================================
 window.dongBoChuanHoaDuLieuUI = function() {
     const dsMonGoc = thongSoHocVu.DANH_SACH_MON_HOC || [];
     const dsGvGoc = thongSoHocVu.DANH_SACH_GIAO_VIEN || [];
 
-    // Hàm hỗ trợ: Chuẩn hóa chuỗi (Chuyển chữ thường, cắt khoảng trắng thừa 2 đầu và ở giữa)
+    if (dsMonGoc.length === 0 && dsGvGoc.length === 0) {
+        alert("⚠️ Lỗi hệ thống: Chưa nạp được Danh mục Môn học và Giáo viên. Vui lòng tải lại trang (F5)!");
+        return;
+    }
+
     const chuanHoaChuoi = (chuoi) => {
         if (!chuoi) return '';
-        return String(chuoi).toLowerCase().replace(/\s+/g, ' ').trim();
+        return String(chuoi).normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
     };
 
-    // Tạo Từ điển đối chiếu (Map) tốc độ cao O(1)
     const tuDienMon = {};
-    dsMonGoc.forEach(mon => { tuDienMon[chuanHoaChuoi(mon)] = mon; });
+    dsMonGoc.forEach(mon => { tuDienMon[chuanHoaChuoi(mon)] = String(mon).trim(); });
 
     const tuDienGV = {};
-    dsGvGoc.forEach(gv => { tuDienGV[chuanHoaChuoi(gv)] = gv; });
+    dsGvGoc.forEach(gv => { tuDienGV[chuanHoaChuoi(gv)] = String(gv).trim(); });
 
     let demSuaLoi = 0;
-    let demLoiRac = 0;
+    let danhSachLoiChiTiet = []; // Mảng lưu tọa độ các ô bị sai
 
-    // Kỹ thuật quét lưới tốc độ cao
     const cacOMon = document.querySelectorAll('input[id^="mon_"]');
     const cacOGv = document.querySelectorAll('input[id^="gv_"]');
 
-    // 1. Xử lý cột Môn học
+    // 1. Quét cột Môn học
     cacOMon.forEach(oMon => {
         let giaTriUI = oMon.value;
         if (giaTriUI !== "" && giaTriUI !== "--") {
@@ -1501,7 +1661,6 @@ window.dongBoChuanHoaDuLieuUI = function() {
             let giaTriChuan = tuDienMon[keyTruyVan];
 
             if (giaTriChuan) {
-                // Nếu khớp từ điển nhưng sai định dạng in hoa/thường -> Ép chuẩn lại
                 if (giaTriUI !== giaTriChuan) {
                     oMon.value = giaTriChuan;
                     oMon.classList.add('bg-teal-100', 'text-teal-900', 'transition-colors');
@@ -1510,14 +1669,16 @@ window.dongBoChuanHoaDuLieuUI = function() {
                     oMon.classList.remove('bg-teal-100', 'text-teal-900', 'bg-red-200', 'text-red-900');
                 }
             } else {
-                // Rác dữ liệu (Không tồn tại trong Khung chương trình) -> Báo đỏ
                 oMon.classList.add('bg-red-200', 'text-red-900', 'font-extrabold', 'transition-colors');
-                demLoiRac++;
+                // Bóc tách ID để lấy tọa độ: mon_Thứ 2_Sáng_1_1A
+                let parts = oMon.id.split('_'); 
+                let viTri = parts.length === 5 ? `Lớp ${parts[4]} (${parts[1]}, ${parts[2]}, Tiết ${parts[3]})` : 'Không rõ vị trí';
+                danhSachLoiChiTiet.push(`- Môn "${giaTriUI}" tại ${viTri}`);
             }
         }
     });
 
-    // 2. Xử lý cột Giáo viên
+    // 2. Quét cột Giáo viên
     cacOGv.forEach(oGv => {
         let giaTriUI = oGv.value;
         if (giaTriUI !== "" && giaTriUI !== "--") {
@@ -1534,19 +1695,27 @@ window.dongBoChuanHoaDuLieuUI = function() {
                 }
             } else {
                 oGv.classList.add('bg-red-200', 'text-red-900', 'font-extrabold', 'transition-colors');
-                demLoiRac++;
+                let parts = oGv.id.split('_'); 
+                let viTri = parts.length === 5 ? `Lớp ${parts[4]} (${parts[1]}, ${parts[2]}, Tiết ${parts[3]})` : 'Không rõ vị trí';
+                danhSachLoiChiTiet.push(`- GV "${giaTriUI}" tại ${viTri}`);
             }
         }
     });
     
-    // Đánh thức lại hàm kiểm tra trùng giáo viên sau khi đã nắn dữ liệu
     if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
         kiemTraTrungGiaoVienToanBang();
     }
 
-    // Phản hồi trực quan
-    if (demSuaLoi > 0 || demLoiRac > 0) {
-        alert(`Báo cáo Đồng bộ:\n- Đã nắn chỉnh thành công: ${demSuaLoi} ô (Màu xanh).\n- Cảnh báo dữ liệu rác/sai tên: ${demLoiRac} ô (Màu đỏ).`);
+    // 3. Tổng hợp thông báo thông minh
+    if (demSuaLoi > 0 || danhSachLoiChiTiet.length > 0) {
+        let thongBao = `Báo cáo Đồng bộ:\n- Đã nắn chỉnh: ${demSuaLoi} ô (Xanh).\n- Cảnh báo rác: ${danhSachLoiChiTiet.length} ô (Đỏ).\n`;
+        
+        if (danhSachLoiChiTiet.length > 0) {
+            // Giới hạn hiển thị tối đa 15 lỗi để popup không bị tràn màn hình
+            thongBao += `\n📍 CHI TIẾT VỊ TRÍ LỖI:\n` + danhSachLoiChiTiet.slice(0, 15).join('\n');
+            if (danhSachLoiChiTiet.length > 15) thongBao += `\n... và ${danhSachLoiChiTiet.length - 15} lỗi khác.`;
+        }
+        alert(thongBao);
     } else {
         alert("Tuyệt vời! Toàn bộ dữ liệu trên lưới Thời khóa biểu đã khớp chuẩn 100% với danh mục máy chủ.");
     }
