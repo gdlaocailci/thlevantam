@@ -76,7 +76,6 @@ function khoiTaoGiaoDienKhungChuongTrinh() {
 }
 
 function moTabKhungChuongTrinh() {
-    // ĐIỀU CHỈNH: Bổ sung 'khungDanhMucGV' và 'khungCaiDat' vào mảng để hệ thống dọn dẹp màn hình
     const cacKhung = ['khungTKB', 'khungPhanCong', 'khungThongKe', 'khungKhungChuongTrinh', 'khungDanhMucGV', 'khungCaiDat'];
     cacKhung.forEach(id => {
         const el = document.getElementById(id);
@@ -107,7 +106,13 @@ function moTabKhungChuongTrinh() {
         if(span) { span.classList.add('text-menu-active'); span.classList.remove('text-white'); }
     }
 
-    taiDuLieuKhungChuongTrinhTuMayChu();
+    // [LÕI NÂNG CẤP]: CƠ CHẾ CACHE THÔNG MINH
+    // Chỉ kết nối máy chủ Google nếu mảng dữ liệu rỗng. Nếu đã có, bung UI ngay lập tức!
+    if (duLieuBangKCT && duLieuBangKCT.length > 0) {
+        veBangKhungChuongTrinh();
+    } else {
+        taiDuLieuKhungChuongTrinhTuMayChu();
+    }
 }
 
 async function taiDuLieuKhungChuongTrinhTuMayChu() {
@@ -141,7 +146,7 @@ async function taiDuLieuKhungChuongTrinhTuMayChu() {
 }
 
 // ==========================================
-// 3. VẼ BẢNG VÀ XỬ LÝ SỰ KIỆN GIAO DIỆN
+// 3. VẼ BẢNG VÀ XỬ LÝ SỰ KIỆN GIAO DIỆN (NÂNG CẤP BATCH-RENDER)
 // ==========================================
 function veBangKhungChuongTrinh() {
     const thead = document.getElementById('tieuDeBangKCT');
@@ -150,13 +155,10 @@ function veBangKhungChuongTrinh() {
     if (!thead || !tbody) return;
 
     let chuoiThead = '<tr>';
-    
-    // Khai báo CSS chốt viền dưới sắc nét cho tiêu đề
     const cssChotVien = "p-2 border border-gray-400 !border-b-[2px] !border-b-slate-600";
     const shadowBottom = "!shadow-[0_2px_0_0_#475569]"; 
     const shadowBottomRight = "!shadow-[1px_2px_0_0_#475569]"; 
     
-    // Cố định dọc bên trái đến hết cột Ưu tiên. Đã thu hẹp cột Ưu tiên thành w-20 min-w-[80px]
     chuoiThead += `<th class="w-28 min-w-[112px] ${cssChotVien} ${shadowBottom} bg-slate-200 sticky left-0 z-30">Điều chỉnh</th>`;
     chuoiThead += `<th class="w-48 min-w-[192px] ${cssChotVien} ${shadowBottom} bg-slate-200 sticky left-[112px] z-30">Môn học</th>`;
     chuoiThead += `<th class="w-20 min-w-[80px] ${cssChotVien} ${shadowBottomRight} bg-slate-200 sticky left-[304px] z-30">Ưu tiên</th>`;
@@ -167,7 +169,6 @@ function veBangKhungChuongTrinh() {
     chuoiThead += '</tr>';
     thead.innerHTML = chuoiThead;
 
-    // NÂNG CẤP: Dựng dòng tổng tiết cố định khớp chuẩn tọa độ sticky với tbody
     if (tfoot) {
         const cssChotVienTfoot = "p-2 border border-gray-400 !border-t-[2px] !border-t-slate-600";
         let chuoiTfoot = `<tr>`;
@@ -182,17 +183,16 @@ function veBangKhungChuongTrinh() {
         tfoot.innerHTML = chuoiTfoot;
     }
 
-    tbody.innerHTML = '';
     if (duLieuBangKCT.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${3 + danhSachLopKCT.length}" class="text-center py-6 text-slate-500">Chưa có dữ liệu. Vui lòng thêm dòng hoặc tải lên từ Excel.</td></tr>`;
         if (tfoot) tfoot.innerHTML = '';
         return;
     }
 
+    // [LÕI NÂNG CẤP]: Gộp toàn bộ HTML vào 1 biến duy nhất để Render một lần, chấm dứt giật lag
+    let chuoiTbody = '';
+
     duLieuBangKCT.forEach((dong, indexDong) => {
-        let tr = document.createElement('tr');
-        tr.className = 'hover:bg-yellow-50 transition-colors group';
-        
         let cotThaoTac = `
             <td class="p-1.5 border border-gray-400 text-center bg-white sticky left-0 z-10 group-hover:bg-yellow-50">
                 <div class="flex justify-center items-center gap-1.5">
@@ -218,11 +218,12 @@ function veBangKhungChuongTrinh() {
             cotCacLop += `<td class="p-0 border border-gray-400"><input type="number" class="w-full h-full px-1 py-2 outline-none text-center focus:bg-blue-50 text-slate-700 bg-transparent" value="${giaTriTiet}" onchange="capNhatSoTietKCT(${indexDong}, ${indexCot}, this.value)"></td>`;
         });
 
-        tr.innerHTML = cotThaoTac + cotMonHoc + cotUuTien + cotCacLop;
-        tbody.appendChild(tr);
+        chuoiTbody += `<tr class="hover:bg-yellow-50 transition-colors group">${cotThaoTac}${cotMonHoc}${cotUuTien}${cotCacLop}</tr>`;
     });
 
-    tinhTongTietKCT(); // Tự động tính tổng tiết ngay sau khi nạp cấu trúc lưới
+    tbody.innerHTML = chuoiTbody;
+
+    tinhTongTietKCT();
 }
 
 // ==========================================
