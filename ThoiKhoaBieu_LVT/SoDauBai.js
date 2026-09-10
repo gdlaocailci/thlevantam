@@ -138,7 +138,28 @@ function khoiTaoDuLieuSoDauBai(duLieuSever) {
 
     let tkbLichSu = duLieuSever.DATA_TKB || [];
     let tkbHienTai = duLieuSever.TKB_HIEN_TAI || [];
-    let tkbGop = [...tkbLichSu, ...tkbHienTai];
+    
+    // [KHẮC PHỤC LỖI THỪA TIẾT]: Lọc khử trùng lặp giữa Lịch sử và Hiện tại dựa trên Mã Tiết
+    let mapChongTrung = {};
+    
+    // Ưu tiên nạp dữ liệu TKB Hiện tại trước
+    tkbHienTai.forEach(dong => {
+        let maTiet = String(dong['Mã Tiết']).trim();
+        if (maTiet !== '' && maTiet !== 'undefined') {
+            mapChongTrung[maTiet] = dong;
+        }
+    });
+    
+    // Nạp tiếp TKB Lịch sử, nếu Mã Tiết đã tồn tại ở Hiện tại thì bỏ qua (Không đếm đúp)
+    tkbLichSu.forEach(dong => {
+        let maTiet = String(dong['Mã Tiết']).trim();
+        if (maTiet !== '' && maTiet !== 'undefined' && !mapChongTrung[maTiet]) {
+            mapChongTrung[maTiet] = dong;
+        }
+    });
+    
+    // Xuất ra mảng gộp đã được làm sạch
+    let tkbGop = Object.values(mapChongTrung);
 
     const thuTuThu = { "Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5, "Thứ 6": 6, "Thứ 7": 7, "Chủ nhật": 8 };
     const thuTuBuoi = { "sáng": 1, "chiều": 2, "tối": 3 };
