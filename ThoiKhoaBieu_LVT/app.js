@@ -420,9 +420,6 @@ function locTheoGiaoVien() {
 }
 
 // =========================================================================
-// HÀM ĐÃ ĐƯỢC NÂNG CẤP: Bổ sung tham số coQuyenSua để nhận diện phân quyền lớp
-// Thay thế toàn bộ hàm này trong file app.js
-// =========================================================================
 function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '', coQuyenSua = quyenSuaChua) {
     let idThocTinh = idPhanTu ? `id="${idPhanTu}"` : '';
     
