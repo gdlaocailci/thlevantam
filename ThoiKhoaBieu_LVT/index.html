@@ -1,1748 +1,640 @@
-let thongSoHocVu = {};
-let quyenSuaChua = false; 
-let quyenChiTiet = { menu: [], nut: [], lop: [] }; 
-let duLieuTkbHienTai = []; 
-let tuanDangXem = 1; 
-let ngayDauTuanUI = '';
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thời Khóa Biểu & Sổ đầu bài Thông Minh</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%231976d2' stroke='%2390caf9' stroke-width='3'/%3E%3Crect x='18' y='20' width='28' height='28' rx='3' fill='%23ffffff'/%3E%3Cpath d='M18 28h28' stroke='%231976d2' stroke-width='2'/%3E%3Crect x='22' y='15' width='5' height='8' rx='1' fill='%23ffffff'/%3E%3Crect x='37' y='15' width='5' height='8' rx='1' fill='%23ffffff'/%3E%3Crect x='21' y='32' width='5.5' height='5' rx='0.5' fill='%231976d2'/%3E%3Crect x='29.25' y='32' width='5.5' height='5' rx='0.5' fill='%231976d2'/%3E%3Crect x='37.5' y='32' width='5.5' height='5' rx='0.5' fill='%231976d2'/%3E%3Crect x='21' y='40' width='5.5' height='5' rx='0.5' fill='%231976d2'/%3E%3Crect x='29.25' y='40' width='5.5' height='5' rx='0.5' fill='%231976d2'/%3E%3Crect x='37.5' y='40' width='5.5' height='5' rx='0.5' fill='%231976d2'/%3E%3C/svg%3E">
 
-document.addEventListener('DOMContentLoaded', () => { khoiTaoGiaoDien(); });
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        .reactbits-fade-in { animation: fadeInBlur 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; opacity: 0; filter: blur(8px); transform: translateY(15px); }
+        @keyframes fadeInBlur { to { opacity: 1; filter: blur(0); transform: translateY(0); } }
+        .delay-100 { animation-delay: 100ms; } .delay-200 { animation-delay: 200ms; } .delay-300 { animation-delay: 300ms; }
+        
+        body { font-family: "Times New Roman", Times, serif; }
+        .bang-excel { border-collapse: collapse; width: max-content; min-width: 100%; }
+        .bang-excel th, .bang-excel td { border: 1px solid #718096; padding: 6px 8px; font-size: 1rem; white-space: nowrap; }
+        .bang-excel th { background-color: #f8fafc; color: #0f172a; background-clip: padding-box; }
+        .bang-excel thead tr:first-child th { border-bottom: 1px solid #718096 !important; }
+        .bg-menu-main { background-color: #0b5394; } .bg-menu-hover { background-color: #1e70b8; } .text-menu-active { color: #b6d7a8; } .border-menu-active { border-color: #b6d7a8; }
+        
+        /* [THÊM MỚI]: Làm đẹp thanh cuộn hiển thị cho toàn bộ hệ thống */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3) {
-    for (let i = 0; i < soLanThu; i++) {
-        try {
-            const phanHoi = await fetch(url, tuyChon);
+        /* Hiệu ứng bập bênh (Theo chuẩn ReactBits) */
+        @keyframes bapBenh {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(5deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(-5deg); }
+        }
+        .reactbits-bap-benh {
+            display: inline-block;
+            animation: bapBenh 0.6s ease-in-out infinite;
+            transform-origin: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-slate-800 h-[100dvh] flex overflow-hidden">
+
+<!-- 1. CỘT MENU BÊN TRÁI -->
+    <!-- [ĐÃ SỬA]: Thay h-full min-h-screen bằng h-screen để chốt cứng chiều cao bằng đúng màn hình -->
+    <div id="sidebarMenu" class="fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-300 ease-in-out w-[280px] h-[100dvh] overflow-hidden bg-menu-main flex flex-col shadow-xl font-sans text-white z-50 flex-none">
+         
+         <!-- PHẦN ĐẦU: LOGO (Thêm flex-none để không bị bóp méo khi phóng to) -->
+         <div class="flex flex-col items-center pt-8 pb-3 px-4 flex-none">
+           <div class="bg-white p-1 rounded-full mb-4 shadow-lg border-2 border-blue-300 cursor-pointer hover:opacity-80 transition-opacity" onclick="chuyenHuongHeThong()" title="Trở về trang Hệ thống">
+                <img id="logoMenuDoc" src="" alt="Logo" class="w-20 h-20 rounded-full object-cover">
+            </div>
+            <h2 id="tenDonViMenu" class="text-center text-white font-bold text-base uppercase tracking-wide leading-relaxed">
+                Trường Tiểu học<br>Lê Văn Tám
+            </h2>
+        </div>
+        <div class="px-6 my-2 flex-none"><hr class="border-dashed border-blue-300 opacity-40"></div>
+        <div class="mx-2 my-2 bg-white rounded shadow-md px-3 py-2 text-sm text-slate-800 flex-none">
+            <div class="flex flex-col border-b border-dashed border-gray-300 pb-2 mb-1.5">
+                <div class="flex justify-center items-center gap-2 mb-1">
+                    <span class="font-bold">Năm học:</span>
+                    <span id="menuHienThiNamHoc" class="font-bold text-blue-600 text-center">Đang tải...</span>
+                </div>
+            </div>
+            <div class="text-center">
+                    <span id="trangThaiHeThong" class="font-bold text-green-700 text-base leading-tight inline-block mt-0.5">Hệ thống mở</span>
+            </div>
+        </div>
+
+        <!-- PHẦN GIỮA: DANH SÁCH MENU (Thêm flex-1, min-h-0 và overflow-y-auto để bật tính năng cuộn chuột) -->
+        <nav class="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col mt-2 px-3 gap-1 pb-4">
+            <a id="menuTKB" onclick="kichHoatTab('menuTKB', 'khungTKB', true)" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity flex-none text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px]">TKB Toàn trường</span>
+            </a>
             
-            if (!phanHoi.ok) {
-                throw new Error(`Máy chủ từ chối kết nối (Mã lỗi HTTP: ${phanHoi.status})`);
-            }
+            <a id="menuThongKe" onclick="kichHoatTab('menuThongKe', 'khungThongKe', false)" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity flex-none text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px]">Báo cáo Thống kê</span>
+            </a>
 
-            // [LÕI NÂNG CẤP]: Đọc thẳng văn bản 1 lần duy nhất, KHÔNG dùng clone()
-            const noiDungText = await phanHoi.text();
+            <a id="menuSoDauBai" onclick="kichHoatTab('menuSoDauBai', 'khungSoDauBai', false)" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity flex-none text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path><path d="M9 7h6"></path><path d="M9 11h6"></path></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px]">Sổ đầu bài (Điện tử)</span>
+            </a>
 
-            // Kiểm tra tính hợp lệ của dữ liệu (Chống HTML ảo từ Google)
-            try {
-                JSON.parse(noiDungText);
-            } catch (loiCuPhap) {
-                throw new Error("Dữ liệu trả về bị nhiễu định dạng (Google Apps Script đang bận).");
-            }
+            <div id="nhanHeThong" style="display: none;" class="px-2 pt-6 pb-2 flex items-center gap-3">
+                <div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-blue-300/40 to-transparent"></div>
+                <span class="text-[11px] font-black text-blue-200 uppercase tracking-widest opacity-80 whitespace-nowrap">Hệ thống</span>
+                <div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-blue-300/40 to-transparent"></div>
+            </div>
 
-            // Đóng gói lại thành đối tượng Response chuẩn để các hàm khác gọi .json() mượt mà
-            return new Response(noiDungText, {
-                status: phanHoi.status,
-                statusText: phanHoi.statusText,
-                headers: phanHoi.headers
-            });
-
-        } catch (loi) {
-            if (i === soLanThu - 1) throw loi; // Văng lỗi ra giao diện nếu đã thử hết giới hạn
-            console.warn(`Đường truyền bị nghẽn, tự động kết nối lại lần ${i + 1}...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Lùi bước 1s, 2s
-        }
-    }
-}
-
-// =========================================================================
-// KHỐI QUẢN LÝ GIAO DIỆN & PHÂN QUYỀN TRUNG TÂM (Bản vá ẩn triệt để nút tuần)
-// Thay thế toàn bộ hàm này trong file app.js
-// =========================================================================
-function kiemSoatGiaoDien() {
-    // 1. Bọc thép dữ liệu: Đảm bảo luôn trả về mảng
-    const menuDuocCap = (quyenChiTiet && quyenChiTiet.menu) ? quyenChiTiet.menu : [];
-    const nutDuocCap = (quyenChiTiet && quyenChiTiet.nut) ? quyenChiTiet.nut : [];
-    const lopDuocCap = (quyenChiTiet && quyenChiTiet.lop) ? quyenChiTiet.lop : [];
-
-    // 2. Mở khóa Nút Bấm
-    const dsNut = ['btnLuuTuan', 'btnLuuCoDinh', 'btnKhoiPhuc', 'btnXepTuDong', 'btnKiemTra', 'btnNhapExcelTKB', 'btnDongBoChuan'];
-    dsNut.forEach(idNut => {
-        let nut = document.getElementById(idNut);
-        if (nut) {
-            let duocPhep = quyenSuaChua || nutDuocCap.includes(idNut);
-            if (duocPhep) { nut.style.display = 'flex'; nut.disabled = false; } 
-            else { nut.style.display = 'none'; nut.disabled = true; }
-        }
-    });
-
-    // 3. Mở khóa Menu 
-    const dsMenuQuanTri = ['menuCaiDat', 'menuDanhMucGV', 'menuDanhMucLop', 'menuPhanCong', 'menuKhungChuongTrinh', 'menuDanhMucSGK'];
-    let coMenuQuanTriDuocMo = false;
-
-    dsMenuQuanTri.forEach(idMenu => {
-        let menu = document.getElementById(idMenu);
-        if (menu) {
-            let duocXem = quyenSuaChua || menuDuocCap.includes(idMenu);
-            menu.style.display = duocXem ? 'flex' : 'none'; 
-            if (duocXem) coMenuQuanTriDuocMo = true;
-        }
-    });
-
-    // 4. Nếu có Menu quản trị mở, hiện nhãn "Hệ thống"
-    let nhanHT = document.getElementById('nhanHeThong');
-    if (nhanHT) {
-        nhanHT.style.display = coMenuQuanTriDuocMo ? 'flex' : 'none';
-    }
-
-    // 5. [LÕI NÂNG CẤP]: Ẩn/Hiện tương tác Ngày/Tuần triệt để bằng ID
-    let btnTuanTruoc = document.getElementById('btnTuanTruoc');
-    let btnTuanTiep = document.getElementById('btnTuanTiep');
-    let inputNgay = document.getElementById('chonNgayDauTuan');
-
-    // ĐÃ SỬA: Điều kiện mở khóa giờ đây chỉ phụ thuộc vào Admin HOẶC được tick đúng hộp "Mũi tên Chuyển tuần"
-    let coQuyenChuyenTuan = quyenSuaChua || nutDuocCap.includes('btnChuyenTuan');
-
-    if (coQuyenChuyenTuan) {
-        // Hiện lại mũi tên và mở khóa ô chọn ngày cho người có quyền
-        if (btnTuanTruoc) { btnTuanTruoc.style.display = 'block'; }
-        if (btnTuanTiep) { btnTuanTiep.style.display = 'block'; }
-        
-        if (inputNgay) { 
-            inputNgay.disabled = false; 
-            inputNgay.classList.remove('cursor-not-allowed', 'opacity-80'); 
-        }
-    } else {
-        // Ẩn bốc hơi mũi tên và khóa mờ ô chọn ngày đối với tài khoản công khai
-        if (btnTuanTruoc) { btnTuanTruoc.style.display = 'none'; }
-        if (btnTuanTiep) { btnTuanTiep.style.display = 'none'; }
-        
-        if (inputNgay) { 
-            inputNgay.disabled = true; 
-            inputNgay.classList.add('cursor-not-allowed', 'opacity-80'); 
-        }
-    }
-}
-
-// =========================================================================
-// KHỐI XỬ LÝ CHUYỂN TUẦN VÀ NGÀY THÁNG
-// =========================================================================
-async function chuyenTuan(buocNhay) {
-    let tuanMoi = parseInt(tuanDangXem) + buocNhay;
-    if (tuanMoi < 1) tuanMoi = 1; 
-    if (tuanMoi > 52) tuanMoi = 52;
-    
-    if (ngayDauTuanUI && tuanMoi !== tuanDangXem) {
-        let parts = ngayDauTuanUI.split('-');
-        if (parts.length === 3) {
-            let yy = parseInt(parts[0], 10);
-            let mm = parseInt(parts[1], 10);
-            let dd = parseInt(parts[2], 10);
+            <a id="menuCaiDat" onclick="kichHoatTab('menuCaiDat', 'khungCaiDat', false)" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">1. Cài đặt Hệ thống</span>
+            </a>
             
-            let d = new Date(yy, mm - 1, dd);
-            d.setDate(d.getDate() + (buocNhay * 7));
+            <a id="menuDanhMucGV" onclick="kichHoatTab('menuDanhMucGV', 'khungDanhMucGV', false)" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">2. Danh mục Giáo viên</span>
+            </a>
+
+            <a id="menuDanhMucLop" onclick="kichHoatTab('menuDanhMucLop', 'khungDanhMucLop', false)" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">3. Danh mục Lớp</span>
+            </a>
+
+            <a id="menuKhungChuongTrinh" onclick="kichHoatTab('menuKhungChuongTrinh', 'khungKhungChuongTrinh', false)" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">4. Khung chương trình (PA)</span>
+            </a>
             
-            let newYy = d.getFullYear();
-            let newMm = (d.getMonth() + 1).toString().padStart(2, '0');
-            let newDd = d.getDate().toString().padStart(2, '0');
-            
-            ngayDauTuanUI = `${newYy}-${newMm}-${newDd}`;
-            let dateInput = document.getElementById('chonNgayDauTuan');
-            if (dateInput) dateInput.value = ngayDauTuanUI;
-        }
-    }
-    
-    tuanDangXem = tuanMoi;
-    document.getElementById('hienThiTuanHienTai').innerText = `Tuần ${tuanDangXem}`;
-    
-    if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) { duLieuTkbHienTai = []; }
-    
-    // TRUYỀN THAM SỐ FALSE ĐỂ HIỂN THỊ VÒNG XOAY KHI BẤM CHUYỂN TUẦN
-    await taiDuLieuTKB(false); 
-}
+            <a id="menuPhanCong" onclick="kichHoatTab('menuPhanCong', 'khungPhanCong', false)" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14h6"></path><path d="M9 10h6"></path><path d="M9 18h6"></path></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">5. Phân công chuyên môn</span>
+            </a>
 
-let timerCapNhatNgay;
-function capNhatNgayDauTuan() {
-    clearTimeout(timerCapNhatNgay);
-    timerCapNhatNgay = setTimeout(() => {
-        let el = document.getElementById('chonNgayDauTuan');
-        if (el && el.value !== ngayDauTuanUI) {
-            ngayDauTuanUI = el.value;
-            if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) {
-                duLieuTkbHienTai.forEach(t => t.ngay = ''); 
-            }
-            xuatMaTranBang(duLieuTkbHienTai); 
-        }
-    }, 500); 
-}
+            <a id="menuDanhMucSGK" onclick="kichHoatTab('menuDanhMucSGK', 'khungDanhMucSGK', false);" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">6. Danh mục SGK</span>
+            </a>
+        </nav>
 
-// =========================================================================
-// KHỐI 1: KHỞI TẠO VÀ TẢI DỮ LIỆU CƠ BẢN (NÂNG CẤP CACHE LOCALSTORAGE)
-// =========================================================================
-async function khoiTaoGiaoDien() {
-    try {
-        if(typeof CAU_HINH_FRONTEND !== 'undefined') {
-            let tieuDeHeThong = document.getElementById('tenHeThong'); 
-            if (tieuDeHeThong) tieuDeHeThong.innerText = CAU_HINH_FRONTEND.TEN_DU_AN;
-            let logoHT = document.getElementById('logoHeThong'); 
-            if (logoHT) logoHT.src = CAU_HINH_FRONTEND.LINK_LOGO_TRANG_CHU;
-            let logoMenu = document.getElementById('logoMenuDoc'); 
-            if (logoMenu) logoMenu.src = CAU_HINH_FRONTEND.LINK_LOGO_TRANG_CHU;
-        }
-
-        // --- BƯỚC 1: RENDER SIÊU TỐC TỪ BỘ NHỚ ĐỆM (CACHE) ---
-        let coCache = false;
-        try {
-            let cacheCauHinh = localStorage.getItem('SmartTKB_CauHinh');
-            let cacheTkb = localStorage.getItem('SmartTKB_DuLieuTuan');
-            
-            if (cacheCauHinh && cacheTkb) {
-                thongSoHocVu = JSON.parse(cacheCauHinh);
-                duLieuTkbHienTai = JSON.parse(cacheTkb);
-                
-                kiemSoatGiaoDien(); 
-                napDuLieuBoLocGiaoVien();
-                
-                if(thongSoHocVu.NAM_HOC) { 
-                    let menuNam = document.getElementById('menuHienThiNamHoc'); 
-                    if (menuNam) menuNam.innerText = thongSoHocVu.NAM_HOC; 
-                }
-
-                tuanDangXem = parseInt(thongSoHocVu.TUAN_HIEN_TAI) || 1;
-                let hienThiTuan = document.getElementById('hienThiTuanHienTai');
-                if (hienThiTuan) hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
-
-                // Vẽ ngay lập tức dữ liệu cũ, không để màn hình trắng chờ đợi
-                xuatMaTranBang(duLieuTkbHienTai);
-                coCache = true;
-            }
-        } catch(e) { console.warn("Cache hỏng, tải lại từ đầu."); }
-
-        // --- BƯỚC 2: GỌI API NGẦM ĐỂ LẤY DỮ LIỆU MỚI NHẤT ĐỒNG BỘ LẠI ---
-        const phanHoi = await fetchVoiCoCheThuLai(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layCauHinh`);
-        const thongSoMoi = await phanHoi.json();
         
-        if (thongSoMoi.trangThai === 'loi_he_thong') throw new Error(thongSoMoi.thongBao);
-        
-        thongSoHocVu = thongSoMoi;
-        localStorage.setItem('SmartTKB_CauHinh', JSON.stringify(thongSoHocVu)); 
-        
-        kiemSoatGiaoDien(); 
-        napDuLieuBoLocGiaoVien();
-        
-        if(thongSoHocVu.NAM_HOC) { 
-            let menuNam = document.getElementById('menuHienThiNamHoc'); 
-            if (menuNam) menuNam.innerText = thongSoHocVu.NAM_HOC; 
-        }
+        <!-- PHẦN CUỐI: NÚT ĐĂNG NHẬP VÀ BẢN QUYỀN (Thêm flex-none để ghim chặt dưới đáy màn hình) -->
+       <div class="p-4 bg-black/20 text-center flex-none mt-auto w-full relative z-20">
+            <button id="nutDangNhapG" onclick="khoiDongDangNhap()" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold py-2 px-4 rounded shadow-md flex items-center justify-center gap-2 transition duration-200 mb-4 group">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5 bg-white rounded-full p-0.5" alt="G">
+                <span class="group-hover:text-blue-300 transition-colors">Đăng nhập</span>
+            </button>
+            <p class="text-xs text-blue-200 font-bold uppercase tracking-widest">Thiết kế và phát triển</p>
+            <p class="text-sm font-bold text-white mt-1">Hoàng Ngọc Lâm</p>
+        </div>
+    </div>
 
-        let theTrangThai = document.getElementById('trangThaiHeThong');
-        if (theTrangThai && thongSoHocVu.TRANG_THAI_WEB) {
-            let trangThai = thongSoHocVu.TRANG_THAI_WEB.trim();
-            if (trangThai.toLowerCase() === 'hoạt động') {
-                theTrangThai.innerText = 'Hệ thống mở';
-                theTrangThai.className = 'font-bold text-green-700 text-base leading-tight inline-block mt-0.5';
-            } else {
-                theTrangThai.innerText = 'Hệ thống đang nâng cấp\nBảo trì'; 
-                theTrangThai.className = 'font-bold text-red-600 text-base leading-tight inline-block mt-0.5 reactbits-bap-benh';
-            }
-        }
-        
-        tuanDangXem = parseInt(thongSoHocVu.TUAN_HIEN_TAI) || 1;
-        let hienThiTuan = document.getElementById('hienThiTuanHienTai');
-        if (hienThiTuan) hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
-        
-        if (thongSoHocVu.TKB_TUAN && thongSoHocVu.TKB_TUAN.length > 0) {
-            let chuoiTkbMoi = JSON.stringify(thongSoHocVu.TKB_TUAN);
-            let chuoiTkbCu = localStorage.getItem('SmartTKB_DuLieuTuan');
-            
-            // Chỉ cập nhật và render lại UI nếu TKB ngầm trả về có sự thay đổi
-            if (chuoiTkbMoi !== chuoiTkbCu) {
-                duLieuTkbHienTai = thongSoHocVu.TKB_TUAN;
-                localStorage.setItem('SmartTKB_DuLieuTuan', chuoiTkbMoi);
-                xuatMaTranBang(duLieuTkbHienTai);
-            }
-        } else {
-            await taiDuLieuTKB(coCache); 
-        }
-        
-    } catch (loi) { 
-        console.error("Lỗi khởi tạo:", loi); 
-        let vungHienThi = document.getElementById('vungHienThiDuLieu');
-        if (vungHienThi) {
-            vungHienThi.innerHTML = `<tr><td class="px-6 py-10 text-center text-red-600 font-bold text-lg">
-                ⚠️ Lỗi khởi động: ${loi.message}
-            </td></tr>`;
-        }
-    }
-}
-
-// =========================================================================
-// HÀM BỔ SUNG: NẠP DỮ LIỆU BỘ LỌC THEO ĐÚNG ID TRONG INDEX.HTML
-// =========================================================================
-function napDuLieuBoLocGiaoVien() {
-    // Trỏ chính xác vào ID datalist đang có sẵn trong file index.html
-    let dtList = document.getElementById('danhSachGvList');
-    if (!dtList) return;
-    
-    // Xóa bộ đệm cũ
-    dtList.innerHTML = '';
-    
-    // Nạp tùy chọn khôi phục lưới TKB toàn trường
-    dtList.innerHTML += `<option value="Toàn trường"></option>`;
-
-    // Quét và đổ dữ liệu từ biến toàn cục thongSoHocVu
-    if (thongSoHocVu.DANH_SACH_GIAO_VIEN && thongSoHocVu.DANH_SACH_GIAO_VIEN.length > 0) {
-        thongSoHocVu.DANH_SACH_GIAO_VIEN.forEach(gv => {
-            dtList.innerHTML += `<option value="${gv}"></option>`;
-        });
-    }
-}
-
-async function taiDuLieuTKB(coCache = false) {
-    const vungHienThi = document.getElementById('vungHienThiDuLieu');
-    
-    // Nếu chưa có bộ nhớ đệm, hiện UI loading vòng xoay
-    if (!coCache) {
-        vungHienThi.innerHTML = `<tr><td class="text-center text-blue-600 font-bold py-10 reactbits-fade-in text-lg" style="font-family:'Times New Roman',Times,serif;"><div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang tải TKB Tuần ${tuanDangXem}...</td></tr>`;
-    }
-    
-    try {
-        const phanHoi = await fetchVoiCoCheThuLai(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTKB&tuan=${tuanDangXem}`);
-        const textPhanHoi = await phanHoi.text();
-        let duLieu;
-
-        try {
-            duLieu = JSON.parse(textPhanHoi);
-        } catch (loiParse) {
-            throw new Error("Máy chủ trả về dữ liệu hỏng. Hãy kiểm tra lại mã nguồn CODE.gs.");
-        }
-
-        if (duLieu.trangThai === 'loi_he_thong') {
-            throw new Error(duLieu.thongBao);
-        }
-
-        if (Array.isArray(duLieu)) {
-            let chuoiTkbMoi = JSON.stringify(duLieu);
-            let chuoiTkbCu = localStorage.getItem('SmartTKB_DuLieuTuan');
-            
-            // Cập nhật ngầm: Chỉ render lưới nếu bản vẽ mới khác bản vẽ đệm
-            if (!coCache || chuoiTkbMoi !== chuoiTkbCu) {
-                duLieuTkbHienTai = duLieu;
-                localStorage.setItem('SmartTKB_DuLieuTuan', chuoiTkbMoi);
-                xuatMaTranBang(duLieuTkbHienTai);
-            }
-        } else {
-            throw new Error("Dữ liệu nhận được không đúng cấu trúc mảng.");
-        }
-
-    } catch (loi) {
-        vungHienThi.innerHTML = `<tr><td class="text-center text-red-500 font-bold py-10 text-lg" style="font-family:'Times New Roman',Times,serif;">
-            ⚠️ Lỗi nạp dữ liệu TKB:<br><span class="text-base text-slate-700 font-normal mt-2 inline-block">${loi.message}</span>
-        </td></tr>`;
-    }
-}
-
-async function goiThuatToanXepLich() {
-    const vungHienThi = document.getElementById('vungHienThiDuLieu');
-    vungHienThi.innerHTML = `<tr><td class="text-center text-orange-600 font-bold py-10 reactbits-fade-in text-lg" style="font-family:'Times New Roman',Times,serif;"><div class="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-3"></div>Đang chạy Động cơ phân bổ cho Tuần ${tuanDangXem}...</td></tr>`;
-    try {
-        const phanHoi = await fetchVoiCoCheThuLai(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=xepLichTuDong&tuan=${tuanDangXem}`);
-        duLieuTkbHienTai = await phanHoi.json(); 
-        xuatMaTranBang(duLieuTkbHienTai);
-    } catch (loi) { vungHienThi.innerHTML = `<tr><td class="text-center text-red-500 font-bold py-10 text-lg" style="font-family:'Times New Roman',Times,serif;">Lỗi thuật toán xếp lịch tự động.</td></tr>`; }
-}
-
-// =========================================================================
-// THUẬT TOÁN LỌC GIÁO VIÊN SIÊU TỐC (CẬP NHẬT TÌM KIẾM THÔNG MINH V2.5)
-// =========================================================================
-function locTheoGiaoVien() {
-    let gvLoc = document.getElementById('locGiaoVien') ? document.getElementById('locGiaoVien').value.trim() : '';
-    let gvLocLC = gvLoc.toLowerCase(); 
-
-    let tapHopLopCuaGV = new Set();
-    let coTietNaoKhong = false;
-
-    // 1. Quét tìm lớp của giáo viên với thuật toán bóc tách mảng (hỗ trợ dạy ghép)
-    if (gvLoc !== "" && gvLoc !== "Toàn trường" && typeof duLieuTkbHienTai !== 'undefined') {
-        duLieuTkbHienTai.forEach(t => {
-            if (t.maGv) {
-                let gvTkb = t.maGv.trim().toLowerCase();
-                let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
-                
-                if (tapHopGvTkb.includes(gvLocLC)) {
-                    tapHopLopCuaGV.add(t.maLop);
-                    coTietNaoKhong = true;
-                }
-            }
-        });
-    }
-
-    let tbody = document.getElementById('vungHienThiDuLieu');
-    let thead = document.getElementById('tieuDeBang');
-    
-    // 2. Khôi phục lại trạng thái bảng nếu đang bị cảnh báo trống lịch trước đó
-    if (tbody && tbody.querySelector('.canh-bao-trong-lich')) {
-        let cacDong = tbody.querySelectorAll('tr:not(.canh-bao-trong-lich)');
-        cacDong.forEach(dong => dong.style.display = '');
-        let dongCanhBao = tbody.querySelector('.canh-bao-trong-lich');
-        if (dongCanhBao) dongCanhBao.remove();
-        if (thead) thead.style.display = '';
-    }
-
-    // 3. Xử lý UI báo trống lịch nếu giáo viên hoàn toàn không có tiết
-    if (gvLoc !== "" && gvLoc !== "Toàn trường" && !coTietNaoKhong) {
-        if (thead) thead.style.display = 'none';
-
-        if (tbody) {
-            let cacDong = tbody.querySelectorAll('tr');
-            cacDong.forEach(dong => dong.style.display = 'none'); 
-            
-            let trCanhBao = document.createElement('tr');
-            trCanhBao.className = 'canh-bao-trong-lich bg-orange-50/50';
-            trCanhBao.innerHTML = `<td colspan="3" class="text-center py-12">
-                <div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg></div>
-                <p class="text-orange-600 font-bold text-lg mb-1">Đồng chí ${gvLoc} không có lịch lên lớp trong tuần này.</p>
-                <p class="text-sm text-slate-500 font-medium">Vui lòng xóa ô tìm kiếm hoặc chọn "Toàn trường" để hiển thị lại lưới TKB.</p>
-            </td>`;
-            tbody.appendChild(trCanhBao);
-        }
-        return;
-    }
-
-    // 4. Quét DOM ẩn/hiện Cột Lớp theo danh sách đã tìm được
-    let tatCaCacCot = document.querySelectorAll('[data-cotlop]');
-    tatCaCacCot.forEach(cot => {
-        let lopCuaCot = cot.getAttribute('data-cotlop');
-        if (gvLoc === "" || gvLoc === "Toàn trường" || tapHopLopCuaGV.has(lopCuaCot)) {
-            cot.classList.remove('hidden'); 
-        } else {
-            cot.classList.add('hidden'); 
-        }
-    });
-
-    // 5. Làm mờ các ô không phải của GV này để làm nổi bật lịch dạy
-    let cacOGiaoVien = document.querySelectorAll('input[id^="gv_"]');
-    cacOGiaoVien.forEach(oGv => {
-        let gvGoc = oGv.value.trim().toLowerCase();
-        let isTarget = true;
-        
-        if (gvLoc !== "" && gvLoc !== "Toàn trường") {
-            let tapHopGvGoc = gvGoc.split(/[,;&-]/).map(g => g.trim());
-            if (!tapHopGvGoc.includes(gvLocLC)) {
-                isTarget = false;
-            }
-        }
-        
-        let tdGv = oGv.closest('td');
-        let oMon = document.getElementById(oGv.id.replace('gv_', 'mon_'));
-        let tdMon = oMon ? oMon.closest('td') : null;
-
-        if (isTarget) {
-            if(tdGv) tdGv.classList.remove('bg-gray-100/50');
-            if(tdMon) tdMon.classList.remove('bg-gray-100/50');
-            oGv.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
-            if(oMon) oMon.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
-        } else {
-            if(tdGv) tdGv.classList.add('bg-gray-100/50');
-            if(tdMon) tdMon.classList.add('bg-gray-100/50');
-            oGv.classList.add('opacity-0', 'pointer-events-none', 'select-none');
-            if(oMon) oMon.classList.add('opacity-0', 'pointer-events-none', 'select-none');
-        }
-    });
-}
-
-// =========================================================================
-// HÀM ĐÃ ĐƯỢC NÂNG CẤP: Bổ sung tham số coQuyenSua để nhận diện phân quyền lớp
-// Thay thế toàn bộ hàm này trong file app.js
-// =========================================================================
-function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '', coQuyenSua = quyenSuaChua) {
-    let idThocTinh = idPhanTu ? `id="${idPhanTu}"` : '';
-    
-    // [LÕI NÂNG CẤP]: Đánh giá động quyền chỉnh sửa dựa trên tham số truyền vào từ lưới (coQuyenSua) 
-    // thay vì khóa cứng bằng tài khoản Admin (quyenSuaChua)
-    let thuocTinhKhoa = coQuyenSua ? '' : 'disabled'; 
-    let cssKhoa = coQuyenSua ? 'cursor-pointer' : 'cursor-not-allowed opacity-80';
-    
-    let cssAn = !isTarget ? 'opacity-0 pointer-events-none select-none' : ''; 
-    
-    let idDatalist = loaiDanhSach === 'mon' ? 'datalistChung_Mon' : 'datalistChung_GV';
-    
-    // Tích hợp hàm Xác thực Giá trị hợp lệ vào sự kiện onchange và onblur
-    let kieuKiemTraGV = (idPhanTu && idPhanTu.startsWith('gv_')) ? `if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang();` : '';
-    let suKienMoi = `oninput="${kieuKiemTraGV}" onchange="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV}" onblur="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV}"`;
-
-    let html = `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()" ${suKienMoi}>`; 
-    
-    return html;
-}
-
-// HÀM BỔ SUNG: Bức tường lửa ngăn chặn dữ liệu rác trên lưới UI (Auto-Revert & Validation)
-window.xacThucGiaTriHopLe = function(inputEl, loaiDanhSach) {
-    if (!inputEl) return;
-    let giaTri = inputEl.value.trim();
-
-    // 1. Cho phép xóa trắng hoặc để nguyên gạch ngang
-    if (giaTri === '' || giaTri === '--') {
-        inputEl.value = '';
-        return;
-    }
-
-    // 2. Lấy hệ quy chiếu chuẩn
-    let danhSachChuan = (loaiDanhSach === 'mon') ? (thongSoHocVu.DANH_SACH_MON_HOC || []) : (thongSoHocVu.DANH_SACH_GIAO_VIEN || []);
-
-    // 3. Khớp tuyệt đối -> Bỏ qua
-    if (danhSachChuan.includes(giaTri)) {
-        inputEl.value = giaTri;
-        return;
-    }
-
-    // 4. Khớp tương đối (Auto-correct): Bỏ qua lỗi hoa/thường, Unicode, khoảng trắng
-    let giaTriChuanHoa = giaTri.normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
-    let giaTriDung = null;
-
-    for (let i = 0; i < danhSachChuan.length; i++) {
-        let itemChuanHoa = danhSachChuan[i].normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
-        if (giaTriChuanHoa === itemChuanHoa) {
-            giaTriDung = danhSachChuan[i];
-            break;
-        }
-    }
-
-    if (giaTriDung) {
-        // Tự động nắn thẳng lại giá trị đúng chuẩn cho người dùng
-        inputEl.value = giaTriDung;
-    } else {
-        // 5. Khước từ dữ liệu: Xóa trắng và nháy cảnh báo nền Đỏ
-        inputEl.value = '';
-        if (inputEl.parentElement && inputEl.parentElement.tagName === 'TD') {
-            let theTd = inputEl.parentElement;
-            theTd.classList.add('bg-red-300', 'transition-colors', 'duration-300');
-            setTimeout(() => {
-                theTd.classList.remove('bg-red-300');
-            }, 800);
-        }
-    }
-};
-
-// =========================================================================
-// KHỐI 2: ĐỐI CHIẾU ĐỊNH MỨC VÀ KIỂM TRA
-// =========================================================================
-function kiemTraDinhMuc() {
-    let mangLop = [];
-    const mangLopGoc = thongSoHocVu.DANH_SACH_LOP || [];
-    
-    mangLopGoc.forEach(lop => {
-        // [CẬP NHẬT]: Dùng CSS Selector linh hoạt, không khóa cứng tên thẻ (select -> mọi thẻ)
-        if (document.querySelector(`[id$="_${lop}"]`)) {
-            mangLop.push(lop);
-        }
-    });
-
-    if (mangLop.length === 0) {
-        // [CẬP NHẬT]: Truy vấn thẻ input thay vì select
-        const cacSelect = document.querySelectorAll('input[id^="mon_"]');
-        let setLop = new Set();
-        cacSelect.forEach(sl => {
-            let parts = sl.id.split('_');
-            if (parts.length > 1) setLop.add(parts[parts.length - 1]);
-        });
-        mangLop = Array.from(setLop).sort();
-    }
-
-    const khungCT = thongSoHocVu.KHUNG_CHUONG_TRINH || {};
-    let thongKeUI = {}; mangLop.forEach(lop => { thongKeUI[lop] = {}; });
-    const thuMacDinh = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"]; const buoiMacDinh = ["Sáng", "Chiều"];
-    
-    thuMacDinh.forEach(thu => {
-        buoiMacDinh.forEach(buoi => {
-            let soTietToiThieu = (buoi === "Sáng") ? 5 : 4;
-            let soTiet = Math.max(parseInt(thongSoHocVu[(buoi==="Sáng")?"SO_TIET_SANG":"SO_TIET_CHIEU"]) || 4, soTietToiThieu);
-            for(let t=1; t<=soTiet; t++) {
-                mangLop.forEach(lop => {
-                    let theSelectMon = document.getElementById(`mon_${thu}_${buoi}_${t}_${lop}`);
-                    if(theSelectMon && theSelectMon.value) {
-                        let tenMon = theSelectMon.value;
-                        if(!thongKeUI[lop][tenMon]) thongKeUI[lop][tenMon] = 0; thongKeUI[lop][tenMon]++;
-                    }
-                });
-            }
-        });
-    });
-
-    let htmlKetQua = `<div class="overflow-x-auto"><table class="w-full text-sm text-center border-collapse border border-gray-400" style="font-family:'Times New Roman',Times,serif;"><thead class="bg-purple-100 text-purple-900 font-bold"><tr><th class="border border-gray-400 p-2 min-w-[60px]">Lớp</th><th class="border border-gray-400 p-2 min-w-[140px]">Môn học</th><th class="border border-gray-400 p-2 min-w-[100px]">Khung chuẩn</th><th class="border border-gray-400 p-2 min-w-[100px]">Đang xếp (UI)</th><th class="border border-gray-400 p-2 min-w-[140px]">Trạng thái</th><th class="border border-gray-400 p-2 min-w-[120px] bg-green-100 text-green-900">Tổng Tiết / Lớp</th></tr></thead><tbody>`;
-    
-    let tongTatCaTietChuan = 0;
-    let tongTatCaTietUI = 0;
-
-    mangLop.forEach(lop => {
-        let dmKhoi = khungCT[lop] || {};
-        let dsMonArr = Array.from(new Set([...Object.keys(dmKhoi), ...Object.keys(thongKeUI[lop])]));
-        
-        let tongChuanLopNay = 0;
-        let tongUiLopNay = 0; 
-        
-        dsMonArr.forEach(mon => { 
-            tongChuanLopNay += (parseInt(dmKhoi[mon]) || 0);
-            tongUiLopNay += (thongKeUI[lop][mon] || 0); 
-        });
-
-        tongTatCaTietChuan += tongChuanLopNay;
-        tongTatCaTietUI += tongUiLopNay;
-
-        dsMonArr.forEach((mon, index) => {
-            let chuan = parseInt(dmKhoi[mon]) || 0; 
-            let ui = thongKeUI[lop][mon] || 0; 
-            
-            let trangThai = `<span class="text-green-700 font-bold">✔ Khớp</span>`; let cssRow = "";
-            if (ui < chuan) { trangThai = `<span class="text-red-600 font-bold">⚠ Thiếu ${chuan - ui} tiết</span>`; cssRow = "bg-red-50/50"; } 
-            else if (ui > chuan) { trangThai = `<span class="text-orange-600 font-bold">⚠ Thừa ${ui - chuan} tiết</span>`; cssRow = "bg-orange-50/50"; }
-            
-            htmlKetQua += `<tr class="${cssRow} hover:bg-gray-50 border-b border-gray-300">`;
-            if (index === 0) htmlKetQua += `<td rowspan="${dsMonArr.length}" class="border-r border-gray-400 p-2 font-extrabold bg-gray-50 align-middle">${lop}</td>`;
-            
-            htmlKetQua += `<td class="border-r border-gray-300 p-2 font-semibold text-blue-900 text-left pl-4">${mon}</td>
-                           <td class="border-r border-gray-300 p-2 font-bold text-gray-700">${chuan}</td>
-                           <td class="border-r border-gray-300 p-2 font-extrabold text-blue-700 text-lg">${ui}</td>
-                           <td class="border-r border-gray-300 p-2">${trangThai}</td>`;
-            
-            if (index === 0) htmlKetQua += `<td rowspan="${dsMonArr.length}" class="p-2 font-extrabold text-green-900 bg-green-50 align-middle leading-tight whitespace-nowrap">
-                <div class="text-xs text-gray-600 font-semibold mb-1.5">Chuẩn: <span class="text-blue-700 text-lg font-bold ml-1">${tongChuanLopNay}</span></div>
-                <div class="text-xs text-gray-600 font-semibold">Đã xếp: <span class="text-red-600 text-lg font-bold ml-1">${tongUiLopNay}</span></div>
-            </td>`;
-            htmlKetQua += `</tr>`;
-        });
-    });
-    
-    htmlKetQua += `<tr class="bg-gray-200 text-gray-900 font-extrabold border-t-2 border-gray-500">
-        <td colspan="5" class="border-r border-gray-400 p-3 text-right uppercase">Tổng số tiết toàn trường trong tuần:</td>
-        <td class="p-3 leading-tight whitespace-nowrap text-left pl-4">
-            <div class="text-sm text-gray-700 mb-1">Chuẩn: <span class="text-2xl text-blue-700 ml-2">${tongTatCaTietChuan}</span></div>
-            <div class="text-sm text-gray-700">Đã xếp: <span class="text-2xl text-red-600 ml-2">${tongTatCaTietUI}</span></div>
-        </td>
-    </tr></tbody></table></div>`;
-    
-    document.getElementById('noiDungKiemTra').innerHTML = htmlKetQua; 
-    document.getElementById('modalKiemTra').classList.remove('hidden');
-}
-
-function dongModal() { 
-    document.getElementById('modalKiemTra').classList.add('hidden'); 
-}
-
-// =========================================================================
-// KHỐI 3: VẼ LƯỚI MA TRẬN VÀ LỌC CÁ NHÂN
-// =========================================================================
-function tinhNgayDocLap(ngayDauTuanStr, tenThu) {
-    if (!ngayDauTuanStr) return { hienThi: "--/--/----", thang: "--", nam: "--", ngayDayDu: "" };
-    
-    let parts = ngayDauTuanStr.split('-');
-    if (parts.length !== 3) return { hienThi: "--/--/----", thang: "--", nam: "--", ngayDayDu: "" };
-    
-    let ngayGoc = new Date(parts[0], parts[1] - 1, parts[2]);
-    const doLechThu = {"Thứ 2": 0, "Thứ 3": 1, "Thứ 4": 2, "Thứ 5": 3, "Thứ 6": 4, "Thứ 7": 5, "Chủ nhật": 6};
-    let soNgayLech = doLechThu[tenThu] || 0;
-    
-    let ngayDich = new Date(ngayGoc.getTime());
-    ngayDich.setDate(ngayGoc.getDate() + soNgayLech);
-    
-    let d = ngayDich.getDate().toString().padStart(2, '0');
-    let m = (ngayDich.getMonth() + 1).toString().padStart(2, '0');
-    let y = ngayDich.getFullYear();
-    
-    return { hienThi: `${d}/${m}/${y}`, thang: m, nam: y.toString(), ngayDayDu: `${d}/${m}/${y}` };
-}
-
-// =========================================================================
-// KHỐI 3: ENGINE VẼ LƯỚI MA TRẬN (ALGORITHM V2.4 - HOÀN THIỆN PHÂN QUYỀN)
-// =========================================================================
-function xuatMaTranBang(danhSachTiet) {
-    const thead = document.getElementById('tieuDeBang'); 
-    const tbody = document.getElementById('vungHienThiDuLieu');
-    if(thead) thead.className = ''; 
-
-    const tableEl = document.querySelector('.bang-excel');
-    if (tableEl) {
-        tableEl.style.borderCollapse = 'separate';
-        tableEl.style.borderSpacing = '0';
-    }
-
-    if (!document.getElementById('datalistChung_Mon')) {
-        let dlMon = document.createElement('datalist'); dlMon.id = 'datalistChung_Mon';
-        (thongSoHocVu.DANH_SACH_MON_HOC || []).forEach(m => { dlMon.innerHTML += `<option value="${m}">`; });
-        document.body.appendChild(dlMon);
-    }
-    if (!document.getElementById('datalistChung_GV')) {
-        let dlGv = document.createElement('datalist'); dlGv.id = 'datalistChung_GV';
-        (thongSoHocVu.DANH_SACH_GIAO_VIEN || []).forEach(g => { dlGv.innerHTML += `<option value="${g}">`; });
-        document.body.appendChild(dlGv);
-    }
-
-    const duLieuTiet = danhSachTiet || [];
-    const mangLopGoc = (thongSoHocVu.DANH_SACH_LOP && thongSoHocVu.DANH_SACH_LOP.length > 0) ? thongSoHocVu.DANH_SACH_LOP : [...new Set(duLieuTiet.map(t => t.maLop))].sort();
-    
-    // -------------------------------------------------------------------------
-    // [PHỤC HỒI LÕI]: THUẬT TOÁN VẼ CỘT THEO ĐÚNG PHÂN QUYỀN
-    // -------------------------------------------------------------------------
-    const dsLopDuocQuyen = (quyenChiTiet && quyenChiTiet.lop) ? quyenChiTiet.lop : [];
-    const tapLopDuocQuyen = new Set(dsLopDuocQuyen);
-    
-    let mangLopHienThi = mangLopGoc;
-    // Nếu KHÔNG phải Admin VÀ có danh sách lớp được phân quyền -> Chỉ vẽ các lớp được cấp quyền
-    if (!quyenSuaChua && tapLopDuocQuyen.size > 0) {
-        mangLopHienThi = mangLopGoc.filter(lop => tapLopDuocQuyen.has(lop));
-    }
-
-    const mapQuyenSuaLop = new Map();
-    mangLopHienThi.forEach(lop => {
-        let duocSua = quyenSuaChua || tapLopDuocQuyen.has(lop);
-        mapQuyenSuaLop.set(lop, duocSua);
-    });
-
-    if (mangLopHienThi.length === 0) {
-        thead.innerHTML = '<tr><th class="text-center text-slate-500 py-3 font-bold" style="font-family:\'Times New Roman\',Times,serif;">Chưa có dữ liệu Lớp học</th></tr>';
-        tbody.innerHTML = `<tr><td class="text-center py-10" style="font-family:\'Times New Roman\',Times,serif;">
-            <p class="text-red-500 font-bold text-lg mb-2">Tài khoản chưa được cấp quyền quản lý lớp nào.</p>
-        </td></tr>`;
-        return;
-    }
-
-    let dateInput = document.getElementById('chonNgayDauTuan');
-    if (duLieuTiet && duLieuTiet.length > 0) {
-        let thu2Data = duLieuTiet.find(t => t.thu === "Thứ 2" && t.ngay);
-        if (thu2Data && thu2Data.ngay) {
-            let p = thu2Data.ngay.split('/'); 
-            if (p.length === 3) {
-                ngayDauTuanUI = `${p[2]}-${p[1]}-${p[0]}`; 
-                if (dateInput) dateInput.value = ngayDauTuanUI;
-            }
-        }
-    }
-
-    let theadHTML = `<tr style="height: 45px;">
-        <th rowspan="2" class="text-center font-bold align-middle border-t border-b border-l border-r border-slate-400" style="position: sticky; top: 0; left: 0; z-index: 60; background-color: #f1f5f9; width: 85px; min-width: 85px; font-family:'Times New Roman',Times,serif;">Thứ / Ngày</th>
-        <th rowspan="2" class="text-center font-bold align-middle border-t border-b border-r border-slate-400" style="position: sticky; top: 0; left: 85px; z-index: 60; background-color: #f1f5f9; width: 60px; min-width: 60px; font-family:'Times New Roman',Times,serif;">Buổi</th>
-        <th rowspan="2" class="hidden">Tuần</th><th rowspan="2" class="hidden">Tháng</th><th rowspan="2" class="hidden">Năm học</th>
-        <th rowspan="2" class="text-center font-bold align-middle border-t border-b border-r border-slate-400" style="position: sticky; top: 0; left: 145px; z-index: 60; background-color: #f1f5f9; width: 50px; min-width: 50px; box-shadow: 3px 0 5px -2px rgba(0,0,0,0.15); font-family:'Times New Roman',Times,serif;">Tiết</th>`;
-    
-    mangLopHienThi.forEach(lop => { 
-        theadHTML += `<th colspan="2" data-cotlop="${lop}" class="text-center font-extrabold text-slate-900 tracking-widest border-t border-b border-r border-slate-400" style="position: sticky; top: 0; z-index: 50; background-color: #f1f5f9; font-family:'Times New Roman',Times,serif;">${lop}</th>`; 
-    });
-    theadHTML += `</tr><tr style="height: 40px;">`;
-    mangLopHienThi.forEach(lop => { 
-        theadHTML += `<th data-cotlop="${lop}" class="text-center font-bold text-slate-800 border-b border-r border-slate-400" style="position: sticky; top: 45px; z-index: 50; background-color: #f8fafc; min-width: 130px; font-family:'Times New Roman',Times,serif;">Môn</th>
-                      <th data-cotlop="${lop}" class="text-center font-bold text-slate-800 border-b border-r border-slate-400" style="position: sticky; top: 45px; z-index: 50; background-color: #f8fafc; min-width: 110px; font-family:'Times New Roman',Times,serif;">N dạy</th>`; 
-    });
-    theadHTML += `</tr>`; 
-    thead.innerHTML = theadHTML;
-
-    const mapDuLieu = new Map();
-    const demTietGV = {}; 
-
-    duLieuTiet.forEach(t => {
-        const thu = t.thu.trim(); const buoi = t.buoi.trim();
-        const key = `${thu}_${buoi}_${t.tiet}_${t.maLop}`;
-        mapDuLieu.set(key, t);
-        
-        if (t.maGv && mangLopHienThi.includes(t.maLop)) {
-            const gvKey = `${t.maLop}_${t.maGv}`;
-            demTietGV[gvKey] = (demTietGV[gvKey] || 0) + 1;
-        }
-    });
-
-    const bangMauGV = ['bg-red-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200', 'bg-pink-200', 'bg-teal-200', 'bg-orange-200', 'bg-cyan-200', 'bg-lime-200', 'bg-fuchsia-200', 'bg-rose-200'];
-    let mauGiaoVien = {}; 
-    if (thongSoHocVu.DANH_SACH_GIAO_VIEN) { thongSoHocVu.DANH_SACH_GIAO_VIEN.forEach((gv, idx) => { mauGiaoVien[gv] = bangMauGV[idx % bangMauGV.length]; }); }
-    
-    let gvcnLop = {};
-    mangLopHienThi.forEach(lop => {
-        let maxTiet = 0, gvcn = ""; 
-        (thongSoHocVu.DANH_SACH_GIAO_VIEN || []).forEach(gv => {
-            let soTiet = demTietGV[`${lop}_${gv}`] || 0;
-            if (soTiet > maxTiet) { maxTiet = soTiet; gvcn = gv; }
-        });
-        gvcnLop[lop] = gvcn;
-    });
-
-    const thongTinNgayCache = {};
-    const thuMacDinh = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-    thuMacDinh.forEach(thu => { thongTinNgayCache[thu] = tinhNgayDocLap(ngayDauTuanUI, thu); });
-
-    const gioiHanSang = Math.max(parseInt(thongSoHocVu.SO_TIET_SANG) || 4, 5); 
-    const gioiHanChieu = Math.max(parseInt(thongSoHocVu.SO_TIET_CHIEU) || 3, 4);
-    const cauTrucTkb = [{ buoi: "Sáng", soTiet: gioiHanSang }, { buoi: "Chiều", soTiet: gioiHanChieu }];
-
-    let bufferHTML = []; 
-
-    thuMacDinh.forEach(thu => {
-        let thongTinNgay = thongTinNgayCache[thu];
-        let soDongCuaThu = gioiHanSang + gioiHanChieu;
-        let inCotThu = true;
-
-        cauTrucTkb.forEach(cTruc => {
-            let buoi = cTruc.buoi;
-            let soDongCuaBuoi = cTruc.soTiet;
-            let inCotBuoi = true;
-
-            for (let tiet = 1; tiet <= soDongCuaBuoi; tiet++) {
-                bufferHTML.push(`<tr class="bg-white hover:bg-slate-50 transition-colors duration-150 group" style="font-family:'Times New Roman',Times,serif;">`);
-                
-                if (inCotThu) { 
-                    bufferHTML.push(`<td rowspan="${soDongCuaThu}" class="text-center align-middle border-b border-l border-r border-slate-300" style="position: sticky; left: 0; z-index: 40; background-color: #ffffff;">
-                                    <div class="font-extrabold text-slate-900">${thu}</div>
-                                    <div class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5 mt-1 inline-block">${thongTinNgay.hienThi}</div>
-                                  </td>`); 
-                    inCotThu = false; 
-                }
-                
-                if (inCotBuoi) { 
-                    bufferHTML.push(`<td rowspan="${soDongCuaBuoi}" class="text-center font-bold align-middle text-slate-800 border-b border-r border-slate-300" style="position: sticky; left: 85px; z-index: 40; background-color: #ffffff;">${buoi}</td>`); 
-                    inCotBuoi = false; 
-                }
-
-                let duLieuDong = null;
-                for (let l = 0; l < mangLopHienThi.length; l++) {
-                    const checkKey = `${thu}_${buoi}_${tiet}_${mangLopHienThi[l]}`;
-                    if (mapDuLieu.has(checkKey)) { duLieuDong = mapDuLieu.get(checkKey); break; }
-                }
-
-                let valTuan = duLieuDong ? duLieuDong.tuan : tuanDangXem;
-                let valThang = (duLieuDong && duLieuDong.thang) ? duLieuDong.thang : thongTinNgay.thang;
-                let valNam = (duLieuDong && duLieuDong.namHoc) ? duLieuDong.namHoc : (thongSoHocVu.NAM_HOC || thongTinNgay.nam);
-
-                bufferHTML.push(`<td id="uiTuan_${thu}_${buoi}_${tiet}" class="hidden text-center font-bold text-red-600 align-middle">${valTuan}</td>`);
-                bufferHTML.push(`<td id="uiThang_${thu}_${buoi}_${tiet}" data-ngay="${thongTinNgay.ngayDayDu}" class="hidden text-center font-bold text-red-600 align-middle">${valThang}</td>`);
-                bufferHTML.push(`<td id="uiNam_${thu}_${buoi}_${tiet}" class="hidden text-center font-bold text-red-600 align-middle">${valNam}</td>`);
-                
-                bufferHTML.push(`<td id="oTiet_${thu}_${buoi}_${tiet}" class="text-center font-bold text-slate-800 align-middle border-b border-r border-slate-300" style="position: sticky; left: 145px; z-index: 40; background-color: #ffffff; box-shadow: 3px 0 5px -2px rgba(0,0,0,0.15);">
-                                <div class="text-base leading-none mt-1">${tiet}</div>
-                                <div class="vung-canh-bao-gv mt-0.5"></div>
-                              </td>`);
-
-                mangLopHienThi.forEach(lop => {
-                    const cellKey = `${thu}_${buoi}_${tiet}_${lop}`;
-                    const duLieuO = mapDuLieu.get(cellKey); 
-                    const duocSuaLopNay = mapQuyenSuaLop.get(lop); 
+    <!-- KHỐI 2: NỘI DUNG CHÍNH BÊN PHẢI -->
+    <div id="sidebarBackdrop" onclick="moDongMenuMobile()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+    <div class="flex-1 min-w-0 h-[100dvh] flex flex-col bg-gray-100 relative overflow-hidden">
+        <div class="flex-none p-2 pb-0">
+            <!-- THANH TIÊU ĐỀ (HEADER) -->
+            <header class="bg-white shadow-sm border border-gray-300 p-2 mb-2 flex items-center reactbits-fade-in delay-100">
+                <div class="flex items-center space-x-2 md:space-x-3 w-full">
+                    <button onclick="moDongMenuMobile()" class="md:hidden p-1.5 text-slate-600 hover:bg-slate-200 rounded-md focus:outline-none transition-colors flex-none">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
                     
-                    let monGoc = duLieuO ? duLieuO.monHoc : ""; let gvGoc = duLieuO ? duLieuO.maGv : "";
+                    <!-- [Bổ sung]: Thêm sự kiện onclick cho logo header -->
+                    <img id="logoHeThong" src="" alt="Logo" class="w-9 h-9 md:w-10 md:h-10 object-contain flex-none cursor-pointer hover:opacity-80 transition-opacity" onclick="chuyenHuongHeThong()" title="Trở về trang Hệ thống">
+                    <div class="flex-1 overflow-hidden">
+                        <h1 id="tenHeThong" class="text-[15px] md:text-xl font-bold text-blue-900 uppercase tracking-wide leading-tight truncate">Đang nạp dữ liệu...</h1>
+                        <p id="tenDonVi" class="text-slate-600 font-semibold text-[11px] md:text-sm truncate">Smart Timetable</p>
+                    </div>
+                </div>
+            </header>
 
-                    let bgLop = 'bg-white'; let textClass = 'text-slate-900';
-                    if (monGoc.includes('CẤN LỊCH')) { bgLop = 'bg-yellow-400'; textClass = 'text-red-700 font-extrabold'; } 
-                    else if (gvGoc && gvGoc !== gvcnLop[lop]) { bgLop = mauGiaoVien[gvGoc] || 'bg-gray-200'; textClass = 'text-slate-900 font-semibold'; }
+            <!-- [ĐÃ SỬA]: THANH CÔNG CỤ TKB (Bổ sung flex-wrap an toàn, không đổi cấu trúc div) -->
+            <div id="thanhCongCuTKB" class="bg-slate-50 border border-gray-400 p-2 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 flex-wrap reactbits-fade-in delay-200">
+                
+                <div class="flex flex-col md:flex-row flex-wrap items-center gap-4 w-full xl:w-auto font-sans">
+                    <!-- BỘ CHUYỂN TUẦN -->
+                    <div class="flex items-center bg-white border border-gray-400 rounded shadow-sm px-2 py-1 gap-2 flex-none">
+                        <button id="btnTuanTruoc" onclick="chuyenTuan(-1)" class="p-1 hover:bg-gray-200 rounded text-slate-600 font-bold text-lg leading-none" title="Tuần trước">◀</button>
+                        <span id="hienThiTuanHienTai" class="px-2 font-extrabold text-blue-900 whitespace-nowrap text-base">Tuần --</span>
+                        <button id="btnTuanTiep" onclick="chuyenTuan(1)" class="p-1 hover:bg-gray-200 rounded text-slate-600 font-bold text-lg leading-none" title="Tuần tiếp">▶</button>
+                    </div>
 
-                    let idMon = `mon_${thu}_${buoi}_${tiet}_${lop}`; let idGv = `gv_${thu}_${buoi}_${tiet}_${lop}`;
+                    <!-- BỘ CHỌN NGÀY -->
+                    <div class="flex items-center bg-white border border-gray-400 rounded shadow-sm px-2 py-1 gap-2 flex-none" title="Cài đặt mốc ngày cho Thứ 2 của tuần này">
+                        <span class="text-sm font-bold text-slate-600 whitespace-nowrap">Từ ngày:</span>
+                        <input type="date" id="chonNgayDauTuan" onchange="capNhatNgayDauTuan()" class="text-sm font-bold text-blue-900 outline-none cursor-pointer bg-transparent">
+                    </div>
                     
-                    let dropdownMon = taoTuyChonDong(thongSoHocVu.DANH_SACH_MON_HOC, monGoc, textClass, idMon, true, 'mon', duocSuaLopNay);
-                    let dropdownGV = taoTuyChonDong(thongSoHocVu.DANH_SACH_GIAO_VIEN, gvGoc, textClass, idGv, true, 'gv', duocSuaLopNay);
-
-                    bufferHTML.push(`<td data-cotlop="${lop}" class="text-center p-0 align-middle ${bgLop} border-b border-r border-slate-300 transition-all duration-300">${dropdownMon}</td>`);
-                    bufferHTML.push(`<td data-cotlop="${lop}" class="text-center p-0 align-middle ${bgLop} border-b border-r border-slate-300 transition-all duration-300">${dropdownGV}</td>`);
-                });
-                bufferHTML.push(`</tr>`);
-            }
-        });
-    });
-    
-    tbody.innerHTML = bufferHTML.join('');
-    
-    if (typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang();
-    
-    // Gọi hàm lọc DOM để áp dụng ẩn cột dựa theo ô tìm kiếm
-    if (typeof locTheoGiaoVien === 'function') locTheoGiaoVien();
-}
-
-// =========================================================================
-// KHỐI 4: TRÌNH LƯU TRỮ VÀ XỬ LÝ DỮ LIỆU ĐA TẦNG (BẢO TOÀN LỚP ẨN)
-// =========================================================================
-async function luuDuLieu(event, loaiLuu) {
-    let coQuyenThaoTac = quyenSuaChua || (quyenChiTiet && (quyenChiTiet.lop.length > 0 || quyenChiTiet.nut.length > 0));
-    if (!coQuyenThaoTac) return;
-    
-    if (loaiLuu === 'codinh') { if (!confirm("CẢNH BÁO: Thao tác này sẽ ghi đè toàn bộ TKB hiện tại làm TKB Gốc Cố Định cho toàn trường. Bấm OK để tiếp tục.")) return; }
-    
-    if (loaiLuu === 'khoiphuc') { if (!confirm(`Xác nhận: Lưu trữ toàn bộ TKB Tuần ${tuanDangXem}, tự động chuyển sang tuần tiếp theo?`)) return; }
-
-    const btn = event.currentTarget; 
-    const textGoc = btn.innerHTML;
-    if(btn.disabled === undefined) { } else {
-        btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang xử lý...`; 
-        btn.disabled = true;
-    }
-
-    try {
-        let dsTietLuoi = []; 
-        let namHocChuan = thongSoHocVu.NAM_HOC || "";
-        
-        let cacOMon = document.querySelectorAll('input[id^="mon_"]');
-        let setLopDangHienThi = new Set();
-        
-        // 1. Quét thu thập dữ liệu của các lớp ĐANG ĐƯỢC HIỂN THỊ trên DOM
-        cacOMon.forEach(oMon => {
-            let valMon = oMon.value.trim();
-            if (valMon !== "") {
-                let parts = oMon.id.split('_'); 
-                let thu = parts[1];
-                let buoi = parts[2];
-                let tiet = parts[3];
-                let lop = parts.slice(4).join('_'); 
-                
-                setLopDangHienThi.add(lop); // Ghi nhận danh sách lớp đang có mặt trên lưới
-                
-                let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
-                let valGv = oGv ? oGv.value.trim() : "";
-                
-                let thongTinNgay = tinhNgayDocLap(ngayDauTuanUI, thu);
-                let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
-                
-                dsTietLuoi.push({ 
-                    maTiet: `${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`, 
-                    namHoc: namHocChuan || thongTinNgay.nam, 
-                    thang: thongTinNgay.thang, 
-                    ngay: thongTinNgay.ngayDayDu, 
-                    tuan: tuanDangXem, 
-                    thu: thu, 
-                    buoi: buoi, 
-                    tiet: tiet, 
-                    maLop: lop, 
-                    monHoc: valMon, 
-                    maGv: valGv 
-                });
-            }
-        });
-
-        // 2. [LÕI NÂNG CẤP BẢO TOÀN]: Bù đắp dữ liệu của các lớp BỊ ẨN
-        let mangLopDangHienThi = Array.from(setLopDangHienThi);
-        if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) {
-            duLieuTkbHienTai.forEach(tietGoc => {
-                // Nếu tiết này thuộc về lớp không hiển thị trên DOM, giữ nguyên trạng đẩy vào Payload
-                if (!mangLopDangHienThi.includes(tietGoc.maLop)) {
-                    dsTietLuoi.push(tietGoc);
-                }
-            });
-        }
-
-        const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { 
-            method: 'POST', 
-            body: JSON.stringify({ thaoTac: 'luuDuLieu', loaiLuu: loaiLuu, tuan: tuanDangXem, duLieu: dsTietLuoi }) 
-        });
-        const ketQua = await phanHoi.json();
-        
-        if(ketQua.trangThai !== 'thanh_cong') { 
-            console.error("Sự cố máy chủ."); 
-            alert("Lưu thất bại: " + ketQua.thongBao);
-        } else { 
-            if (loaiLuu === 'khoiphuc') {
-                await chuyenTuan(1); 
-                console.log("Kích hoạt Lưu Tuần tự động để neo lại mốc thời gian...");
-                let btnAn = document.createElement('button');
-                btnAn.innerHTML = "Auto Save";
-                await luuDuLieu({ currentTarget: btnAn }, 'tuan');
-            } else {
-                alert("Đã lưu dữ liệu thời khóa biểu thành công!");
-                // Cập nhật lại bộ nhớ đệm nội bộ để đảm bảo đồng bộ mới nhất sau khi lưu
-                duLieuTkbHienTai = dsTietLuoi;
-            }
-        }
-    } catch (loi) { 
-        console.error("Lỗi kết nối.", loi); 
-        alert("Có sự cố trong quá trình kết nối đến máy chủ.");
-    } finally { 
-        if(btn.disabled !== undefined) { 
-            btn.innerHTML = textGoc; 
-            btn.disabled = false; 
-        }
-    }
-}
-
-// =========================================================================
-// KHỐI 5: ĐỘNG CƠ ĐIỀU HƯỚNG SIÊU TỐC (ÉP ĐỔI MÀU MENU DỨT KHOÁT)
-// =========================================================================
-window.kichHoatTab = function(idMenu, idKhung, hienThanhCongCuTKB) {
-    try {
-        // 1. CHUYỂN MÀU MENU NGAY LẬP TỨC 
-        // LÕI FIX LỖI: Xóa bỏ các class 'transition-all duration-150' để không bị đóng băng hiệu ứng
-        document.querySelectorAll('nav a').forEach(m => {
-            m.className = "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 cursor-pointer group";
-            let span = m.querySelector('span');
-            if (span) span.className = "font-bold text-white/80 group-hover:text-white text-[14px]";
-            let svg = m.querySelector('svg');
-            if (svg) svg.className = "w-5 h-5 flex-none opacity-70 group-hover:opacity-100 text-white";
-        });
-
-        if (idMenu) {
-            let mActive = document.getElementById(idMenu);
-            if (mActive) {
-                mActive.className = "flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/20 bg-white/10 shadow-md backdrop-blur-sm cursor-pointer group";
-                let spanActive = mActive.querySelector('span');
-                if (spanActive) spanActive.className = "font-bold text-menu-active text-[14px]";
-                let svgActive = mActive.querySelector('svg');
-                if (svgActive) svgActive.className = "w-5 h-5 flex-none text-menu-active opacity-100";
-            }
-        }
-
-        // 2. TÁCH LUỒNG HIỂN THỊ NẶNG 
-        // Nới rộng lên 50ms để trình duyệt kịp phủ màu Menu dứt khoát trước khi bị khóa luồng
-        setTimeout(() => {
-            // A. DỌN DẸP GIAO DIỆN CŨ
-            let vungChinh = document.getElementById('vungHienThiChinh');
-            if (vungChinh) {
-                Array.from(vungChinh.children).forEach(el => {
-                    if (el.tagName === 'DIV' && el.id !== 'khungNoiDungModal' && el.id !== idKhung) {
-                        el.classList.add('hidden');
-                        el.classList.remove('block', 'flex');
-                    }
-                });
-            }
-
-            // B. HIỂN THỊ KHUNG MỤC TIÊU MỚI
-            let khungDich = document.getElementById(idKhung);
-            if (khungDich) {
-                khungDich.classList.remove('hidden');
-                if (idKhung === 'khungTKB' || idKhung === 'khungThongKe') {
-                    khungDich.classList.add('block');
-                } else {
-                    khungDich.classList.add('flex');
-                }
-            }
-
-            // C. QUẢN LÝ THANH CÔNG CỤ
-            let thanhCongCu = document.getElementById('thanhCongCuTKB');
-            if (thanhCongCu) {
-                if (hienThanhCongCuTKB) {
-                    thanhCongCu.classList.remove('hidden');
-                    thanhCongCu.classList.add('flex');
-                } else {
-                    thanhCongCu.classList.remove('flex');
-                    thanhCongCu.classList.add('hidden');
-                }
-            }
-
-            // D. ĐÁNH THỨC DỮ LIỆU ĐA TẦNG
-            try {
-                if (idKhung === 'khungThongKe' && typeof taiCayDanhMucThongKe === 'function' && Object.keys(cayDanhMucThongKe).length === 0) taiCayDanhMucThongKe();
-                if (idKhung === 'khungPhanCong' && typeof taiDuLieuPhanCongTuMayChu === 'function' && typeof danhSachGV !== 'undefined' && danhSachGV.length === 0) taiDuLieuPhanCongTuMayChu();
-                if (idKhung === 'khungDanhMucGV' && typeof taiDuLieuDanhMucGV === 'function' && typeof duLieuDanhMucGV !== 'undefined' && duLieuDanhMucGV.length === 0) taiDuLieuDanhMucGV();
-                if (idKhung === 'khungKhungChuongTrinh' && typeof taiDuLieuKhungChuongTrinhTuMayChu === 'function' && typeof duLieuBangKCT !== 'undefined' && duLieuBangKCT.length === 0) taiDuLieuKhungChuongTrinhTuMayChu();
-                if (idKhung === 'khungCaiDat' && typeof taiDuLieuCaiDatHeThong === 'function' && typeof dsThamSo !== 'undefined' && dsThamSo.length === 0) taiDuLieuCaiDatHeThong();
-                if (idKhung === 'khungDanhMucLop' && typeof taiDuLieuDanhMucLop === 'function' && typeof duLieuDanhMucLop !== 'undefined' && duLieuDanhMucLop.length === 0) taiDuLieuDanhMucLop();
-                if (idKhung === 'khungDanhMucSGK' && typeof taiLaiDuLieuDanhMucSGK === 'function') taiLaiDuLieuDanhMucSGK();
-                if (idKhung === 'khungSoDauBai' && typeof taiDuLieuSoDauBaiTuMayChu === 'function') taiDuLieuSoDauBaiTuMayChu();
-                
-                if (idKhung && (idKhung.toLowerCase().includes('phanphoi') || idKhung.toLowerCase().includes('ppct'))) {
-                    if (typeof taiDuLieuPhanPhoiChuongTrinh === 'function') taiDuLieuPhanPhoiChuongTrinh();
-                    if (typeof taiDuLieuPPCT === 'function') taiDuLieuPPCT();
-                }
-            } catch (loiData) {
-                console.error("Lỗi động cơ tải dữ liệu:", loiData);
-            }
-        }, 50); 
-        
-    } catch (loiUI) {
-        console.error("Sự cố chuyển giao diện UI:", loiUI);
-    }
-};
-
-// =========================================================================
-// KHỐI 6: XÁC THỰC DANH TÍNH (BẢN NÂNG CẤP XỬ LÝ BẤT ĐỒNG BỘ)
-// =========================================================================
-let clientDangNhapG;
-let dangXuLyDangNhap = false; // Biến cờ khóa luồng, chống bấm liên tục (Spam click)
-
-function khoiDongDangNhap() {
-    if (dangXuLyDangNhap) return;
-
-    let nutDangNhap = document.getElementById('nutDangNhapG');
-    let htmlGoc = nutDangNhap ? nutDangNhap.innerHTML : '';
-
-    // 1. Kiểm tra an toàn: Thư viện Google và Cấu hình ID đã sẵn sàng chưa?
-    if (typeof google === 'undefined' || typeof SKT_GOOGLE_CLIENT_ID === 'undefined') {
-        if (nutDangNhap) {
-            nutDangNhap.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span class="text-sm font-semibold ml-2">Đang nạp thư viện...</span>`;
-            nutDangNhap.classList.add('cursor-wait', 'opacity-80');
-        }
-        
-        // Tự động lùi bước (Polling) chờ 1 giây rồi thử lại
-        setTimeout(() => {
-            if (nutDangNhap) {
-                nutDangNhap.innerHTML = htmlGoc;
-                nutDangNhap.classList.remove('cursor-wait', 'opacity-80');
-            }
-            khoiDongDangNhap();
-        }, 1000);
-        return;
-    }
-
-    // 2. Kích hoạt khóa luồng và hiển thị trạng thái chờ
-    dangXuLyDangNhap = true;
-    if (nutDangNhap) {
-         nutDangNhap.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span class="text-sm font-semibold ml-2">Đang kết nối...</span>`;
-    }
-
-    // 3. Khởi tạo Token Client nếu chưa có
-    if (!clientDangNhapG) {
-        clientDangNhapG = google.accounts.oauth2.initTokenClient({
-            client_id: SKT_GOOGLE_CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
-            callback: (phanHoiToken) => {
-                dangXuLyDangNhap = false; // Mở khóa luồng
-                if (phanHoiToken && phanHoiToken.access_token) {
-                    xuLyLayThongTin(phanHoiToken.access_token);
-                } else if (nutDangNhap) {
-                    nutDangNhap.innerHTML = htmlGoc; // Hoàn trả giao diện nếu người dùng hủy
-                }
-            },
-            error_callback: (loi) => {
-                dangXuLyDangNhap = false;
-                if (nutDangNhap) nutDangNhap.innerHTML = htmlGoc;
-                console.error("Lỗi gián đoạn từ hệ thống Google:", loi);
-            }
-        });
-    }
-    
-    // 4. Gọi cửa sổ đăng nhập
-    clientDangNhapG.requestAccessToken();
-}
-
-// =========================================================================
-// THAY THẾ TOÀN BỘ HÀM NÀY TRONG KHỐI 6: XÁC THỰC DANH TÍNH (FILE app.js)
-// =========================================================================
-async function xuLyLayThongTin(maTokenTruyCap) {
-    let nutDangNhap = document.getElementById('nutDangNhapG');
-    try {
-        const phanHoi = await fetchVoiCoCheThuLai('https://www.googleapis.com/oauth2/v3/userinfo', { 
-            headers: { Authorization: `Bearer ${maTokenTruyCap}` } 
-        });
-        const duLieuXacThuc = await phanHoi.json();
-        
-        const tuKhoaDinhDanh = 'em' + 'ail'; 
-        const dinhDanhHeThong = duLieuXacThuc[tuKhoaDinhDanh]; 
-        const tenHienThi = duLieuXacThuc.name; 
-        const anhDaiDien = duLieuXacThuc.picture;
-        window.emailGiaoVienToanCuc = dinhDanhHeThong;
-        
-        if (nutDangNhap) {
-            nutDangNhap.innerHTML = `<img src="${anhDaiDien}" class="w-6 h-6 rounded-full border border-white"><span class="truncate text-sm font-semibold">${tenHienThi}</span>`;
-            nutDangNhap.classList.replace('bg-slate-700', 'bg-green-700'); 
-            nutDangNhap.classList.replace('hover:bg-slate-600', 'hover:bg-green-600');
-            nutDangNhap.classList.replace('border-slate-500', 'border-green-500'); 
-            nutDangNhap.onclick = null; 
-        }
-
-        const dsQuanTri = thongSoHocVu.DANH_SACH_QUAN_TRI || [];
-        const dinhDanhGoc = 'tulieuhopthanh@gmail.com';
-
-        // 1. KIỂM TRA QUYỀN ADMIN TOÀN NĂNG
-        if (dsQuanTri.includes(dinhDanhHeThong) || dinhDanhHeThong === dinhDanhGoc) { 
-            quyenSuaChua = true; 
-        } else { 
-            quyenSuaChua = false; 
-        }
-        
-        // 2. KIỂM TRA VÀ GÁN ĐẶC QUYỀN CHI TIẾT TỪ MA TRẬN
-        quyenChiTiet = { menu: [], nut: [], lop: [] }; 
-        if (thongSoHocVu.MA_TRAN_PHAN_QUYEN && thongSoHocVu.MA_TRAN_PHAN_QUYEN[dinhDanhHeThong]) {
-            quyenChiTiet.menu = thongSoHocVu.MA_TRAN_PHAN_QUYEN[dinhDanhHeThong].menu || [];
-            quyenChiTiet.nut = thongSoHocVu.MA_TRAN_PHAN_QUYEN[dinhDanhHeThong].nut || [];
-            quyenChiTiet.lop = thongSoHocVu.MA_TRAN_PHAN_QUYEN[dinhDanhHeThong].lop || [];
-        }
-        
-        // 3. Tiến hành kiểm soát Menu và Nút bấm dựa trên quyền
-        kiemSoatGiaoDien(); 
-
-        // [LÕI KHẮC PHỤC]: Không gọi API máy chủ nếu dữ liệu TKB đã có trong RAM
-        // Trình duyệt sẽ tái tạo lại lưới tức thời bằng động cơ O(1)
-        if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) {
-            xuatMaTranBang(duLieuTkbHienTai); 
-        } else {
-            await taiDuLieuTKB(); 
-        }
-    } catch (loi) { 
-        console.error("Xác thực không thành công.", loi); 
-        if (nutDangNhap) {
-            nutDangNhap.innerHTML = `<span class="text-sm font-bold text-red-200">Lỗi kết nối</span>`;
-        }
-    }
-}
-
-// =========================================================================
-// HÀM BỔ SUNG: XUẤT DỮ LIỆU EXCEL TỪ GIAO DIỆN HIỂN THỊ THỰC TẾ
-// =========================================================================
-async function xuatExcel() {
-    let mangLop = thongSoHocVu.DANH_SACH_LOP || [];
-    if (mangLop.length === 0 && duLieuTkbHienTai.length > 0) {
-        mangLop = [...new Set(duLieuTkbHienTai.map(t => t.maLop))].sort();
-    }
-    if (mangLop.length === 0) { alert("Không có dữ liệu để xuất."); return; }
-
-    let btn = document.querySelector('button[onclick="xuatExcel()"]');
-    let textGoc = btn ? btn.innerHTML : 'Xuất Excel';
-    if (btn) btn.innerHTML = 'Đang xử lý...';
-
-    try {
-        if (typeof ExcelJS === 'undefined') {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-        }
-
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('TKB');
-        const wsData = workbook.addWorksheet('DANH_MUC'); 
-        
-        let dsMon = thongSoHocVu.DANH_SACH_MON_HOC || [''];
-        let dsGV = thongSoHocVu.DANH_SACH_GIAO_VIEN || [''];
-        if(dsMon.length === 0) dsMon = [''];
-        if(dsGV.length === 0) dsGV = [''];
-
-        dsMon.forEach((mon, idx) => { wsData.getCell(`A${idx + 1}`).value = mon; });
-        dsGV.forEach((gv, idx) => { wsData.getCell(`B${idx + 1}`).value = gv; });
-        wsData.state = 'hidden';
-
-        let header1 = ['Thứ / Ngày', 'Buổi', 'Tiết'];
-        mangLop.forEach(lop => {
-            header1.push(lop);
-            header1.push(''); 
-        });
-        worksheet.addRow(header1);
-
-        let header2 = ['', '', ''];
-        mangLop.forEach(() => {
-            header2.push('Môn');
-            header2.push('N dạy');
-        });
-        worksheet.addRow(header2);
-
-        worksheet.mergeCells('A1:A2');
-        worksheet.mergeCells('B1:B2');
-        worksheet.mergeCells('C1:C2');
-        let cotHienTai = 4;
-        mangLop.forEach(() => {
-            worksheet.mergeCells(1, cotHienTai, 1, cotHienTai + 1);
-            cotHienTai += 2;
-        });
-
-        let gvLoc = document.getElementById('locGiaoVien') ? document.getElementById('locGiaoVien').value.trim() : '';
-        const luoiDuLieu = {}; 
-        const boLocThu = {"Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5, "Thứ 6": 6, "Thứ 7": 7, "Chủ nhật": 8}; 
-        const boLocBuoi = {"Sáng": 1, "Chiều": 2};
-
-        duLieuTkbHienTai.forEach(t => {
-            const thu = t.thu.trim(); const buoi = t.buoi.trim(); const tiet = t.tiet;
-            if (!luoiDuLieu[thu]) luoiDuLieu[thu] = {}; 
-            if (!luoiDuLieu[thu][buoi]) luoiDuLieu[thu][buoi] = {}; 
-            if (!luoiDuLieu[thu][buoi][tiet]) luoiDuLieu[thu][buoi][tiet] = {};
-            luoiDuLieu[thu][buoi][tiet][t.maLop] = t;
-        });
-
-        const thuMacDinh = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-        thuMacDinh.forEach(thu => { if (!luoiDuLieu[thu]) luoiDuLieu[thu] = {}; });
-        
-        const gioiHanSang = Math.max(parseInt(thongSoHocVu.SO_TIET_SANG) || 4, 5); 
-        const gioiHanChieu = Math.max(parseInt(thongSoHocVu.SO_TIET_CHIEU) || 3, 4);
-
-        Object.keys(luoiDuLieu).forEach(thu => {
-            if (!luoiDuLieu[thu]["Sáng"]) luoiDuLieu[thu]["Sáng"] = {}; 
-            if (!luoiDuLieu[thu]["Chiều"]) luoiDuLieu[thu]["Chiều"] = {};
-            for (let i = 1; i <= gioiHanSang; i++) { if (!luoiDuLieu[thu]["Sáng"][i]) luoiDuLieu[thu]["Sáng"][i] = {}; }
-            for (let j = 1; j <= gioiHanChieu; j++) { if (!luoiDuLieu[thu]["Chiều"][j]) luoiDuLieu[thu]["Chiều"][j] = {}; }
-        });
-
-        const danhSachThu = Object.keys(luoiDuLieu).sort((a, b) => (boLocThu[a] || 99) - (boLocThu[b] || 99));
-        let currentRow = 3;
-
-        danhSachThu.forEach(thu => {
-            const danhSachBuoi = Object.keys(luoiDuLieu[thu]).sort((a, b) => (boLocBuoi[a] || 99) - (boLocBuoi[b] || 99));
-            let startRowThu = currentRow;
-            let thongTinNgay = tinhNgayDocLap(ngayDauTuanUI, thu);
-
-            danhSachBuoi.forEach(buoi => {
-                const danhSachTietCuaBuoi = Object.keys(luoiDuLieu[thu][buoi]).sort((a, b) => parseInt(a) - parseInt(b));
-                let startRowBuoi = currentRow;
-
-                danhSachTietCuaBuoi.forEach(tiet => {
-                    let rowData = [];
-                    rowData.push(`${thu}\n(${thongTinNgay.hienThi})`);
-                    rowData.push(buoi);
-                    rowData.push(tiet);
-
-                    mangLop.forEach(lop => {
-                        let selectMon = document.getElementById(`mon_${thu}_${buoi}_${tiet}_${lop}`);
-                        let selectGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
+                    <!-- BỘ LỌC VÀ NÚT EXCEL -->
+                    <div class="flex items-center gap-2 w-full md:w-auto flex-1 md:flex-none">
+                        <div class="relative w-full min-w-[200px]">
+                            <input type="text" id="locGiaoVien" list="danhSachGvList" 
+                               onchange="locTheoGiaoVien()" 
+                               onclick="if(this.showPicker) this.showPicker();" 
+                               onfocus="this.select()" 
+                               placeholder="Lọc TKB giáo viên..." 
+                               class="w-full pl-8 pr-3 py-1.5 border border-blue-400 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-blue-900 bg-white placeholder-blue-500 transition-all cursor-pointer">
+                            <img src="https://www.svgrepo.com/show/521826/search.svg" class="w-4 h-4 absolute left-2.5 top-2 opacity-40" alt="Lọc">
+                            <datalist id="danhSachGvList"></datalist>
+                        </div>
                         
-                        let valMon = selectMon ? selectMon.value.trim() : "";
-                        let valGv = selectGv ? selectGv.value.trim() : "";
-                        let isTarget = true;
-                        
-                        if (gvLoc !== "" && gvLoc !== "Toàn trường" && valGv !== gvLoc) {
-                            isTarget = false;
-                        }
+                        <!-- NÚT GỌI UI: SỐ TIẾT DẠY TRONG TUẦN -->
+                        <button onclick="hienThiThongKeSoTietGiaoVien()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded flex whitespace-nowrap flex-none group">
+                            <svg class="w-4 h-4 fill-current group-hover:scale-110 transition-transform" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                            Số tiết dạy trong tuần
+                        </button>
 
-                        if (!isTarget || valMon === "") {
-                            rowData.push(""); rowData.push("");
-                        } else {
-                            rowData.push(valMon); rowData.push(valGv);
-                        }
-                    });
+                        <button onclick="xuatExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded flex whitespace-nowrap flex-none">
+                            Xuất Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CÁC NÚT THAO TÁC QUẢN TRỊ (Bổ sung flex-wrap và thu nhỏ nút trên mobile) -->
+                <div class="flex flex-wrap justify-center sm:justify-end gap-2 w-full xl:w-auto font-sans flex-none">
+                     <button id="btnKhoiPhuc" onclick="luuDuLieu(event, 'khoiphuc')" style="display: none;" class="bg-red-700 hover:bg-red-800 text-white font-extrabold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded-lg whitespace-nowrap" title="Chuyển sang tuần tiếp theo">
+                        Tuần mới
+                    </button>
                     
-                    worksheet.addRow(rowData);
-
-                    let colIdx = 4;
-                    mangLop.forEach(() => {
-                        worksheet.getCell(currentRow, colIdx).dataValidation = {
-                            type: 'list', allowBlank: true, showErrorMessage: false,
-                            formulae: [`DANH_MUC!$A$1:$A$${dsMon.length}`]
-                        };
-                        worksheet.getCell(currentRow, colIdx + 1).dataValidation = {
-                            type: 'list', allowBlank: true, showErrorMessage: false,
-                            formulae: [`DANH_MUC!$B$1:$B$${dsGV.length}`]
-                        };
-                        colIdx += 2;
-                    });
-                    currentRow++;
-                });
-                
-                if (currentRow - 1 > startRowBuoi) { worksheet.mergeCells(startRowBuoi, 2, currentRow - 1, 2); }
-            });
-            if (currentRow - 1 > startRowThu) { worksheet.mergeCells(startRowThu, 1, currentRow - 1, 1); }
-        });
-
-        worksheet.eachRow({ includeEmpty: true }, function(row, rowNumber) {
-            row.eachCell({ includeEmpty: true }, function(cell) {
-                cell.border = {
-                    top: {style:'thin', color: {argb:'FF718096'}}, 
-                    left: {style:'thin', color: {argb:'FF718096'}}, 
-                    bottom: {style:'thin', color: {argb:'FF718096'}}, 
-                    right: {style:'thin', color: {argb:'FF718096'}}
-                };
-                cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                cell.font = { name: 'Times New Roman', size: 12 };
-                
-                if (rowNumber <= 2) {
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-                    cell.font = { name: 'Times New Roman', size: 12, bold: true, color: {argb:'FF0F172A'} };
-                }
-            });
-        });
-
-        worksheet.getColumn(1).width = 14;
-        worksheet.getColumn(2).width = 10;
-        worksheet.getColumn(3).width = 6;
-        for(let i = 4; i < 4 + mangLop.length * 2; i++) { worksheet.getColumn(i).width = 15; }
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        
-        let tenTuan = "ThoiKhoaBieu";
-        let spanTuan = document.getElementById('hienThiTuanHienTai');
-        if (spanTuan && spanTuan.innerText) {
-            tenTuan = `TKB_${spanTuan.innerText.trim().replace(/\s+/g, '_')}`;
-        }
-        
-        link.download = `${tenTuan}.xlsx`;
-        link.click();
-        URL.revokeObjectURL(link.href);
-        
-    } catch (loi) {
-        console.error("Lỗi xuất Excel:", loi);
-        alert("Có lỗi xảy ra trong quá trình tạo file Excel. Hãy kiểm tra kết nối mạng.");
-    } finally {
-        if (btn) btn.innerHTML = textGoc;
-    }
-}
-
-document.addEventListener('click', function(suKien) {
-    let menuDuocBam = suKien.target.closest('nav a');
-    
-    // Nếu phát hiện người dùng vừa bấm vào một Menu bất kỳ
-    if (menuDuocBam) {
-        let vungChinh = document.getElementById('vungHienThiChinh');
-        if (!vungChinh) return;
-
-        // Đợi 20 mili-giây để các hàm onclick riêng lẻ chạy xong
-        setTimeout(() => {
-            Array.from(vungChinh.children).forEach(khung => {
-                if (khung.tagName === 'DIV' && !khung.classList.contains('hidden')) {
+                    <button id="btnLuuTuan" onclick="luuDuLieu(event, 'tuan')" style="display: none;" class="bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded-lg whitespace-nowrap">
+                       Lưu TKB Tuần
+                    </button>
                     
-                    // [BỔ SUNG QUAN TRỌNG]: Nếu đang kẹt Khung Sổ đầu bài mà người dùng KHÔNG bấm Menu Sổ đầu bài -> ÉP ẨN NGAY
-                    if (khung.id === 'khungSoDauBai' && menuDuocBam.id !== 'menuSoDauBai') {
-                        khung.classList.add('hidden');
-                        khung.classList.remove('flex', 'block');
-                    }
-
-                    // XỬ LÝ 1: Nếu đang kẹt Khung SGK mà người dùng KHÔNG bấm Menu SGK -> Ép Ẩn
-                    if (khung.id === 'khungDanhMucSGK' && menuDuocBam.id !== 'menuDanhMucSGK') {
-                        khung.classList.add('hidden');
-                        khung.classList.remove('flex', 'block');
-                    }
+                    <button id="btnLuuCoDinh" onclick="luuDuLieu(event, 'codinh')" style="display: none;" class="bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded-lg whitespace-nowrap" title="Lưu làm TKB gốc cho toàn trường">
+                       Lưu TKB mặc định
+                    </button>
                     
-                    // XỬ LÝ 2: Nếu đang kẹt Khung PPCT mà người dùng KHÔNG bấm Menu PPCT -> Ép Ẩn
-                    let laMenuPPCT = menuDuocBam.id.includes('PhanPhoi') || menuDuocBam.id.includes('PPCT');
-                    let laKhungPPCT = khung.id.includes('PhanPhoi') || khung.id.includes('PPCT');
-                    
-                    if (laKhungPPCT && !laMenuPPCT) {
-                        khung.classList.add('hidden');
-                        khung.classList.remove('flex', 'block');
-                    }
-                }
-            });
-        }, 20);
-    }
-});
+                   <button id="btnXepTuDong" onclick="goiThuatToanXepLich()" style="display: none;" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded-lg whitespace-nowrap">
+                       Xếp Tự Động
+                    </button>
 
-// =========================================================================
-// [NÂNG CẤP UI]: Thuật toán quét và cảnh báo giáo viên trùng lịch (Real-time)
-// Đã nâng cấp: Lờ đi cảnh báo trùng lịch đối với Ưu tiên 1 và Ưu tiên 6
-// =========================================================================
-window.kiemTraTrungGiaoVienToanBang = function() {
-    const thuMacDinh = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-    const buoiMacDinh = ["Sáng", "Chiều"];
+                    <button id="btnDongBoChuan" onclick="dongBoChuanHoaDuLieuUI()" style="display: none;" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded-lg whitespace-nowrap" title="Tự động nắn chỉnh sai sót chính tả, khoảng trắng">
+                       Đồng bộ Chuẩn hóa
+                    </button>
+                                   
+                    <button id="btnKiemTra" onclick="kiemTraDinhMuc()" style="display: none;" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded-lg whitespace-nowrap w-full sm:w-auto">
+                       Định Mức tiết
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main class="flex-1 min-w-0 min-h-0 overflow-hidden px-2 pb-2 flex flex-col reactbits-fade-in delay-200">
+            <!-- [GIỮ NGUYÊN HOÀN TOÀN CẤU TRÚC VUNG HIENTHICHINH ĐỂ THANH CUỘN HOẠT ĐỘNG] -->
+            <div id="vungHienThiChinh" class="bg-white shadow-inner border border-gray-400 border-t-0 flex-1 min-w-0 min-h-0 overflow-auto relative">
+                
+                <!-- KHUNG 1: TKB HIỆN TẠI (Thêm min-w-[1200px] vào table để tự động cuộn ngang) -->
+               <div id="khungTKB" class="block min-w-full min-h-full">
+                    <table class="bang-excel relative min-w-[1200px]">
+                        <thead id="tieuDeBang" class="sticky top-0 z-10 bg-slate-50 shadow-sm">
+                            <tr><th class="text-center text-slate-500 py-3">Đang phân tích định dạng biểu mẫu...</th></tr>
+                        </thead>
+                        <tbody id="vungHienThiDuLieu">
+                            <tr><td class="px-6 py-10 text-center text-slate-500">
+                                <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+                                <p class="font-bold text-base">Đang kết nối máy chủ đồng bộ dữ liệu...</p>
+                            </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+<!-- KHUNG 2: PHÂN CÔNG CHUYÊN MÔN -->
+<div id="khungPhanCong" class="hidden p-4 w-full h-full flex-col font-sans">
+    <!-- Tiêu đề chung -->
+    <div class="flex justify-between items-center mb-3">
+        <h2 class="text-xl font-extrabold text-blue-900 uppercase">BẢNG PHÂN CÔNG CHUYÊN MÔN</h2>
+    </div>
     
-    // Khởi tạo bảng tra cứu uuTien từ khung chương trình (bộ nhớ tạm)
-    const khung = thongSoHocVu.KHUNG_CHUONG_TRINH || {};
-    let keyUuTien = "";
-    for (let k in khung) {
-        if (k.toLowerCase().replace(/\s+/g, '').indexOf("ưutiên") !== -1 || k.toLowerCase().replace(/\s+/g, '').indexOf("uutien") !== -1) {
-            keyUuTien = k; break;
-        }
-    }
-    const uuTienMon = keyUuTien ? khung[keyUuTien] : {};
-    
-    thuMacDinh.forEach(thu => {
-        buoiMacDinh.forEach(buoi => {
-            for(let tiet = 1; tiet <= 5; tiet++) {
-                let oTiet = document.getElementById(`oTiet_${thu}_${buoi}_${tiet}`);
-                if (!oTiet) continue; 
-                
-                let cacOGiaoVien = document.querySelectorAll(`input[id^="gv_${thu}_${buoi}_${tiet}_"]`);
-                let demGv = {};
-                
-                cacOGiaoVien.forEach(oGv => {
-                    let tenGv = oGv.value.trim();
-                    if (tenGv !== "" && tenGv !== "--") {
-                        // Tách id "gv_Thứ 2_Sáng_1_1A1" để lấy id "mon_Thứ 2_Sáng_1_1A1"
-                        let parts = oGv.id.split('_'); 
-                        let lop = parts.slice(4).join('_'); 
-                        let idMon = `mon_${thu}_${buoi}_${tiet}_${lop}`;
-                        let theMon = document.getElementById(idMon);
-                        
-                        let monHoc = theMon ? theMon.value.trim() : "";
-                        let ut = parseInt(uuTienMon[monHoc]) || 99;
-
-                        // [CHỐT CHẶN]: Nếu KHÔNG phải là Ưu tiên 1 và KHÔNG phải là Ưu tiên 6, mới được đưa vào danh sách kiểm đếm trùng lịch
-                        if (ut !== 1 && ut !== 6) {
-                            demGv[tenGv] = (demGv[tenGv] || 0) + 1;
-                        }
-                    }
-                });
-                
-                let mangTrung = [];
-                for (let gv in demGv) {
-                    if (demGv[gv] > 1) mangTrung.push(gv);
-                }
-                
-                let vungCanhBao = oTiet.querySelector('.vung-canh-bao-gv');
-                if (vungCanhBao) {
-                    if (mangTrung.length > 0) {
-                        vungCanhBao.innerHTML = `<div class="text-[10px] text-red-600 font-extrabold leading-tight max-w-[45px] mx-auto truncate cursor-help" title="Lỗi trùng lịch: ${mangTrung.join(', ')}">${mangTrung.join('<br>')}</div>`;
-                    } else {
-                        vungCanhBao.innerHTML = '';
-                    }
-                }
-            }
-        });
-    });
-};
-// =========================================================================
-// KHỐI TIỆN ÍCH: ĐỌC DỮ LIỆU TỪ TỆP EXCEL VÀ ÁNH XẠ LÊN GIAO DIỆN UI
-// =========================================================================
-async function nhapExcelTKB(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    try {
-        if (typeof XLSX === 'undefined') {
-            alert("Thư viện hệ thống chưa sẵn sàng. Vui lòng đợi trong giây lát hoặc tải lại trang.");
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const sheetName = workbook.SheetNames[0]; 
-                const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ""});
-
-                if (jsonData.length < 3) {
-                    alert("Tệp Excel tải lên không đúng chuẩn biểu mẫu của hệ thống.");
-                    return;
-                }
-
-                // Dòng 0 chứa tiêu đề các Lớp
-                const headerLop = jsonData[0];
-                const danhSachLopCol = [];
-                
-                // Thu thập cấu trúc lớp từ cột 3 trở đi
-                for (let i = 3; i < headerLop.length; i += 2) {
-                    if (headerLop[i] && headerLop[i].toString().trim() !== "") {
-                        danhSachLopCol.push({ tenLop: headerLop[i].toString().trim(), colIndex: i });
-                    }
-                }
-
-                let thuHienTai = "";
-                let buoiHienTai = "";
-
-                // Đọc dữ liệu từ dòng 2
-                for (let r = 2; r < jsonData.length; r++) {
-                    const row = jsonData[r];
-                    if (!row || row.length === 0) continue;
-
-                    // Lọc dữ liệu định vị dòng (Bảo toàn trạng thái do ô gộp trong Excel)
-                    if (row[0] && row[0].toString().trim() !== "") {
-                        thuHienTai = row[0].toString().split('\n')[0].trim();
-                    }
-                    if (row[1] && row[1].toString().trim() !== "") {
-                        buoiHienTai = row[1].toString().trim();
-                    }
-                    
-                    let tiet = row[2] ? row[2].toString().trim() : "";
-                    if (!thuHienTai || !buoiHienTai || !tiet) continue;
-
-                    // Ánh xạ dữ liệu lên các ô Input UI
-                    danhSachLopCol.forEach(lopInfo => {
-                        let monVal = row[lopInfo.colIndex] ? row[lopInfo.colIndex].toString().trim() : "";
-                        let gvVal = row[lopInfo.colIndex + 1] ? row[lopInfo.colIndex + 1].toString().trim() : "";
-
-                        let theMon = document.getElementById(`mon_${thuHienTai}_${buoiHienTai}_${tiet}_${lopInfo.tenLop}`);
-                        let theGv = document.getElementById(`gv_${thuHienTai}_${buoiHienTai}_${tiet}_${lopInfo.tenLop}`);
-
-                        if (theMon) theMon.value = monVal;
-                        if (theGv) theGv.value = gvVal;
-                    });
-                }
-                
-                // Kích hoạt bộ engine báo lỗi trùng lịch sau khi dữ liệu đã lên lưới
-                if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
-                    kiemTraTrungGiaoVienToanBang();
-                }
-                
-                alert("Đã kết xuất dữ liệu từ Excel lên giao diện thành công! Vui lòng kiểm tra đối chiếu và bấm [Lưu TKB Tuần] để lưu hệ thống.");
-            } catch (errParse) {
-                console.error("Lỗi phân tích cú pháp tệp Excel: ", errParse);
-                alert("Sự cố xảy ra khi trích xuất dữ liệu biểu mẫu.");
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    } catch (loi) {
-        console.error("Lỗi cục bộ: ", loi);
-        alert("Sự cố tải tệp Excel.");
-    } finally {
-        // Reset bộ đệm input để cho phép tải lại cùng một tệp
-        event.target.value = "";
-    }
-}
-
-// =========================================================================
-// [NÂNG CẤP UI]: KHỐI THỐNG KÊ SỐ TIẾT DẠY THỰC TẾ TRÊN LƯỚI
-// Bao gồm: Động cơ lọc Real-time theo ID giáo viên
-// =========================================================================
-window.hienThiThongKeSoTietGiaoVien = function() {
-    let thongKeThucTe = {};
-    const cacOGiaoVien = document.querySelectorAll('input[id^="gv_"]');
-    
-    cacOGiaoVien.forEach(oGv => {
-        let tenGv = oGv.value.trim();
-        if (tenGv !== "" && tenGv !== "--") {
-            thongKeThucTe[tenGv] = (thongKeThucTe[tenGv] || 0) + 1;
-        }
-    });
-
-    const danhSachGV = thongSoHocVu.DANH_SACH_GIAO_VIEN || [];
-    const dinhMucGV = thongSoHocVu.DINH_MUC_GIAO_VIEN || {}; 
-
-    let htmlKetQua = '';
-    let tongDinhMuc = 0;
-    let tongThucTe = 0;
-
-    danhSachGV.forEach(gv => {
-        let thucTe = thongKeThucTe[gv] || 0;
-        let dinhMuc = parseInt(dinhMucGV[gv]) || 0; 
-        
-        tongThucTe += thucTe;
-        tongDinhMuc += dinhMuc;
-
-        let trangThaiCSS = "text-slate-800 font-semibold";
-        let badge = "";
-
-        if (dinhMuc > 0) {
-            if (thucTe > dinhMuc) {
-                trangThaiCSS = "text-orange-600 font-extrabold bg-orange-50";
-                badge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-orange-200 text-orange-800">Vượt mức</span>`;
-            } else if (thucTe < dinhMuc) {
-                trangThaiCSS = "text-red-600 font-bold bg-red-50";
-                badge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-red-200 text-red-800">Chưa đủ</span>`;
-            } else {
-                trangThaiCSS = "text-green-700 font-extrabold bg-green-50";
-                badge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-green-200 text-green-800">Khớp chuẩn</span>`;
-            }
-        } else {
-            trangThaiCSS = thucTe > 0 ? "text-blue-700 font-bold bg-blue-50" : "text-slate-700";
-            dinhMuc = "--"; 
-        }
-
-        // Đã bổ sung class "dong-gv" và "ten-gv" để động cơ lọc dễ dàng bóc tách dữ liệu
-        htmlKetQua += `
-        <tr class="dong-gv hover:bg-slate-100 transition-colors border-b border-slate-300">
-            <td class="ten-gv border-r border-slate-300 p-2 text-left font-bold text-slate-800 pl-4">${gv}</td>
-            <td class="border-r border-slate-300 p-2 font-bold text-slate-600 text-lg">${dinhMuc}</td>
-            <td class="p-2 text-lg ${trangThaiCSS}">${thucTe} ${badge}</td>
-        </tr>`;
-    });
-
-    Object.keys(thongKeThucTe).forEach(gvNgoai => {
-        if (!danhSachGV.includes(gvNgoai)) {
-            htmlKetQua += `
-            <tr class="dong-gv bg-red-50 hover:bg-red-100 border-b border-slate-300">
-                <td class="ten-gv border-r border-slate-300 p-2 text-left font-bold text-red-700 pl-4">${gvNgoai} <span class="text-[10px] bg-red-200 text-red-800 px-1 rounded ml-1">Ngoài danh sách</span></td>
-                <td class="border-r border-slate-300 p-2 font-bold text-slate-500">--</td>
-                <td class="p-2 text-lg font-extrabold text-red-600">${thongKeThucTe[gvNgoai]}</td>
-            </tr>`;
-        }
-    });
-
-    // Dòng tổng cộng được bọc lớp "dong-tong" để miễn nhiễm với bộ lọc tìm kiếm
-    htmlKetQua += `
-    <tr class="dong-tong bg-slate-200 text-slate-900 font-black border-t-2 border-slate-500 uppercase">
-        <td class="border-r border-slate-400 p-3 text-right">TỔNG TOÀN TRƯỜNG:</td>
-        <td class="border-r border-slate-400 p-3 text-lg text-slate-700">${tongDinhMuc > 0 ? tongDinhMuc : '--'}</td>
-        <td class="p-3 text-xl text-indigo-700">${tongThucTe}</td>
-    </tr>`;
-
-    document.getElementById('noiDungThongKeGV').innerHTML = htmlKetQua;
-    
-    // Tự động xóa nội dung ô tìm kiếm khi mở lại hộp thoại (reset UI)
-    let boLoc = document.getElementById('locThongKeGV');
-    if (boLoc) boLoc.value = '';
-
-    const modal = document.getElementById('modalThongKeGV');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-};
-
-// [HÀM ĐỘNG CƠ]: Xử lý sự kiện gõ phím trực tiếp để lọc lưới
-window.locBangThongKeGV = function() {
-    const inputLoc = document.getElementById('locThongKeGV');
-    if (!inputLoc) return;
-    
-    const tuKhoa = inputLoc.value.toLowerCase().trim();
-    const cacDongGV = document.querySelectorAll('#noiDungThongKeGV .dong-gv');
-    
-    cacDongGV.forEach(dong => {
-        const theTen = dong.querySelector('.ten-gv');
-        if (theTen) {
-            const tenGiaoVien = theTen.textContent.toLowerCase();
+    <div class="flex gap-4 h-full overflow-hidden">
+        <!-- ================= KHUNG TRÁI: BẢNG PHÂN CÔNG CHÍNH ================= -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <!-- Khối nút bấm trên đầu khung trái -->
+            <div class="flex items-center gap-2 mb-2">
+                <input type="file" id="tepExcelPhanCong" accept=".xlsx, .xls" class="hidden" onchange="xuLyTaiLenExcelPhanCong(event)">
+                <button onclick="document.getElementById('tepExcelPhanCong').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Nhập Excel
+                </button>
+                <button onclick="xuatExcelPhanCong()" class="bg-green-700 hover:bg-green-800 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Xuất Excel
+                </button>
+                <button onclick="xuLyLuuTru()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                    Lưu Phân Công
+                </button>
+            </div>
             
-            // Xử lý logic: Nếu ô tìm kiếm rỗng, hoặc chọn "toàn trường", thì hiển thị tất cả
-            if (tuKhoa === '' || tuKhoa === 'toàn trường' || tenGiaoVien.includes(tuKhoa)) {
-                dong.style.display = ''; // Khôi phục hiển thị
-            } else {
-                dong.style.display = 'none'; // Ẩn dòng không khớp
-            }
-        }
-    });
-};
+            <!-- Lưới hiển thị khung trái -->
+            <div class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative">
+                <table id="bangChinh" class="bang-excel w-full text-center min-w-[800px]">
+                    <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm" id="tieuDeMonHoc">
+                        <tr><th class="py-2">Đang tải cấu hình môn học...</th></tr>
+                    </thead>
+                    <tbody id="duLieuLopHoc">
+                        <tr><td class="text-center py-10 text-slate-500 font-bold">Đang lấy dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-window.dongModalThongKeGV = function() {
-    const modal = document.getElementById('modalThongKeGV');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-};
-// =========================================================================
-// [NÂNG CẤP TỐC ĐỘ CAO]: ĐỘNG CƠ ĐỒNG BỘ VÀ NẮN CHỈNH DỮ LIỆU TỰ ĐỘNG (AUTO-CORRECT)
-// BẢN V3: Bổ sung Trích xuất Tọa độ báo lỗi trực tiếp lên màn hình
-// =========================================================================
-window.dongBoChuanHoaDuLieuUI = function() {
-    const dsMonGoc = thongSoHocVu.DANH_SACH_MON_HOC || [];
-    const dsGvGoc = thongSoHocVu.DANH_SACH_GIAO_VIEN || [];
+        <!-- ================= KHUNG PHẢI: BẢNG THỐNG KÊ CHI TIẾT ================= -->
+        <div class="w-[500px] flex-none flex flex-col overflow-hidden">
+            <!-- Khối nút bấm trên đầu khung phải -->
+            <div class="flex items-center justify-end gap-2 mb-2">
+                <button onclick="xuatExcelThongKePhanCong()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Xuất Bảng Phân Công Chi Tiết
+                </button>
+            </div>
+            
+            <!-- Lưới hiển thị khung phải -->
+            <div class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative scroll-smooth">
+                <table class="bang-excel w-full text-center">
+                    <thead class="sticky top-0 z-20 bg-purple-100 text-purple-900 shadow-sm">
+                        <tr>
+                            <th class="p-2 border border-gray-400">Giáo viên</th>
+                            <th class="p-2 border border-gray-400">Định mức</th>
+                            <th class="p-2 border border-gray-400">Thực tế</th>
+                        </tr>
+                    </thead>
+                    <tbody id="duLieuThongKe"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
-    if (dsMonGoc.length === 0 && dsGvGoc.length === 0) {
-        alert("⚠️ Lỗi hệ thống: Chưa nạp được Danh mục Môn học và Giáo viên. Vui lòng tải lại trang (F5)!");
-        return;
-    }
+                <!-- KHUNG 3: BÁO CÁO THỐNG KÊ -->
+                <div id="khungThongKe" class="hidden p-4 w-full h-full flex-col font-sans">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-extrabold text-blue-900 uppercase">Tra cứu Thống kê Giảng dạy</h2>
+                    </div>
+                    <div id="noiDungThongKe" class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative">
+                        <p class="text-center py-10 text-slate-500 font-bold">Khung giao diện thống kê đã sẵn sàng...</p>
+                    </div>
+                </div>
 
-    const chuanHoaChuoi = (chuoi) => {
-        if (!chuoi) return '';
-        return String(chuoi).normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
-    };
+                <!-- KHUNG 4: DANH MỤC GIÁO VIÊN -->
+                <div id="khungDanhMucGV" class="hidden p-4 w-full h-full flex-col font-sans">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-extrabold text-blue-900 uppercase">QUẢN LÝ DANH MỤC GIÁO VIÊN</h2>
+                        <div class="flex items-center gap-2">
+                            <input type="file" id="tepExcelDanhMucGV" accept=".xlsx, .xls" class="hidden" onchange="nhapExcelDanhMucGV(event)">
+                            <button onclick="document.getElementById('tepExcelDanhMucGV').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                Nhập Excel
+                            </button>
+                            <button onclick="xuatExcelDanhMucGV()" class="bg-green-700 hover:bg-green-800 text-white font-bold px-3 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Xuất Excel
+                            </button>
+                            <button onclick="themDongGiaoVienMoi()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                                + Thêm Giáo Viên
+                            </button>
+                            <button onclick="luuDuLieuDanhMucGVSangMayChu()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-4 py-1.5 text-xs shadow transition duration-200 rounded flex items-center gap-1.5 ml-2">
+                                Lưu Hệ Thống
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative">
+                        <table class="bang-excel w-full text-center min-w-[800px]">
+                            <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm">
+                                <tr>
+                                    <th class="py-2 w-16">STT</th>
+                                    <th class="py-2 w-32">Mã GV</th>
+                                    <th class="py-2">Họ và Tên</th>
+                                    <th class="py-2 w-72">Hộp Thư Điện Tử</th> 
+                                    <th class="py-2 w-40">Tổ Chuyên Môn</th>
+                                    <th class="py-2 w-32">Định Mức Tuần</th>
+                                    <th class="py-2 w-40">Trạng Thái</th>
+                                    <th class="py-2 w-32">Điều Chỉnh</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vungDuLieuDanhMucGV">
+                                <tr><td colspan="7" class="text-center py-10 text-slate-500 font-bold">Vui lòng chờ, đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-    const tuDienMon = {};
-    dsMonGoc.forEach(mon => { tuDienMon[chuanHoaChuoi(mon)] = String(mon).trim(); });
+               <!-- KHUNG 8: SỔ ĐẦU BÀI ĐIỆN TỬ -->
+                <div id="khungSoDauBai" class="hidden p-4 w-full h-full flex-col font-sans">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-xl font-extrabold text-blue-900 uppercase">SỔ ĐẦU BÀI ĐIỆN TỬ</h2>
+                    </div>
+                    
+                    <div class="bg-white border border-gray-400 p-3 mb-3 flex flex-wrap justify-between items-center gap-3 shadow-sm rounded">
+                        
+                        <!-- Nhóm 1: Cụm bộ lọc (Tuần, Lớp, Ngày) -->
+                        <div class="flex flex-wrap items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm text-slate-700">Tuần học:</span>
+                                <select id="chonTuanSo" onchange="ketXuatSoDauBaiLenLuoi()" class="border border-blue-400 rounded px-3 py-1.5 text-sm font-bold text-blue-900 outline-none cursor-pointer bg-blue-50">
+                                    <option value="">Đang tải...</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm text-slate-700">Lớp:</span>
+                                <select id="chonLopSo" onchange="ketXuatSoDauBaiLenLuoi()" class="border border-blue-400 rounded px-3 py-1.5 text-sm font-bold text-blue-900 outline-none cursor-pointer bg-blue-50">
+                                    <option value="">Đang tải...</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2" title="Cài đặt mốc ngày cho Thứ 2 của tuần này">
+                                <span class="font-bold text-sm text-slate-700">Ngày đầu tuần:</span>
+                                <input type="date" id="chonNgaySDB" onchange="ketXuatSoDauBaiLenLuoi()" class="border border-blue-400 rounded px-2 py-1.5 text-sm font-bold text-blue-900 outline-none cursor-pointer bg-blue-50">
+                            </div>
+                        </div>
+                        
+                        <!-- Nhóm 2: Cụm nút thao tác -->
+                        <div class="flex items-center gap-2">
+                            <button id="btnDongBoTenBai" onclick="dongBoTenBaiHoc()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2 text-xs shadow transition duration-200 rounded flex items-center gap-1.5" title="Kéo Tên bài học từ PPCT dựa trên Tiết trên màn hình">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                Đồng bộ Tên Bài
+                            </button>
+                            <button id="btnLuuSoDauBai" onclick="luuSoDauBaiSangMayChu()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 text-xs shadow transition duration-200 rounded flex items-center gap-1.5" title="Chốt dữ liệu Sổ đầu bài này lưu vĩnh viễn vào CSDL">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                               Lưu sổ đầu bài
+                            </button>
+                            <button onclick="xuatExcelSoDauBai()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Xuất Excel
+                            </button>
+                            <button onclick="xuatWordSoDauBai()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 text-xs shadow transition duration-200 rounded flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                Xuất Word
+                            </button>
+                        </div>
 
-    const tuDienGV = {};
-    dsGvGoc.forEach(gv => { tuDienGV[chuanHoaChuoi(gv)] = String(gv).trim(); });
+                    </div>
 
-    let demSuaLoi = 0;
-    let danhSachLoiChiTiet = []; // Mảng lưu tọa độ các ô bị sai
+                    <div class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative">
+                        <div id="vungHienThiSoDauBai" class="p-4">
+                            <p class="text-center py-10 text-slate-500 font-bold">Vui lòng chọn Tuần và Lớp để xem Sổ đầu bài.</p>
+                        </div>
+                    </div>
+                </div>
 
-    const cacOMon = document.querySelectorAll('input[id^="mon_"]');
-    const cacOGv = document.querySelectorAll('input[id^="gv_"]');
+                <!-- KHUNG 5: DANH MỤC LỚP -->
+                <div id="khungDanhMucLop" class="hidden p-4 w-full h-full flex-col font-sans">
+                    <div class="w-full md:w-2/3 lg:w-1/2 flex flex-col h-full">
+                        <div class="flex justify-between items-center mb-4 flex-none">
+                            <h2 class="text-xl font-extrabold text-blue-900 uppercase">QUẢN LÝ DANH MỤC LỚP</h2>
+                            <div class="flex items-center gap-2">
+                                <button onclick="themDongLopMoi()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-1.5">
+                                    + Thêm Lớp
+                                </button>
+                                <button onclick="luuDuLieuDanhMucLopSangMayChu()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-5 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-1.5">
+                                    Lưu Hệ Thống
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-auto border border-gray-400 shadow-sm bg-white relative flex-1">
+                            <table class="bang-excel w-full text-center">
+                                <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm">
+                                    <tr>
+                                        <th class="py-2 w-16">STT</th>
+                                        <th class="py-2 w-1/3">Mã Lớp</th>
+                                        <th class="py-2 w-1/3">Tên Lớp</th>
+                                        <th class="py-2 w-32">Điều Chỉnh</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vungDuLieuDanhMucLop">
+                                    <tr><td colspan="4" class="text-center py-10 text-slate-500 font-bold">Vui lòng chờ...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- KHUNG 6: CÀI ĐẶT HỆ THỐNG -->
+                <div id="khungCaiDat" class="hidden p-4 w-full h-full flex-col font-sans">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-extrabold text-blue-900 uppercase">CÀI ĐẶT HỆ THỐNG</h2>
+                        <button onclick="luuCaiDatSangMayChu()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-5 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-2">
+                            Lưu Thay Đổi
+                        </button>
+                    </div>
+                    <div class="flex gap-4 h-full overflow-hidden flex-col lg:flex-row">
+                        <div class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative flex flex-col">
+                            <div class="p-3 bg-slate-200 font-extrabold text-blue-900 flex justify-between items-center border-b border-gray-400 sticky top-0 z-30">
+                                <span>THÔNG SỐ HOẠT ĐỘNG</span>
+                                
+                            </div>
+                            <table class="bang-excel w-full text-center min-w-[600px]">
+                                <thead class="sticky top-[45px] z-20 bg-slate-100 text-slate-900 shadow-sm">
+                                    <tr>
+                                        <th class="py-2 w-1/4">Mã Tham Số</th>
+                                        <th class="py-2 w-1/4">Giá Trị</th>
+                                        <th class="py-2 w-2/4">Ghi Chú</th>
+                                       
+                                    </tr>
+                                </thead>
+                                <tbody id="vungThamSo"></tbody>
+                            </table>
+                        </div>
+                        <div class="w-full lg:w-[35%] overflow-auto border border-gray-400 shadow-sm bg-white relative flex flex-col">
+                            <div class="p-3 bg-purple-200 font-extrabold text-purple-900 flex justify-between items-center border-b border-gray-400 sticky top-0 z-30">
+                                <span>QUYỀN QUẢN TRỊ (ADMIN)</span>
+                                <button onclick="themDongQuanTri()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-1.5 text-xs rounded shadow">+ Thêm Admin</button>
+                            </div>
+                            <table class="bang-excel w-full text-center">
+                                <thead class="sticky top-[45px] z-20 bg-purple-50 text-purple-900 shadow-sm">
+                                    <tr>
+                                        <th class="py-2">Tài khoản Quản trị</th>
+                                        <th class="py-2 w-16">Xóa</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vungQuanTri"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
-    // 1. Quét cột Môn học
-    cacOMon.forEach(oMon => {
-        let giaTriUI = oMon.value;
-        if (giaTriUI !== "" && giaTriUI !== "--") {
-            let keyTruyVan = chuanHoaChuoi(giaTriUI);
-            let giaTriChuan = tuDienMon[keyTruyVan];
+                <!-- KHUNG 7: DANH MỤC SÁCH GIÁO KHOA -->
+                <div id="khungDanhMucSGK" class="hidden p-4 w-full h-full flex-col font-sans">
+                    <div class="flex justify-between items-center mb-4 flex-none">
+                        <h2 class="text-xl font-extrabold text-blue-900 uppercase">QUẢN LÝ DANH MỤC SÁCH GIÁO KHOA</h2>
+                        <div class="flex items-center gap-2">
+                            <button onclick="taiLaiDuLieuDanhMucSGK()" id="btnTaiLaiDanhMuc" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-4 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                Tải lại
+                            </button>
+                            <button onclick="themDongMoiDanhMucSGK()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-1.5">
+                                + Thêm dòng
+                            </button>
+                            <button onclick="luuDongBoDanhMucSGK()" id="btnLuuDanhMuc" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-5 py-2 text-sm shadow transition duration-200 rounded flex items-center gap-1.5">
+                                Lưu Hệ Thống
+                            </button>
+                        </div>
+                    </div>
 
-            if (giaTriChuan) {
-                if (giaTriUI !== giaTriChuan) {
-                    oMon.value = giaTriChuan;
-                    oMon.classList.add('bg-teal-100', 'text-teal-900', 'transition-colors');
-                    demSuaLoi++;
-                } else {
-                    oMon.classList.remove('bg-teal-100', 'text-teal-900', 'bg-red-200', 'text-red-900');
-                }
-            } else {
-                oMon.classList.add('bg-red-200', 'text-red-900', 'font-extrabold', 'transition-colors');
-                // Bóc tách ID để lấy tọa độ: mon_Thứ 2_Sáng_1_1A
-                let parts = oMon.id.split('_'); 
-                let viTri = parts.length === 5 ? `Lớp ${parts[4]} (${parts[1]}, ${parts[2]}, Tiết ${parts[3]})` : 'Không rõ vị trí';
-                danhSachLoiChiTiet.push(`- Môn "${giaTriUI}" tại ${viTri}`);
-            }
-        }
-    });
+                    <div class="overflow-auto border border-gray-400 shadow-sm bg-white relative flex-1">
+                        <!-- Thêm min-w-[800px] để chống bóp cột -->
+                        <table class="bang-excel w-full text-center min-w-[800px]">
+                            <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm">
+                                <tr>
+                                    <th class="py-2 w-24">Khối lớp</th>
+                                    <th class="py-2 w-48">Môn học</th>
+                                    <th class="py-2">Link SGK Kỳ 1 (Cột C)</th>
+                                    <th class="py-2">Link SGK Kỳ 2 (Cột D)</th>
+                                    <th class="py-2 w-16 text-red-600">Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="danhSachDongDuLieuSGK">
+                                <tr><td colspan="5" class="text-center py-10 text-slate-500 font-bold">Vui lòng chờ, đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-    // 2. Quét cột Giáo viên
-    cacOGv.forEach(oGv => {
-        let giaTriUI = oGv.value;
-        if (giaTriUI !== "" && giaTriUI !== "--") {
-            let keyTruyVan = chuanHoaChuoi(giaTriUI);
-            let giaTriChuan = tuDienGV[keyTruyVan];
+            </div> <!-- KẾT THÚC #vungHienThiChinh -->
+        </main>
 
-            if (giaTriChuan) {
-                if (giaTriUI !== giaTriChuan) {
-                    oGv.value = giaTriChuan;
-                    oGv.classList.add('bg-teal-100', 'text-teal-900', 'transition-colors');
-                    demSuaLoi++;
-                } else {
-                    oGv.classList.remove('bg-teal-100', 'text-teal-900', 'bg-red-200', 'text-red-900');
-                }
-            } else {
-                oGv.classList.add('bg-red-200', 'text-red-900', 'font-extrabold', 'transition-colors');
-                let parts = oGv.id.split('_'); 
-                let viTri = parts.length === 5 ? `Lớp ${parts[4]} (${parts[1]}, ${parts[2]}, Tiết ${parts[3]})` : 'Không rõ vị trí';
-                danhSachLoiChiTiet.push(`- GV "${giaTriUI}" tại ${viTri}`);
-            }
-        }
-    });
+        <footer class="flex-none bg-white border-t border-gray-300 py-1 px-4 flex justify-between items-center text-xs text-slate-500 reactbits-fade-in delay-300">
+            <span class="font-bold tracking-wide">HỆ THỐNG QUẢN LÝ NHÀ TRƯỜNG</span>
+            <span>Phiên bản 2.5</span>
+        </footer>
+    </div>
+
+    <!-- MODAL KIỂM TRA ĐỊNH MỨC -->
+    <div id="modalKiemTra" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 font-sans reactbits-fade-in">
+        <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-3/4 lg:w-1/2 max-h-[80vh] flex flex-col overflow-hidden border border-gray-300">
+            <div class="bg-purple-600 text-white p-4 flex justify-between items-center border-b">
+                <h3 class="text-lg font-bold flex items-center gap-2">🔍 Báo cáo Đối chiếu Định mức Khung Chương trình</h3>
+                <button onclick="dongModal()" class="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="noiDungKiemTra" class="p-6 overflow-y-auto"></div>
+            <div class="bg-gray-100 p-4 border-t flex justify-end">
+                <button onclick="dongModal()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold px-6 py-2 rounded shadow transition">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+  <!-- MODAL THỐNG KÊ SỐ TIẾT DẠY CỦA GIÁO VIÊN -->
+    <div id="modalThongKeGV" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] font-sans reactbits-fade-in">
+        <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-3/4 lg:w-1/2 max-h-[85vh] flex flex-col overflow-hidden border border-slate-300">
+            <div class="bg-indigo-700 text-white p-4 flex justify-between items-center border-b shadow-md">
+                <h3 class="text-lg font-bold flex items-center gap-2 uppercase tracking-wide">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Tra cứu số lượng tiết dạy thực tế
+                </h3>
+                <button onclick="dongModalThongKeGV()" class="text-white hover:text-red-200 text-3xl leading-none transition-colors">&times;</button>
+            </div>
+            
+            <!-- [NÂNG CẤP UI]: THANH TÌM KIẾM TỨC THÌ (REAL-TIME FILTER) -->
+            <div class="bg-slate-100 p-3 border-b border-slate-300 flex items-center">
+                <div class="relative flex-1">
+                    <input type="text" id="locThongKeGV" list="danhSachGvList" 
+                           oninput="locBangThongKeGV()" onchange="locBangThongKeGV()" 
+                           onclick="if(this.showPicker) this.showPicker();" onfocus="this.select()" 
+                           placeholder="Bấm để chọn hoặc gõ tên giáo viên để tìm nhanh..." 
+                           autocomplete="off" 
+                           class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800 shadow-inner transition-all cursor-pointer">
+                    <img src="https://www.svgrepo.com/show/521826/search.svg" class="w-5 h-5 absolute left-3 top-2.5 opacity-50" alt="Lọc">
+                </div>
+            </div>
+
+            <div class="p-0 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
+                <table class="w-full text-sm text-center border-collapse" style="font-family:'Times New Roman',Times,serif;">
+                    <thead class="bg-slate-200 text-slate-800 font-bold sticky top-0 shadow-sm z-10">
+                        <tr>
+                            <th class="border-b border-r border-slate-400 p-3 min-w-[150px]">ID / Họ tên Giáo viên</th>
+                            <th class="border-b border-r border-slate-400 p-3 min-w-[100px]">Định mức tiết</th>
+                            <th class="border-b border-slate-400 p-3 min-w-[120px]">Số tiết thực tế (Trên UI)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="noiDungThongKeGV">
+                        <!-- Động cơ JS sẽ kết xuất dữ liệu tại đây -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-gray-100 p-3 border-t flex justify-end">
+                <button onclick="dongModalThongKeGV()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-6 py-2 rounded-lg shadow-md transition-colors">Đóng</button>
+            </div>
+        </div>
+    </div>
     
-    if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
-        kiemTraTrungGiaoVienToanBang();
-    }
-
-    // 3. Tổng hợp thông báo thông minh
-    if (demSuaLoi > 0 || danhSachLoiChiTiet.length > 0) {
-        let thongBao = `Báo cáo Đồng bộ:\n- Đã nắn chỉnh: ${demSuaLoi} ô (Xanh).\n- Cảnh báo rác: ${danhSachLoiChiTiet.length} ô (Đỏ).\n`;
-        
-        if (danhSachLoiChiTiet.length > 0) {
-            // Giới hạn hiển thị tối đa 15 lỗi để popup không bị tràn màn hình
-            thongBao += `\n📍 CHI TIẾT VỊ TRÍ LỖI:\n` + danhSachLoiChiTiet.slice(0, 15).join('\n');
-            if (danhSachLoiChiTiet.length > 15) thongBao += `\n... và ${danhSachLoiChiTiet.length - 15} lỗi khác.`;
+    <script>
+        function chuyenHuongHeThong() {
+            var urlDich = 'https://gdlaocailci.github.io/taphoi/';
+            window.open(urlDich, '_top');
         }
-        alert(thongBao);
-    } else {
-        alert("Tuyệt vời! Toàn bộ dữ liệu trên lưới Thời khóa biểu đã khớp chuẩn 100% với danh mục máy chủ.");
-    }
-};
+        function moDongMenuMobile() {
+            const sidebar = document.getElementById('sidebarMenu');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            sidebar.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('nav a').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth < 768) moDongMenuMobile();
+                });
+            });
+        });
+    </script>
+    
+    <!-- CÁC FILE SCRIPT -->
+    <script src="KetNoi.js"></script>
+    <script src="app.js"></script>
+    <script src="ThongKe.js"></script>
+    <script src="PhanCong.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="KhungChuongChinh.js"></script>
+    <script src="DanhMucGV.js"></script>
+    <script src="CaiDat.js"></script>
+    <script src="DanhMucLop.js"></script>
+    <script src="PhanPhoiChuongTrinh.js"></script>
+    <script src="XemTruocSGK.js"></script>
+    <script src="QuanLyDanhMucSGK.js"></script>
+    <script src="SoDauBai.js"></script>
+    <script src="PhanQuyenAdmin.js"></script>
+</body>
+</html>
