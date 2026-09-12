@@ -12,12 +12,12 @@ const DANH_SACH_MENU_HE_THONG = [
 
 const DANH_SACH_NUT_CHUC_NANG = [
     {id: 'btnNhapExcelTKB', ten: 'Nhập Excel'},
-    
     {id: 'btnKhoiPhuc', ten: 'Tuần mới'},
     {id: 'btnLuuTuan', ten: 'Lưu TKB Tuần'},
     {id: 'btnLuuCoDinh', ten: 'TKB Cố Định'},
     {id: 'btnXepTuDong', ten: 'Xếp Tự Động'},
-    {id: 'btnKiemTra', ten: 'Định Mức tiết'}
+    {id: 'btnKiemTra', ten: 'Định Mức tiết'},
+    {id: 'btnChuyenTuan', ten: 'Mũi tên Chuyển tuần'}
 ];
 
 // Khởi tạo và Bơm Giao diện vào index.html lúc tải trang
