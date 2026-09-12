@@ -419,15 +419,23 @@ function locTheoGiaoVien() {
     });
 }
 
-function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '') {
+// =========================================================================
+// HÀM ĐÃ ĐƯỢC NÂNG CẤP: Bổ sung tham số coQuyenSua để nhận diện phân quyền lớp
+// Thay thế toàn bộ hàm này trong file app.js
+// =========================================================================
+function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '', coQuyenSua = quyenSuaChua) {
     let idThocTinh = idPhanTu ? `id="${idPhanTu}"` : '';
-    let thuocTinhKhoa = quyenSuaChua ? '' : 'disabled'; 
-    let cssKhoa = quyenSuaChua ? 'cursor-pointer' : 'cursor-not-allowed opacity-80';
+    
+    // [LÕI NÂNG CẤP]: Đánh giá động quyền chỉnh sửa dựa trên tham số truyền vào từ lưới (coQuyenSua) 
+    // thay vì khóa cứng bằng tài khoản Admin (quyenSuaChua)
+    let thuocTinhKhoa = coQuyenSua ? '' : 'disabled'; 
+    let cssKhoa = coQuyenSua ? 'cursor-pointer' : 'cursor-not-allowed opacity-80';
+    
     let cssAn = !isTarget ? 'opacity-0 pointer-events-none select-none' : ''; 
     
     let idDatalist = loaiDanhSach === 'mon' ? 'datalistChung_Mon' : 'datalistChung_GV';
     
-    // [LÕI NÂNG CẤP]: Tích hợp hàm Xác thực Giá trị hợp lệ vào sự kiện onchange và onblur
+    // Tích hợp hàm Xác thực Giá trị hợp lệ vào sự kiện onchange và onblur
     let kieuKiemTraGV = (idPhanTu && idPhanTu.startsWith('gv_')) ? `if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang();` : '';
     let suKienMoi = `oninput="${kieuKiemTraGV}" onchange="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV}" onblur="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV}"`;
 
