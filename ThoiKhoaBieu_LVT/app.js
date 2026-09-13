@@ -1089,7 +1089,7 @@ function khoiDongDangNhap() {
 }
 
 // =========================================================================
-// THAY THẾ TOÀN BỘ HÀM NÀY TRONG KHỐI 6: XÁC THỰC DANH TÍNH (FILE app.js)
+// THAY THẾ TOÀN BỘ HÀM NÀY TRONG KHỐI 6: XÁC THỰC DANH TÍNH (FILE app_2.js)
 // =========================================================================
 async function xuLyLayThongTin(maTokenTruyCap) {
     let nutDangNhap = document.getElementById('nutDangNhapG');
@@ -1104,6 +1104,11 @@ async function xuLyLayThongTin(maTokenTruyCap) {
         const tenHienThi = duLieuXacThuc.name; 
         const anhDaiDien = duLieuXacThuc.picture;
         window.emailGiaoVienToanCuc = dinhDanhHeThong;
+
+        // [BẢN VÁ LỖI]: Bắt buộc làm sạch RAM Sổ đầu bài cũ để chống kẹt dữ liệu khi chuyển tài khoản
+        if (typeof window.lamSachBoNhoSoDauBai === 'function') {
+            window.lamSachBoNhoSoDauBai();
+        }
         
         if (nutDangNhap) {
             nutDangNhap.innerHTML = `<img src="${anhDaiDien}" class="w-6 h-6 rounded-full border border-white"><span class="truncate text-sm font-semibold">${tenHienThi}</span>`;
@@ -1134,8 +1139,7 @@ async function xuLyLayThongTin(maTokenTruyCap) {
         // 3. Tiến hành kiểm soát Menu và Nút bấm dựa trên quyền
         kiemSoatGiaoDien(); 
 
-        // [LÕI KHẮC PHỤC]: Không gọi API máy chủ nếu dữ liệu TKB đã có trong RAM
-        // Trình duyệt sẽ tái tạo lại lưới tức thời bằng động cơ O(1)
+        // Không gọi API máy chủ nếu dữ liệu TKB đã có trong RAM
         if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) {
             xuatMaTranBang(duLieuTkbHienTai); 
         } else {
