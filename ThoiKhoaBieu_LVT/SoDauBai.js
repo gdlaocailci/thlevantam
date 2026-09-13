@@ -9,15 +9,32 @@ let tuDienQuyenPhanCong = {};
 let coToanQuyenSDB = false;
 let maGvDangNhapHeThong = '';
 
+// [BẢN VÁ LỖI]: Hàm dọn dẹp bộ nhớ đệm khi có sự kiện đổi tài khoản
+window.lamSachBoNhoSoDauBai = function() {
+    daTaiDuLieuSoDauBai = false;
+    duLieuTKBGopDaMap = [];
+    tuDienPPCTToanCuc = {}; 
+    dinhMucKhungCT = {}; 
+    tuDienQuyenPhanCong = {};
+    coToanQuyenSDB = false;
+    maGvDangNhapHeThong = '';
+    
+    let vungHienThi = document.getElementById('vungHienThiSoDauBai');
+    if (vungHienThi) vungHienThi.innerHTML = '';
+    
+    let elementTuan = document.getElementById('chonTuanSo');
+    let elementLop = document.getElementById('chonLopSo');
+    if(elementTuan) elementTuan.innerHTML = '<option value="" disabled selected>-- Chọn Tuần --</option>';
+    if(elementLop) elementLop.innerHTML = '<option value="" disabled selected>-- Chọn Lớp --</option>';
+};
+
 async function taiDuLieuSoDauBaiTuMayChu() {
     if (daTaiDuLieuSoDauBai) return;
     
     const vungHienThi = document.getElementById('vungHienThiSoDauBai');
     
-    // [NÂNG CẤP CỐT LÕI]: Kiểm tra trạng thái đăng nhập từ app.js
-    // Dấu hiệu nhận biết: Nút đăng nhập gốc bị gỡ sự kiện onclick khi thành công
-    const nutDangNhapGoc = document.getElementById('nutDangNhapG');
-    const chuaDangNhap = nutDangNhapGoc && nutDangNhapGoc.onclick !== null;
+    // [BẢN VÁ LỖI]: Kiểm tra trực tiếp biến toàn cục thay vì check sự kiện onclick để chống lỗi Race Condition
+    const chuaDangNhap = typeof window.emailGiaoVienToanCuc === 'undefined' || window.emailGiaoVienToanCuc === '';
 
     if (chuaDangNhap) {
         // Giao diện Khóa bảo mật: Yêu cầu định danh trực quan trên vùng hiển thị
@@ -45,7 +62,6 @@ async function taiDuLieuSoDauBaiTuMayChu() {
         return;
     }
 
-    // Nếu đã đăng nhập, tiến hành gọi dữ liệu bình thường
     thucThiTaiDuLieuVaVeLuoi(vungHienThi);
 }
 
@@ -60,10 +76,9 @@ function kiemTraTrangThaiDangNhapSDB() {
          if(btnDangNhap) btnDangNhap.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang xác thực...`;
     }
 
+    // [BẢN VÁ LỖI]: Dựa vào sự xuất hiện của emailGiaoVienToanCuc để chốt chính xác thời điểm xác thực thành công
     let vongLap = setInterval(() => {
-        const nutDangNhapGoc = document.getElementById('nutDangNhapG');
-        // Khi đăng nhập hoàn tất, app.js tự động gán onclick = null
-        if (nutDangNhapGoc && nutDangNhapGoc.onclick === null) {
+        if (typeof window.emailGiaoVienToanCuc !== 'undefined' && window.emailGiaoVienToanCuc !== '') {
             clearInterval(vongLap);
             thucThiTaiDuLieuVaVeLuoi(vungHienThi);
         }
