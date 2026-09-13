@@ -205,7 +205,7 @@ function khoiTaoDuLieuSoDauBai(duLieuSever) {
             let monGoc = String(dong['Tên môn học'] || dong['Môn học'] || dong['Môn Học'] || '').trim().toLowerCase();
             if (monGoc !== '') boNhoMon = monGoc; else monGoc = boNhoMon; 
             
-            let monRutGon = monGoc.replace(/[0-9]/g, '').trim().replace(/\s+/g, ' ');
+            let monRutGon = monGoc.replace(/[0-9\(\)]/g, '').trim().replace(/\s+/g, ' ');
             let tietPPCT_Goc = String(dong['Tiết PPCT'] || dong['Tiết'] || '').trim();
             let baiDay = dong['Tên bài học'] || dong['Tên bài'] || dong['Tên bài dạy'] || dong['Nội dung'] || '';
             
@@ -254,7 +254,7 @@ function khoiTaoDuLieuSoDauBai(duLieuSever) {
         let isDaLuu = false;
 
         if (mon !== '') {
-            let monDem = mon.replace(/[0-9]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+            let monDem = mon.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
             let khoaDem = `${maLop.toUpperCase()}_${monDem}`;
             
             if (dongDaLuu) {
@@ -324,7 +324,7 @@ function ketXuatSoDauBaiLenLuoi() {
         let monGoc = String(d['Môn Học']).trim().toLowerCase();
         if (!monGoc) return;
         demTietThucTe[monGoc] = (demTietThucTe[monGoc] || 0) + 1;
-        let monRutGon = monGoc.replace(/[0-9]/g, '').trim();
+        let monRutGon = monGoc.replace(/[0-9\(\)]/g, '').trim().replace(/\s+/g, ' ');
         if (monGoc !== monRutGon && monRutGon !== '') demTietThucTe[monRutGon] = (demTietThucTe[monRutGon] || 0) + 1;
     });
 
@@ -710,7 +710,7 @@ function dongBoTenBaiHoc() {
                 let tiet = oTiet.innerText.trim();
                 
                 if (mon !== '' && tiet !== '') {
-                    let monRutGon = mon.replace(/[0-9]/g, '').trim().replace(/\s+/g, ' ');
+                    let monRutGon = mon.replace(/[0-9\(\)]/g, '').trim().replace(/\s+/g, ' ');
                     
                     let khoaChinh = `${khoi}_${mon}_${tiet}`;
                     let khoaPhu = `${khoi}_${monRutGon}_${tiet}`;
