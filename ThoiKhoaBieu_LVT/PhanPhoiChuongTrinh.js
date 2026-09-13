@@ -1,4 +1,3 @@
-// =========================================================================
 // KHỐI 1: KHỞI TẠO BIẾN TOÀN CỤC VÀ GẮN GIAO DIỆN VÀO DOM
 // =========================================================================
 let duLieuPpctGoc = []; 
@@ -682,16 +681,18 @@ function xuLyNhapExcelPPCT(event) {
                         </td>
                     </tr>
                 `;
-
-                // Đổ toàn bộ dữ liệu ra lưới (Chủ đích KHÔNG gắn thuộc tính data-loai để bảo vệ thuật toán của nút Lưu)
+                
                 duLieuPpctGoc.forEach(row => {
+                    // [LOGIC XEM TRƯỚC CHUẨN]: Chọn Tất cả -> Lấy môn Excel. Chọn môn cụ thể -> Lấy môn ô lọc.
+                    let tenMonHienThi = (monUI === 'Tất cả' || monUI === '') ? (row.mon || row.monHoc) : monUI;
+
                     htmlPreview += `
                     <tr class="dong-xem-truoc-excel bg-indigo-50/40 hover:bg-indigo-100 transition-colors border-b border-indigo-200">
                         <td colspan="3" class="text-center italic text-indigo-600/70 text-[13px] align-middle font-semibold border-r border-indigo-200">
                             ⚡ Chờ đồng bộ...
                         </td>
                         <td class="border-r border-indigo-200 align-middle text-center p-2 font-extrabold text-red-600">${row.tiet}</td>
-                        <td class="border-r border-indigo-200 align-middle text-center font-bold text-indigo-800">${monUI}</td>
+                        <td class="border-r border-indigo-200 align-middle text-center font-bold text-indigo-800" data-loai="mon">${tenMonHienThi}</td>
                         <td class="border-r border-indigo-200 align-middle text-left p-2 font-semibold text-slate-900">${row.tenBaiHoc}</td>
                         <td class="align-middle text-left p-2 italic text-gray-700">${row.dieuChinh}</td>
                     </tr>`;
@@ -736,6 +737,9 @@ async function luuDuLieuPPCTLenMayChu(event) {
     let mangGhi = [];
     const cacOInputTiet = document.querySelectorAll('[data-loai="tietPpc"]');
     
+    // ========================================================
+    // VÒNG LẶP 1: QUÉT CÁC TIẾT HIỂN THỊ TRÊN LƯỚI
+    // ========================================================
     cacOInputTiet.forEach(inp => {
         let tr = inp.closest('tr');
         let laDongDaSua = tr.getAttribute('data-da-sua') === 'true'; 
@@ -745,9 +749,16 @@ async function luuDuLieuPPCTLenMayChu(event) {
             let idKhoa = inp.getAttribute('data-ppct-id');
             let parts = idKhoa.split('_'); 
             
-            let theMonTrenLuoi = tr.querySelector('[data-loai="mon"]'); 
-            let monTrenLuoi = theMonTrenLuoi ? theMonTrenLuoi.innerText.trim() : mon;
-            if(monTrenLuoi === 'Tất cả') monTrenLuoi = '';
+            // [LOGIC CHUẨN]: Quyết định tên môn gán lên máy chủ
+            let monLuuTru = "";
+            if (mon === 'Tất cả' || mon === '') {
+                // Lấy tên môn hiển thị trực tiếp trên lưới (Tên file Excel)
+                let theMonTrenLuoi = tr.querySelector('[data-loai="mon"]'); 
+                monLuuTru = theMonTrenLuoi ? theMonTrenLuoi.innerText.trim() : "";
+            } else {
+                // Bắt buộc ép theo tên môn tại ô lọc
+                monLuuTru = mon;
+            }
 
             let valTenBai = document.querySelector(`[data-ppct-id="${idKhoa}"][data-loai="tenBai"]`).innerText.trim();
             let valDieuChinh = document.querySelector(`[data-ppct-id="${idKhoa}"][data-loai="dieuChinh"]`).innerText.trim();
@@ -755,7 +766,7 @@ async function luuDuLieuPPCTLenMayChu(event) {
             mangGhi.push({
                 khoi: khoi, 
                 tietPpc: valTiet, 
-                mon: monTrenLuoi, 
+                mon: monLuuTru, 
                 tenBai: valTenBai, 
                 dieuChinh: valDieuChinh,
                 thongTinTkb: { tuan: tuan, lop: lop, thu: parts[0], buoi: parts[1], tietTkb: parts[2] },
@@ -765,22 +776,35 @@ async function luuDuLieuPPCTLenMayChu(event) {
             let idx = duLieuPpctGoc.findIndex(b => {
                 let tGoc = b.tietPpc || b.tiet || '';
                 let mGoc = b.mon || b.monHoc || '';
-                return String(tGoc).trim() === valTiet && (mGoc === monTrenLuoi || mon === monTrenLuoi);
+                return String(tGoc).trim() === valTiet && (mGoc === monLuuTru || mon === monLuuTru);
             });
 
             if (idx !== -1) {
                 duLieuPpctGoc[idx].tenBai = valTenBai;
                 duLieuPpctGoc[idx].tenBaiHoc = valTenBai;
                 duLieuPpctGoc[idx].dieuChinh = valDieuChinh;
+                duLieuPpctGoc[idx].mon = monLuuTru;
             } else {
-                duLieuPpctGoc.push({ tietPpc: valTiet, tiet: valTiet, mon: monTrenLuoi, monHoc: monTrenLuoi, tenBai: valTenBai, tenBaiHoc: valTenBai, dieuChinh: valDieuChinh });
+                duLieuPpctGoc.push({ tietPpc: valTiet, tiet: valTiet, mon: monLuuTru, monHoc: monLuuTru, tenBai: valTenBai, tenBaiHoc: valTenBai, dieuChinh: valDieuChinh });
             }
         }
     });
     
+    // ========================================================
+    // VÒNG LẶP 2: BÙ ĐẮP DỮ LIỆU CỦA CÁC TIẾT BỊ ẨN TRONG BỘ NHỚ
+    // ========================================================
     duLieuPpctGoc.forEach(goc => {
         let tGoc = goc.tietPpc || goc.tiet || '';
-        let mGoc = goc.mon || goc.monHoc || mon;
+        
+        let mGoc = "";
+        if (mon === 'Tất cả' || mon === '') {
+            // Lấy tên môn từ file Excel đang lưu trong bộ nhớ
+            mGoc = goc.mon || goc.monHoc || ''; 
+        } else {
+            // Bắt buộc ép theo tên môn tại ô lọc
+            mGoc = mon;
+        }
+
         let daCoTrenLuoi = mangGhi.some(ghi => String(ghi.tietPpc) === String(tGoc) && (mGoc === '' || ghi.mon === mGoc));
         
         if (!daCoTrenLuoi && String(tGoc).trim() !== '') {
@@ -796,16 +820,17 @@ async function luuDuLieuPPCTLenMayChu(event) {
 
     try {
         const payload = { thaoTac: 'luuPPCT', duLieu: mangGhi };
-        const phanHoi = await fetch(CAU_HINH_FRONTEND.URL_API_MAY_CHU, {
+        
+        // Sử dụng fetchVoiCoCheThuLai để chống lỗi kết nối
+        const phanHoi = await (typeof fetchVoiCoCheThuLai === 'function' ? fetchVoiCoCheThuLai : fetch)(CAU_HINH_FRONTEND.URL_API_MAY_CHU, {
             method: 'POST',
             body: JSON.stringify(payload)
         });
         const ketQua = await phanHoi.json();
         
         if (ketQua.trangThai === 'Thành công') {
-            alert(`Đã lưu Phân phối chương trình Môn ${mon} - Khối ${khoi} lên hệ thống thành công!`);
+            alert(`Đã lưu Phân phối chương trình Khối ${khoi} lên hệ thống thành công!`);
             
-            // [NÂNG CẤP]: Xóa bỏ cờ và trả lại giao diện sạch sẽ ngay sau khi Lưu thành công
             document.querySelectorAll('tr[data-da-sua="true"]').forEach(tr => {
                 tr.removeAttribute('data-da-sua');
                 tr.classList.remove('bg-amber-100', 'hover:bg-amber-200');
@@ -814,14 +839,13 @@ async function luuDuLieuPPCTLenMayChu(event) {
                 if (badge) badge.remove();
             });
 
-            // [TÍNH NĂNG MỚI]: Tự động dọn dẹp bảng lưới xem trước Excel sau khi chốt dữ liệu
             document.querySelectorAll('.dong-xem-truoc-excel').forEach(dong => dong.remove());
             
         } else {
             alert(`Sự cố lưu trữ: ${ketQua.thongBao}`);
         }
     } catch (loi) {
-        alert('Lỗi kết nối máy chủ.');
+        alert('Lỗi kết nối máy chủ: ' + loi.message);
     } finally {
         nutBam.innerHTML = noiDungGoc;
         nutBam.disabled = false;
