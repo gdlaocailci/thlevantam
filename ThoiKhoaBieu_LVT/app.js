@@ -1746,3 +1746,31 @@ window.dongBoChuanHoaDuLieuUI = function() {
         alert("Tuyệt vời! Toàn bộ dữ liệu trên lưới Thời khóa biểu đã khớp chuẩn 100% với danh mục máy chủ.");
     }
 };
+// =========================================================================
+// KHỐI NÂNG CẤP: TỰ ĐỘNG CẬP NHẬT TÊN NÚT "TUẦN TIẾP THEO" THEO THỜI GIAN THỰC
+// =========================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    const theHienThiTuan = document.getElementById('hienThiTuanHienTai');
+    const nutKhoiPhuc = document.getElementById('btnKhoiPhuc');
+
+    if (theHienThiTuan && nutKhoiPhuc) {
+        // Hàm bóc tách số tuần từ giao diện và gán tên nút mới
+        const capNhatTenNutTuanTiepTheo = () => {
+            let textTuan = theHienThiTuan.innerText || '';
+            let match = textTuan.match(/\d+/);
+            
+            if (match) {
+                let tuanHienTai = parseInt(match[0], 10);
+                let tuanKeTiep = tuanHienTai + 1;
+                nutKhoiPhuc.innerText = `Tuần tiếp theo ${tuanKeTiep}`;
+            }
+        };
+
+        // Kích hoạt đồng bộ lần đầu ngay khi hệ thống vừa nạp xong dữ liệu
+        setTimeout(capNhatTenNutTuanTiepTheo, 1000); 
+
+        // Khởi tạo bộ giám sát DOM để tự động chạy lại hàm khi có sự kiện chuyển tuần
+        const boGiamSatTuan = new MutationObserver(capNhatTenNutTuanTiepTheo);
+        boGiamSatTuan.observe(theHienThiTuan, { childList: true, characterData: true, subtree: true });
+    }
+});
