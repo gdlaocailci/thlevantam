@@ -673,19 +673,27 @@ function xuLyNhapExcelPPCT(event) {
                     }
                 }
 
-                // [LÕI NÂNG CẤP]: Đã gỡ bỏ lệnh veBangKhungLichPPCT(monUI);
-                // Khởi tạo HTML Xem trước
+                // MỞ RỘNG GIAO DIỆN: XUẤT TOÀN BỘ DỮ LIỆU EXCEL XUỐNG BÊN DƯỚI ĐỂ KIỂM TRA
                 const tbody = document.getElementById('vungDuLieuLichPPCT');
-                let htmlPreview = `<tr><td colspan="7" class="bg-indigo-100 text-indigo-900 font-extrabold py-3 uppercase tracking-wide border-y-2 border-indigo-300 text-center shadow-inner">🔍 BẢN XEM TRƯỚC TOÀN BỘ DỮ LIỆU EXCEL ĐÃ TẢI LÊN (CHỜ LƯU)</td></tr>`;
+                let htmlPreview = `
+                    <tr class="dong-xem-truoc-excel">
+                        <td colspan="7" class="bg-indigo-100 text-indigo-900 font-extrabold py-3 uppercase tracking-wide border-y-2 border-indigo-300 text-center shadow-inner">
+                            🔍 BẢN XEM TRƯỚC TOÀN BỘ DỮ LIỆU EXCEL (SẼ ĐƯỢC LƯU VÀO HỆ THỐNG KHI BẤM "LƯU PPCT")
+                        </td>
+                    </tr>
+                `;
 
+                // Đổ toàn bộ dữ liệu ra lưới (Chủ đích KHÔNG gắn thuộc tính data-loai để bảo vệ thuật toán của nút Lưu)
                 duLieuPpctGoc.forEach(row => {
                     htmlPreview += `
-                    <tr class="bg-indigo-50/40 hover:bg-indigo-100 transition-colors border-b border-indigo-200">
-                        <td colspan="3" class="text-center italic text-indigo-600/70 text-[13px] align-middle font-semibold border-r border-indigo-200">⚡ Chờ lưu vào hệ thống...</td>
-                        <td class="border-r border-indigo-200 align-middle text-center font-bold text-indigo-800">${row.mon}</td>
-                        <td class="border-r border-indigo-200 align-middle text-center p-2 font-extrabold text-red-600">${row.tietPpc}</td>
-                        <td class="border-r border-indigo-200 align-middle text-left p-3 font-semibold text-slate-900 leading-relaxed" style="white-space: normal !important; min-width: 200px; max-width: 300px; word-wrap: break-word; word-break: break-word;">${row.tenBai}</td>
-                        <td class="align-middle text-left p-3 italic text-gray-700 leading-relaxed" style="white-space: normal !important; min-width: 250px; max-width: 450px; word-wrap: break-word; word-break: break-word;">${row.dieuChinh}</td>
+                    <tr class="dong-xem-truoc-excel bg-indigo-50/40 hover:bg-indigo-100 transition-colors border-b border-indigo-200">
+                        <td colspan="3" class="text-center italic text-indigo-600/70 text-[13px] align-middle font-semibold border-r border-indigo-200">
+                            ⚡ Chờ đồng bộ...
+                        </td>
+                        <td class="border-r border-indigo-200 align-middle text-center p-2 font-extrabold text-red-600">${row.tiet}</td>
+                        <td class="border-r border-indigo-200 align-middle text-center font-bold text-indigo-800">${monUI}</td>
+                        <td class="border-r border-indigo-200 align-middle text-left p-2 font-semibold text-slate-900">${row.tenBaiHoc}</td>
+                        <td class="align-middle text-left p-2 italic text-gray-700">${row.dieuChinh}</td>
                     </tr>`;
                 });
 
@@ -795,8 +803,9 @@ async function luuDuLieuPPCTLenMayChu(event) {
         const ketQua = await phanHoi.json();
         
         if (ketQua.trangThai === 'Thành công') {
-            alert(`Đã hoàn thành kết xuất dữ liệu phân phối chương trình lên hệ thống gốc!`);
+            alert(`Đã lưu Phân phối chương trình Môn ${mon} - Khối ${khoi} lên hệ thống thành công!`);
             
+            // [NÂNG CẤP]: Xóa bỏ cờ và trả lại giao diện sạch sẽ ngay sau khi Lưu thành công
             document.querySelectorAll('tr[data-da-sua="true"]').forEach(tr => {
                 tr.removeAttribute('data-da-sua');
                 tr.classList.remove('bg-amber-100', 'hover:bg-amber-200');
@@ -804,6 +813,10 @@ async function luuDuLieuPPCTLenMayChu(event) {
                 let badge = tr.querySelector('.badge-sua');
                 if (badge) badge.remove();
             });
+
+            // [TÍNH NĂNG MỚI]: Tự động dọn dẹp bảng lưới xem trước Excel sau khi chốt dữ liệu
+            document.querySelectorAll('.dong-xem-truoc-excel').forEach(dong => dong.remove());
+            
         } else {
             alert(`Sự cố lưu trữ: ${ketQua.thongBao}`);
         }
