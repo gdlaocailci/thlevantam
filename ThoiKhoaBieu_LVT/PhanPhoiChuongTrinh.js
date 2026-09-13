@@ -351,7 +351,8 @@ function veBangKhungLichPPCT(monDangChon) {
     const cauTrucTiet = { "Sáng": [1,2,3,4,5], "Chiều": [1,2,3,4] };
     
     let maTranTkb = {};
-    const monChonChuan = monDangChon.trim().normalize('NFC').replace(/\s+/g, '').toLowerCase();
+    const monChonChuan = monDangChon.trim().normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
+    const monChonGoc = monChonChuan.replace(/[0-9\(\)]/g, '').trim();
     
     duLieuTkbTuan.forEach(t => {
         if (!maTranTkb[t.thu]) maTranTkb[t.thu] = {};
@@ -361,7 +362,7 @@ function veBangKhungLichPPCT(monDangChon) {
 
     const tuan = parseInt(document.getElementById('locTuanUI').value.trim()) || 1;
     const lop = document.getElementById('locLopPPCT').value.trim();
-    const isXemTatCa = (monChonChuan === 'tấtcả' || monChonChuan === '');
+    const isXemTatCa = (monChonChuan === 'tất cả' || monChonChuan === '');
     
     let ngayGocThu2 = null;
     const tuanHienTaiHeThong = (typeof tuanDangXem !== 'undefined') ? parseInt(tuanDangXem) : 1;
@@ -379,47 +380,54 @@ function veBangKhungLichPPCT(monDangChon) {
         }
     }
 
+    // [ÁP DỤNG LOGIC SỔ ĐẦU BÀI]: Gom nhóm phân môn bằng Regex loại bỏ số và ngoặc đơn
     let trackerPpct = {};
     if (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.KHUNG_CHUONG_TRINH) {
         let dmKhoi = thongSoHocVu.KHUNG_CHUONG_TRINH[lop] || {};
+        let tongTietNhom = {};
+        
+        // Bóc tách hậu tố số và cộng dồn số tiết về 1 Môn Gốc duy nhất
         Object.keys(dmKhoi).forEach(m => {
-            let tenM = m.trim().normalize('NFC').replace(/\s+/g, '').toLowerCase();
-            let match = tenM.match(/^(.*?)(\d+)$/);
-            let baseName = match ? match[1] : tenM;
-            let heSoTiet = match ? parseInt(match[2], 10) : 1;
+            let tenM = m.trim().normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
+            let baseName = tenM.replace(/[0-9\(\)]/g, '').trim(); 
+            tongTietNhom[baseName] = (tongTietNhom[baseName] || 0) + (parseInt(dmKhoi[m]) || 0);
+        });
 
-            let soTiet1Tuan = parseInt(dmKhoi[m]) || 0;
-            let tongSoTietNhom = 0;
-
-            Object.keys(dmKhoi).forEach(sub => {
-                let subChuan = sub.trim().normalize('NFC').replace(/\s+/g, '').toLowerCase();
-                let subMatch = subChuan.match(/^(.*?)(\d+)$/);
-                let subBase = subMatch ? subMatch[1] : subChuan;
-                if(subBase === baseName) tongSoTietNhom += (parseInt(dmKhoi[sub]) || 0);
-            });
-
-            let isSplitSubject = (tongSoTietNhom > soTiet1Tuan && match);
-            let tietPpcAuto = isSplitSubject ? ((tuan - 1) * tongSoTietNhom + heSoTiet) : ((tuan - 1) * soTiet1Tuan + 1);
-
-            trackerPpct[tenM] = {
-                tietPpcAuto: tietPpcAuto,
-                chiSoPpctTuDong: (tuan - 1) * soTiet1Tuan,
-                tongSoTietNhom: tongSoTietNhom
+        // Thiết lập bộ đếm tịnh tiến dùng chung
+        Object.keys(tongTietNhom).forEach(baseName => {
+            let soTiet1Tuan = tongTietNhom[baseName];
+            trackerPpct[baseName] = {
+                tietPpcAuto: (tuan - 1) * soTiet1Tuan + 1,
+                chiSoPpctTuDong: (tuan - 1) * soTiet1Tuan
             };
         });
     }
+//*****************************************************************************************************************************************************************
+    // [TỐI ƯU HIỆU NĂNG SIÊU TỐC]: Chuẩn hóa mảng PPCT gốc một lần duy nhất trước khi vào vòng lặp
+    let duLieuPpctDaChuanHoa = duLieuPpctGoc.map(b => {
+        let m = String(b.mon || b.monHoc || b.tenMon || b["Môn học"] || b["Môn"] || "").normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
+        let mGoc = m.replace(/[0-9\(\)]/g, '').trim();
+        return { ...b, mChuan: m, mGoc: mGoc };
+    });
 
-    // [ĐIỂM NGHẼN ĐÃ ĐƯỢC GIẢI QUYẾT]: Hàm tách riêng mảng PPCT cho từng môn dựa vào CỘT MÔN HỌC
+    // Tạo bộ đệm (Cache) lưu kết quả. Môn nào đã lọc và sắp xếp rồi thì các tiết sau chỉ việc lấy ra dùng, không tính lại.
+    let cachePpctTheoMon = {};
+
     let getPpctGocChoMon = (monGrid) => {
-        let monGridChuan = String(monGrid).normalize('NFC').replace(/\s+/g, '').toLowerCase();
-        let monGridGoc = monGridChuan.replace(/\d+$/, '');
+        let monGridChuan = String(monGrid).normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
+        let monGridGoc = monGridChuan.replace(/[0-9\(\)]/g, '').trim();
         
-        return duLieuPpctGoc.filter(b => {
-            let m = String(b.mon || b.monHoc || b.tenMon || b["Môn học"] || b["Môn"] || "").normalize('NFC').replace(/\s+/g, '').toLowerCase();
-            // Nếu CSDL bị trống tên môn, chỉ chấp nhận lấy nếu đang ở chế độ xem 1 môn
-            if (m === "") return !isXemTatCa;
-            return m === monGridChuan || m === monGridGoc;
+        // Truy xuất Cache siêu tốc O(1)
+        if (cachePpctTheoMon[monGridChuan]) return cachePpctTheoMon[monGridChuan];
+        
+        let ketQuaLoc = duLieuPpctDaChuanHoa.filter(b => {
+            if (b.mChuan === "") return !isXemTatCa;
+            return b.mChuan === monGridChuan || b.mChuan === monGridGoc || b.mGoc === monGridGoc;
         }).sort((a, b) => parseInt(a.tietPpc || a.tiet || 0) - parseInt(b.tietPpc || b.tiet || 0));
+        
+        // Đóng băng kết quả vào Cache cho các vòng lặp sau
+        cachePpctTheoMon[monGridChuan] = ketQuaLoc; 
+        return ketQuaLoc;
     };
 
     let tongSoDongMucTieu = 0;
@@ -430,9 +438,11 @@ function veBangKhungLichPPCT(monDangChon) {
             cauTrucTiet[buoi].forEach(tiet => {
                 let tietTkb = (maTranTkb[thu] && maTranTkb[thu][buoi] && maTranTkb[thu][buoi][tiet]) ? maTranTkb[thu][buoi][tiet] : null;
                 let tenMonTkb = tietTkb ? tietTkb.monHoc.trim() : '';
-                let monTkbChuan = tenMonTkb.normalize('NFC').replace(/\s+/g, '').toLowerCase();
+                let monTkbChuan = tenMonTkb.normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
+                let monTkbGoc = monTkbChuan.replace(/[0-9\(\)]/g, '').trim();
 
-                if ((isXemTatCa || monTkbChuan === monChonChuan) && tenMonTkb !== '') {
+                // Quét qua phễu lọc bằng cả 2 điều kiện (Môn chuẩn hoặc Môn gốc)
+                if ((isXemTatCa || monTkbChuan === monChonChuan || monTkbGoc === monChonGoc) && tenMonTkb !== '') {
                     dsTietCuaThu.push({ buoi: buoi, tiet: tiet, tietTkb: tietTkb });
                     tongSoDongMucTieu++;
                 }
@@ -462,16 +472,18 @@ function veBangKhungLichPPCT(monDangChon) {
                         let tiet = item.tiet;
                         let tietTkb = item.tietTkb;
                         let tenMonTkb = tietTkb.monHoc;
-                        let monTkbChuan = tenMonTkb.normalize('NFC').replace(/\s+/g, '').toLowerCase();
+                        
+                        let monTkbChuan = tenMonTkb.normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
+                        let monTkbGoc = monTkbChuan.replace(/[0-9\(\)]/g, '').trim();
 
                         // Lấy riêng mảng PPCT của đúng môn học trên cột này
                         let ppctCuaMon = getPpctGocChoMon(tenMonTkb);
                         let valTietPPC = tietTkb.tietPpc || '';
                         
                         if (valTietPPC === '') {
-                            let track = trackerPpct[monTkbChuan];
+                            // Gọi bộ đếm bằng Môn Gốc để các phân môn dùng chung một số tịnh tiến
+                            let track = trackerPpct[monTkbGoc];
                             if (track) {
-                                // Ánh xạ từ mảng mini của riêng môn đó
                                 if (track.chiSoPpctTuDong < ppctCuaMon.length) {
                                     valTietPPC = ppctCuaMon[track.chiSoPpctTuDong].tietPpc || ppctCuaMon[track.chiSoPpctTuDong].tiet;
                                 } else {
