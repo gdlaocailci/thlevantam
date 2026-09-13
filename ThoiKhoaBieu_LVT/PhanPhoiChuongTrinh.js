@@ -1,3 +1,4 @@
+// KHỐI 1: KHỞI TẠO BIẾN TOÀN CỤC VÀ GẮN GIAO DIỆN VÀO DOM
 // =========================================================================
 let duLieuPpctGoc = []; 
 let duLieuTkbTuan = [];
