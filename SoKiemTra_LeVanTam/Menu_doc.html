@@ -1,0 +1,200 @@
+<style>
+  /* --- KHỐI BỐ CỤC CHUNG --- */
+  .sidebar-menu { 
+      width: 260px; 
+      background: #1e3a8a; 
+      border-right: 1px solid #172554; 
+      height: 100vh; 
+      position: sticky; 
+      top: 0; 
+      display: flex; 
+      flex-direction: column; 
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+      font-family: "Times New Roman", serif;
+      z-index: 1000;
+  }
+  .sidebar-header {
+      padding: 25px 15px;
+      text-align: center;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 15px;
+  }
+  .sidebar-logo {
+      width: 65px;
+      height: 65px;
+      object-fit: contain;
+      margin-bottom: 12px;
+      background: #ffffff;
+      border-radius: 50%;
+      padding: 3px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .sidebar-logo:hover {
+      transform: scale(1.1) rotate(-3deg);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  }
+  .sidebar-title {
+      color: #ffeb3b;
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 5px;
+      letter-spacing: 0.5px;
+  }
+  .sidebar-subtitle {
+      color: #ffffff;
+      font-size: 12px;
+      opacity: 0.9;
+  }
+  
+  /* NÂNG CẤP BẢO MẬT: Ẩn và khóa toàn bộ menu lúc khởi động */
+  .menu-list {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px; 
+      padding: 0 15px;
+      opacity: 0; 
+      pointer-events: none; 
+      transition: opacity 0.4s ease;
+  }
+  
+  /* --- KHỐI HIỆU ỨNG NÚT BẤM (Trích xuất từ ReactBits.dev) --- */
+  .menu-btn {
+      background: rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px 15px;
+      border-radius: 10px; 
+      text-align: left;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .menu-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+      z-index: 0;
+  }
+  
+  .menu-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .menu-btn:hover::before {
+      left: 100%;
+  }
+
+  .menu-btn i, .menu-btn span {
+      position: relative;
+      z-index: 1;
+      transition: transform 0.3s ease;
+  }
+
+  .menu-btn:hover i {
+      transform: scale(1.1) rotate(-5deg);
+  }
+  
+  .menu-btn.active {
+      background: #3b82f6;
+      color: #ffffff;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+      border-color: #60a5fa;
+  }
+  
+  /* --- KHỐI HIỆU ỨNG NÚT ĐĂNG XUẤT 3D --- */
+  .menu-logout {
+      background: linear-gradient(145deg, #ef4444, #dc2626) !important;
+      color: #ffffff !important;
+      border: 1px solid #f87171;
+      margin-top: auto; 
+      margin-bottom: 20px;
+      justify-content: center;
+      box-shadow: 0 4px 0 #991b1b, 0 8px 15px rgba(239, 68, 68, 0.4) !important;
+      transition: all 0.2s ease !important;
+  }
+  
+  .menu-logout:hover {
+      background: linear-gradient(145deg, #f87171, #ef4444) !important;
+      transform: translateY(-5px) scale(1.03) !important;
+      box-shadow: 0 6px 0 #991b1b, 0 15px 25px rgba(239, 68, 68, 0.5) !important;
+  }
+
+  .menu-logout:active {
+      transform: translateY(2px) scale(0.98) !important;
+      box-shadow: 0 2px 0 #991b1b, 0 4px 10px rgba(239, 68, 68, 0.4) !important;
+  }
+  
+  .menu-logout i {
+      font-size: 1.2rem;
+      filter: drop-shadow(1px 1px 0 #7f1d1d) drop-shadow(2px 2px 0 #7f1d1d) drop-shadow(3px 3px 0 #450a0a);
+      transition: transform 0.3s ease;
+  }
+  
+  .menu-logout:hover i {
+      transform: scale(1.15) rotate(5deg);
+  }
+</style>
+
+<div class="sidebar-menu">
+  <div class="sidebar-header">
+   <img src="" class="sidebar-logo" alt="Logo" onclick="chuyenHuongHeThong()" title="Trở về trang Hệ thống">
+    <h3 class="sidebar-title" id="menu_title"></h3>
+    <div class="sidebar-subtitle" id="menu_subtitle"></div>
+  </div>
+  
+  <div class="menu-list" id="sidebar_menu_list">
+      <button class="menu-btn active" onclick="chuyentth('TabNhapLieu', this)">
+          <i class="bi bi-pencil-square"></i> <span>GHI SỔ KIỂM TRA</span>
+      </button>
+      <button class="menu-btn" onclick="chuyentth('TabTimKiem', this)">
+          <i class="bi bi-search"></i> <span>THỐNG KÊ - TRA CỨU</span>
+      </button>
+      
+      <button class="menu-btn" style="display: none;" onclick="chuyentth('TabPhanQuyen', this)">
+          <i class="bi bi-shield-lock"></i> <span>CẤP QUYỀN TRUY CẬP</span>
+      </button>
+
+     <button class="menu-btn menu-logout" onclick="dangxg()">
+          <i class="bi bi-box-arrow-right"></i> <span>ĐĂNG XUẤT</span>
+      </button>
+  </div>
+</div>
+
+<script>
+/* ========================================================================= */
+/* KỊCH BẢN ĐỒNG BỘ HIỂN THỊ MENU VỚI PHÂN QUYỀN MÁY CHỦ                     */
+/* ========================================================================= */
+(function() {
+    let ktraQuyenHeThong = setInterval(function() {
+        // Biến window.ruongbac được thiết lập ở index.html NGAY SAU KHI máy chủ trả về kết quả
+        if (typeof window.ruongbac !== 'undefined') {
+            clearInterval(ktraQuyenHeThong);
+            let khungMenu = document.getElementById('sidebar_menu_list');
+            if(khungMenu) {
+                // Mở khóa cho menu hiển thị và cho phép click sau khi index.html đã cắt gọt xong các Tab thừa
+                khungMenu.style.opacity = '1';
+                khungMenu.style.pointerEvents = 'auto';
+            }
+        }
+    }, 50);
+})();
+</script>

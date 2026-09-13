@@ -1,0 +1,357 @@
+<style>
+  /* Cấu trúc Modal chuẩn an toàn, không chiếm quyền điều khiển trình duyệt */
+  #upload_modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10005; justify-content: center; align-items: center; }
+  .up-container { background: #fff; padding: 20px; border-radius: 8px; width: 500px; max-width: 95%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: 'Times New Roman', serif; }
+  .up-header { border-bottom: 2px solid #b91c1c; padding-bottom: 10px; margin-bottom: 15px; text-align: center; }
+  .up-box { margin-bottom: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+  .up-dropzone { border: 2px dashed #ccc; padding: 20px; text-align: center; cursor: pointer; border-radius: 6px; transition: 0.3s; background: #fafafa; }
+  .up-dropzone:hover { border-color: #0891b2; background: #f0f9ff; }
+  
+  #uploadBtn { width: 100%; padding: 12px; background: #0891b2; color: white; border: none; font-weight: bold; border-radius: 6px; cursor: pointer; opacity: 0.5; pointer-events: none; margin-top: 10px; }
+  #uploadBtn.active { opacity: 1; pointer-events: auto; }
+  .close-up { width: 100%; padding: 10px; background: #64748b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+  .close-up:hover { background: #475569; }
+  
+  #warnDelete { display:none; color:#d97706; font-size:13px; text-align:center; margin-bottom:10px; font-weight:bold; background: #fffbeb; padding: 8px; border-radius: 4px; border: 1px dashed #d97706; }
+  #linkInputArea { display:none; text-align: left; }
+</style>
+
+<div id="upload_modal">
+  <div class="up-container">
+    <div class="up-header"><h2 style="margin:0; color:#b91c1c;">📁 MINH CHỨNG KÈM THEO</h2></div>
+    
+    <div class="up-box">
+      <label><b>1. Chọn thư mục lưu trữ (Tiêu chuẩn tải File):</b></label>
+      <select id="folderSelect" style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px;">
+        <option>⏳ Đang kết nối...</option>
+      </select>
+    </div>
+
+    <div class="up-box">
+      <label style="display:block; margin-bottom:5px;"><b>2. Phương thức đính kèm minh chứng:</b></label>
+      
+      <div style="display:flex; gap:15px; justify-content:center; margin-bottom:10px; font-weight:bold; flex-wrap: wrap;">
+        <label><input type="radio" name="upMode" value="file" checked onchange="chuyencd_upload()"> 📄 Tải File lẻ</label>
+        <label><input type="radio" name="upMode" value="folder" onchange="chuyencd_upload()"> 📂 Cả thư mục</label>
+        <label style="color: #047857;"><input type="radio" name="upMode" value="link" onchange="chuyencd_upload()"> 🔗 Gán link Web/Drive</label>
+      </div>
+      
+      <div style="display:flex; gap:20px; justify-content:center; padding:8px; background:#e0f2fe; border-radius:6px; margin-bottom:10px; font-size: 14px;">
+        <label style="color:#0369a1; cursor:pointer;" title="Xóa tài liệu cũ trên hệ thống, thay bằng tài liệu mới">
+          <input type="radio" name="writeMode" value="replace" checked onchange="capnhtcb()"> 🔄 Thay thế cũ
+        </label>
+        <label style="color:#0369a1; cursor:pointer;" title="Giữ nguyên tài liệu cũ, chèn thêm tài liệu mới vào hệ thống">
+          <input type="radio" name="writeMode" value="append" onchange="capnhtcb()"> ➕ Chèn thêm
+        </label>
+      </div>
+      
+      <div class="up-dropzone" id="dropzoneArea" onclick="document.getElementById('fileIn').click()">
+        <span id="fileLabel">Nhấn vào đây để chọn file minh chứng</span>
+        <input type="file" id="fileIn" style="display:none" onchange="chonte(this)" multiple>
+      </div>
+
+      <div id="linkInputArea">
+          <input type="text" id="txtDirectLink" placeholder="Dán đường link (Google Drive hoặc link web trực tiếp) vào đây..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-family: Arial, sans-serif; box-sizing: border-box;" oninput="kiemtralink()" autocomplete="off" spellcheck="false">
+          <div style="font-size:12px; color:#666; margin-top:5px; font-style: italic;">AI chỉ đọc được nếu file không bị khóa bảo vệ.</div>
+      </div>
+    </div>
+
+    <div id="warnDelete">⚠️ Tài liệu/Liên kết cũ sẽ bị thay thế (Hệ thống tự động dọn dẹp file Drive cũ nếu có).</div>
+
+    <div id="upStatus" style="text-align:center; font-weight:bold; min-height:20px; color:#333;"></div>
+    
+    <div style="margin-top:10px;">
+      <button id="uploadBtn" onclick="thuchta()">TẢI LÊN NGAY</button>
+      <button class="close-up" onclick="donghopthta()">ĐÓNG</button>
+      <div style="clear:both"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let tepht = [];
+  let lkcx = ""; 
+
+// Tải danh sách thư mục con vào ComboBox (Đã bổ sung xử lý lỗi và trạng thái chờ)
+  function taithu() {
+    const hop = document.getElementById('folderSelect');
+    
+    // Hiển thị trạng thái chờ mượt mà trên giao diện
+    if (hop.options.length <= 1) {
+        hop.innerHTML = `<option value="">⏳ Đang tải danh sách thư mục...</option>`;
+    }
+    
+    google.script.run
+      .withSuccessHandler(tm => {
+        hop.innerHTML = `<option value="">-- Thư mục gốc --</option>`;
+        if(tm) tm.forEach(t1 => hop.add(new Option("📂 " + t1.tenn, t1.idt)));
+      })
+      .withFailureHandler(err => {
+        hop.innerHTML = `<option value="">❌ Lỗi kết nối lấy thư mục</option>`;
+      })
+      .skt_laytm_con();
+  }
+
+  // Khởi động Modal đính kèm (Đã bổ sung luồng gọi thư mục)
+  function mohopthta(lkht) {
+    const hpnkt = document.getElementById('cbNguoiKiemTra');
+    if (hpnkt) {
+      const gtri = hpnkt.value;
+      if (!gtri) return typeof hienhth === 'function' ? hienhth("⚠️ Chọn Người kiểm tra trước!") : alert("⚠️ Chọn Người kiểm tra trước!");
+    }
+    
+    lkcx = lkht || "";
+    document.getElementById('txtDirectLink').value = "";
+    document.getElementById('fileIn').value = "";
+    document.getElementById('fileLabel').innerText = "Nhấn vào đây để chọn file minh chứng";
+    document.getElementById('uploadBtn').classList.remove('active');
+    document.getElementById('upStatus').innerText = "";
+    tepht = [];
+    
+    // Mặc định chọn tải File lẻ
+    document.querySelector('input[name="upMode"][value="file"]').checked = true;
+    chuyencd_upload();
+
+    capnhtcb();
+    
+    // 👉 KHẮC PHỤC: Kích hoạt tải danh sách thư mục NGAY KHI mở hộp thoại
+    taithu();
+
+    document.getElementById('upload_modal').style.display = 'flex';
+  }
+
+  // Cập nhật cảnh báo thay thế
+  function capnhtcb() {
+    const cdg = document.querySelector('input[name="writeMode"]:checked').value;
+    const vungcb = document.getElementById('warnDelete');
+    
+    if(cdg === 'replace' && lkcx && lkcx.trim() !== "") {
+        vungcb.style.display = 'block';
+    } else {
+        vungcb.style.display = 'none';
+    }
+  }
+
+  // Đóng Modal
+  function donghopthta() {
+    document.getElementById('upload_modal').style.display = 'none';
+    document.getElementById('upStatus').innerText = "";
+    document.getElementById('fileIn').value = "";
+    document.getElementById('txtDirectLink').value = "";
+    document.getElementById('fileLabel').innerText = "Nhấn để chọn file minh chứng";
+    document.getElementById('warnDelete').style.display = 'none';
+    tepht = []; 
+    lkcx = "";
+    document.getElementById('uploadBtn').classList.remove('active');
+  }
+
+  // Chuyển đổi giao diện Đính kèm File/Thư mục/Link
+  function chuyencd_upload() {
+     const cd = document.querySelector('input[name="upMode"]:checked').value;
+     const dh = document.getElementById('fileIn');
+     const dz = document.getElementById('dropzoneArea');
+     const la = document.getElementById('linkInputArea');
+     const btn = document.getElementById('uploadBtn');
+
+     if (cd === 'link') {
+         dz.style.display = 'none';
+         la.style.display = 'block';
+         btn.innerText = "LƯU LINK NÀY NGAY";
+         btn.style.background = "#047857";
+         document.getElementById('txtDirectLink').value = "";
+         capnhtcb();
+         kiemtralink();
+     } else {
+         dz.style.display = 'block';
+         la.style.display = 'none';
+         btn.innerText = "TẢI LÊN NGAY";
+         btn.style.background = "#0891b2";
+         dh.value = "";
+         document.getElementById('fileLabel').innerText = "Nhấn vào đây để chọn file minh chứng";
+         btn.classList.remove('active');
+         
+         if (cd === 'folder') {
+             dh.setAttribute('webkitdirectory', ''); 
+             dh.setAttribute('directory', ''); 
+             dh.setAttribute('multiple', 'multiple');
+             document.getElementById('warnDelete').style.display = 'none';
+         } else {
+             dh.removeAttribute('webkitdirectory'); 
+             dh.removeAttribute('directory'); 
+             dh.setAttribute('multiple', 'multiple');
+             capnhtcb();
+         }
+     }
+     tepht = [];
+  }
+
+  // Kiểm tra tính hợp lệ của Link dán vào
+  function kiemtralink() {
+      const val = document.getElementById('txtDirectLink').value.trim();
+      const btn = document.getElementById('uploadBtn');
+      if (val !== "") {
+          btn.classList.add('active');
+      } else {
+          btn.classList.remove('active');
+      }
+  }
+
+  // Xử lý sự kiện chọn file từ thiết bị
+  function chonte(dauv) {
+    if (dauv.files.length > 0) {
+      tepht = dauv.files;
+      const cd = document.querySelector('input[name="upMode"]:checked').value;
+      if (cd === 'folder') {
+        const tent = tepht[0].webkitRelativePath.split('/')[0];
+        document.getElementById('fileLabel').innerText = `📂 ${tent} (${tepht.length} files)`;
+      } else {
+        if (tepht.length === 1) {
+            document.getElementById('fileLabel').innerText = "📄 " + tepht[0].name;
+        } else {
+            document.getElementById('fileLabel').innerText = `📄 Đã chọn ${tepht.length} file`;
+        }
+      }
+      document.getElementById('uploadBtn').classList.add('active');
+      document.getElementById('upStatus').innerText = "Sẵn sàng tải lên.";
+    }
+  }
+
+  // Xử lý Gửi dữ liệu (Upload) hoặc Chèn Link
+  function thuchta() {
+    const cd = document.querySelector('input[name="upMode"]:checked').value;
+    const cdg = document.querySelector('input[name="writeMode"]:checked').value;
+    const nt = document.getElementById('uploadBtn');
+    const tt = document.getElementById('upStatus');
+
+    // MẠCH 1: XỬ LÝ GÁN LINK TRỰC TIẾP (FIRE AND FORGET)
+    if (cd === 'link') {
+        const linkVal = document.getElementById('txtDirectLink').value.trim();
+        if (!linkVal) return;
+        
+        nt.classList.remove('active');
+        tt.style.color = "blue";
+
+        let finalLinkStr = linkVal;
+
+        if (cdg === 'append' && lkcx && lkcx.trim() !== "") {
+            tt.innerText = "⏳ Đang gắn kết thêm đường dẫn...";
+            finalLinkStr = lkcx + "," + linkVal;
+            
+            setTimeout(() => {
+                xulykqta({ tcon: true, lkpt: finalLinkStr, tbao: "Đã chèn thêm link thành công!" }, tt, nt);
+            }, 300);
+        } 
+        else if (cdg === 'replace' && lkcx && lkcx.trim() !== "") {
+            tt.innerText = "⏳ Đang dọn dẹp và ghi đè liên kết...";
+            
+            // Xóa ngầm file cũ trên Drive để giải phóng dung lượng (Fire and forget)
+            if(typeof google.script.run.skt_xoatep_dd === 'function') {
+                google.script.run.withSuccessHandler(function() {}).withFailureHandler(function() {}).skt_xoatep_dd(lkcx);
+            }
+            
+            setTimeout(() => {
+                xulykqta({ tcon: true, lkpt: finalLinkStr, tbao: "Đã thay thế và gán link mới thành công!" }, tt, nt);
+            }, 300);
+        } 
+        else {
+            tt.innerText = "⏳ Đang cập nhật hệ thống...";
+            setTimeout(() => {
+                xulykqta({ tcon: true, lkpt: finalLinkStr, tbao: "Đã gán link thành công!" }, tt, nt);
+            }, 300); 
+        }
+        return;
+    }
+
+    // MẠCH 2: XỬ LÝ TẢI FILE HOẶC THƯ MỤC TRUYỀN THỐNG
+    if (!tepht || tepht.length === 0) return;
+    const idt = document.getElementById('folderSelect').value;
+    
+    let mhs = "";
+    if (typeof donghtta !== 'undefined' && donghtta) {
+        const omh = donghtta.querySelector('.ma-ho-so-cell');
+        if (omh) mhs = omh.innerText;
+    } else {
+        const om = document.querySelector('.ma-ho-so-cell');
+        mhs = om ? om.innerText : "";
+    }
+
+    if (!mhs || mhs.trim() === "") {
+        tt.style.color = "red";
+        tt.innerText = "❌ Lỗi: Không tìm thấy Mã hồ sơ để gắn minh chứng!";
+        nt.classList.add('active');
+        return;
+    }
+
+    nt.classList.remove('active');
+    tt.style.color = "blue"; tt.innerText = "⏳ Đang chuẩn bị luồng dữ liệu...";
+
+    if (cd === 'file') {
+      let dlte = [];
+      let dem = 0;
+      tt.innerText = `⏳ Đang đọc chuẩn hóa ${tepht.length} file...`;
+      
+      Array.from(tepht).forEach(te => {
+        const do1 = new FileReader();
+        do1.onload = err => {
+          dlte.push({ tetpt: te.name, kieut: te.type, dlgio: err.target.result.split(',')[1] });
+          dem++;
+          
+          if (dem === tepht.length) {
+            tt.innerText = `⏳ Đang đồng bộ ${tepht.length} file lên Hệ thống...`;
+            
+            google.script.run
+            .withSuccessHandler(kq => { xulykqta(kq, tt, nt); })
+            .withFailureHandler(lo => {
+                tt.style.color = "red"; 
+                tt.innerText = "❌ Lỗi mạng hoặc Server: " + lo.message;
+                nt.classList.add('active');
+            })
+            .skt_tainhiu_tep(dlte, mhs, idt, lkcx, cdg); 
+          }
+        };
+        do1.readAsDataURL(te);
+      });
+    } else {
+      const tent = tepht[0].webkitRelativePath.split('/')[0];
+      let dlte = [];
+      let dem = 0;
+      tt.innerText = `⏳ Đang đọc cấu trúc ${tepht.length} file...`;
+      
+      Array.from(tepht).forEach(te => {
+        const do1 = new FileReader();
+        do1.onload = err => {
+          dlte.push({ tetpt: te.name, kieut: te.type, dlgio: err.target.result.split(',')[1] });
+          dem++;
+          
+          if (dem === tepht.length) {
+            tt.innerText = "⏳ Đang đóng gói và gửi lên Drive...";
+            
+            google.script.run
+            .withSuccessHandler(kq => { xulykqta(kq, tt, nt); })
+            .withFailureHandler(lo => {
+                tt.style.color = "red"; 
+                tt.innerText = "❌ Lỗi mạng hoặc Server: " + lo.message;
+                nt.classList.add('active');
+            })
+            .skt_taitm_minhc(idt, tent, dlte, lkcx, cdg); 
+          }
+        };
+        do1.readAsDataURL(te);
+      });
+    }
+  }
+
+  // Kết thúc quy trình và cập nhật dòng dữ liệu
+  function xulykqta(kq, tt, nt) {
+    if (kq.tcon) {
+      tt.style.color = "green"; tt.innerText = "✅ " + kq.tbao;
+      if(typeof trallkch === 'function') {
+          trallkch(kq.lkpt); 
+      }
+      setTimeout(donghopthta, 1000); 
+    } else {
+      tt.style.color = "red"; tt.innerText = "❌ " + kq.tbao;
+      nt.classList.add('active');
+    }
+  }
+</script>

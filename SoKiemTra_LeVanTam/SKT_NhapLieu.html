@@ -1,0 +1,1093 @@
+<style>
+  /* NÂNG CẤP: Giao diện cho ô tìm kiếm Combobox */
+  input[list] {
+      cursor: pointer;
+  }
+  input[list]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.6;
+      transition: 0.2s;
+  }
+  input[list]::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
+  }
+  .cell-input::placeholder { color: #94a3b8 !important; opacity: 0.5; font-style: italic; font-size: 13px; }
+  #mainTable .cell-input::placeholder { opacity: 0.45; }
+  select.cell-input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231e3a8a%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 5px top 50%; background-size: 8px auto; padding-right: 15px; text-align-last: center; }
+    th { text-align: center !important; vertical-align: middle !important; }
+  .filter-section { grid-template-columns: 220px 220px 220px 175px 1fr !important; }
+
+  /* Hiệu ứng trích xuất từ ReactBits (Shiny Button Effect) */
+  .reactbits-btn {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .reactbits-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -150%; width: 50%; height: 100%;
+      background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+      transform: skewX(-25deg);
+      transition: all 0.5s ease;
+  }
+  .reactbits-btn:hover::before {
+      animation: reactbits-shine 1.5s infinite;
+  }
+  .reactbits-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+  }
+  @keyframes reactbits-shine {
+      0% { left: -150%; }
+      100% { left: 200%; }
+  }
+ 
+</style>
+
+<div id="main_content">
+  <div class="header-card">
+   <h1 id="title_nhaplieu" style="text-align:center; color:var(--brand-red); margin-top:0; font-family: 'Times New Roman', serif; font-size: 22px; font-weight: bold;">ĐANG ĐỒNG BỘ DỮ LIỆU...</h1>
+<div class="filter-section">
+      <div class="f-item">
+        <span>Giáo viên</span>
+        <input id="cbGiaoVien" list="list_cbGiaoVien" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="khindthd('GV')" onclick="this.select(); try{this.showPicker();}catch(e){}" autocomplete="off">
+        <datalist id="list_cbGiaoVien"></datalist>
+      </div>
+      <div class="f-item">
+        <span>Người kiểm tra</span>
+        <input id="cbNguoiKiemTra" list="list_cbNguoiKiemTra" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="khindthd('NKT')" onclick="this.select(); try{this.showPicker();}catch(e){}" autocomplete="off">
+        <datalist id="list_cbNguoiKiemTra"></datalist>
+      </div>
+      <div class="f-item">
+        <span>Bộ phận</span>
+        <input id="cbBoPhan" list="list_cbBoPhan" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="capnmab()" onclick="this.select(); try{this.showPicker();}catch(e){}" autocomplete="off">
+        <datalist id="list_cbBoPhan"></datalist>
+      </div>
+      <div class="f-item">
+        <span>Mã bộ phận</span>
+        <input type="text" id="txtMaBoPhan" class="f-input" readonly style="background:#f3f4f6; text-align:center;">
+      </div>
+      <div class="f-item">
+        <span>Mã hồ sơ <button id="btnRefreshMaHoSo" class="refresh-btn" title="Cập nhật danh sách" onclick="lammdsm()">↻</button></span>
+        <input id="cbMaHoSo" list="list_cbMaHoSo" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="khindthd('MAHS')" onclick="this.select(); try{this.showPicker();}catch(e){}" autocomplete="off">
+        <datalist id="list_cbMaHoSo"></datalist>
+      </div>
+    </div>
+        <div class="status-stepper">
+      <div id="step1" class="step active">1. CHỜ CHỌN</div>
+      <div id="step2" class="step">2. NẠP DỮ LIỆU</div>
+      <div id="step3" class="step">3. PHÂN QUYỀN</div>
+      <div id="step4" class="step">4. SẴN SÀNG</div>
+      <button id="btnSubmit" class="btn-row btn-submit reactbits-btn" onclick="xulyno()">NỘP KẾT QUẢ</button>
+      <button id="btnReset" class="btn-row btn-reset reactbits-btn" onclick="datlbie()">LÀM MỚI</button>
+      <span id="user_display"></span>
+    </div>
+  </div>
+ <div class="table-container">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th style="width:35px; text-align:center;">🗑️</th>
+          <th style="width:40px">STT</th>
+          <th style="width:110px">Thời gian</th>
+          <th style="width:140px">Nội dung</th>
+          <th style="width:205px">Ưu điểm</th>
+          <th style="width:195px">Tồn tại</th>
+          <th style="width:180px">Biện pháp</th>
+          <th style="width:55px">XL HS</th>
+          <th style="width:55px">XL GD</th>
+          <th style="width:55px">XL KS</th>
+          <th style="width:55px">XL khác</th>
+          <th style="width:180px">Ý kiến người được KT</th>
+          <th style="width:135px">Ký tên</th>
+          <th style="width:100px">Hồ sơ</th>
+          <th style="width:120px">Mã HS</th>
+        </tr>
+      </thead>
+      <tbody id="tableContent"></tbody>
+    </table>
+    <div class="add-row-container">
+        <button type="button" class="btn-add-row reactbits-btn" onclick="themdongmo()"><span>➕</span> Thêm dòng</button>
+    </div>
+  </div>
+
+  <button id="btnSave" class="btn-save reactbits-btn" onclick="xulylu()">LƯU KẾT QUẢ</button>
+  <div style="clear:both"></div>
+
+  <div id="customConfirmModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-title"><span style="font-size: 20px; margin-right: 2px;">⚠️</span><span>QUAN TRỌNG</span></div>
+      Bạn có chắc chắn muốn xóa?
+      <div class="modal-text">Dữ liệu dòng này (và các file đính kèm) trong <b>'NHATKY'</b> sẽ bị xóa vĩnh viễn!<br>Hành động này không thể hoàn tác.</div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="donghthx()">Không xóa</button>
+        <button class="btn-confirm" onclick="xulyxo()">Có xóa</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="modal_overlay_nhap" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <div id="modal_message_nhap" class="modal-text" style="font-weight:bold; margin-top:15px; font-size:16px;"></div>
+      <button class="btn-cancel" onclick="donghth()">ĐÓNG</button>
+    </div>
+  </div>
+
+  <div id="ai_prompt_modal" class="modal-overlay" style="display: none;">
+    <div class="modal-box" style="width: 480px; text-align: left;">
+      <div class="modal-title" style="text-align: center; margin-bottom: 15px;"><span style="font-size: 22px; margin-right: 5px;">🤖</span><span style="font-weight:bold; color: #1e3a8a;">GIAO VIỆC CHO TRỢ LÝ AI</span></div>
+      
+      <div style="font-size: 13px; margin-bottom: 15px; color: #334155; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px dashed #cbd5e1;">
+        <b style="color: #b91c1c;">💡 Hướng dẫn ra lệnh:</b><br>
+        <ul style="margin-top: 5px; margin-bottom: 0; padding-left: 20px;">
+            <li><b>Mặc định (bỏ trống):</b> AI sẽ tự động phân tích và ghi nhận xét chung vào cả 3 cột (Ưu điểm, Tồn tại, Biện pháp).</li>
+            <li><b>Chỉ định cột:</b> Viết <i>"Chỉ ghi nhận xét vào cột ưu điểm"</i> hoặc <i>"Tìm lỗi sai để ghi vào tồn tại, bỏ qua các cột khác"</i>.</li>
+            <li><b>Tập trung chuyên môn:</b> Viết <i>"Nhận xét chi tiết về kỹ thuật dạy học hoặc phương pháp tổ chức..."</i>.</li>
+        </ul>
+      </div>
+      
+      <textarea id="ai_prompt_input" class="cell-input" oninput="tudochk(this)" style="width: 100%; min-height: 90px; border: 1px solid #94a3b8; border-radius: 4px; padding: 10px; font-family: 'Times New Roman'; box-sizing: border-box; overflow-y: hidden;" placeholder="Nhập yêu cầu của thầy/cô vào đây (có thể để trống)..."></textarea>
+      
+      <div class="modal-actions" style="margin-top: 20px; text-align: center;">
+        <button class="btn-cancel" onclick="dong_ai_modal()">Hủy bỏ</button>
+        <button class="btn-confirm reactbits-btn" style="background: #10b981;" onclick="xac_nhan_ai()">Bắt đầu phân tích tài liệu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- ĐỒNG BỘ ĐỊNH DANH GIAO DIỆN ---
+  (function dongBoNhanDien() {
+      setTimeout(function() {
+          try {
+              const tieuDe = document.getElementById('title_nhaplieu');
+              if (tieuDe && typeof SKT_TEN_PM_UP !== 'undefined') {
+                  tieuDe.innerText = SKT_TEN_PM_UP + " - " + SKT_TEN_TRUONG_UP;
+              }
+          } catch(e) {}
+      }, 50);
+  })();
+
+  // --- LOGIC HOẠT ĐỘNG ---
+  let tknd = window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || ""; 
+  let dlgvi = [], dlnktra = [], dlbpha = {}, dlmhso = [];
+  let donghtta = null; 
+  let dongcxoa = null; 
+  let btn_ai_dang_cho = null; 
+
+  window.SKT_AI_CACHE = window.SKT_AI_CACHE || {};
+
+  function chuanhchu(ch) {
+      if (!ch) return "";
+      return String(ch).normalize("NFC").toLowerCase().replace(/[\s\uFEFF\xA0]+/g, '');
+  }
+
+// 4. Nâng cấp hàm set dữ liệu tự động (Nhận diện tự động Input hoặc Select)
+  function dathopc(idd, gt) {
+      const pht = document.getElementById(idd);
+      if(!pht) return;
+      if (pht.tagName.toLowerCase() === 'input') {
+          pht.value = gt || ""; // Trả thẳng giá trị vào thẻ input
+      } else {
+          // Tương thích ngược với các thẻ select cũ nếu còn
+          const t1 = chuanhchu(gt);
+          for(let iso = 0; iso < pht.options.length; iso++) {
+              if(chuanhchu(pht.options[iso].text) === t1 || chuanhchu(pht.options[iso].value) === t1) {
+                  pht.selectedIndex = iso; return;
+              }
+          }
+          if(gt && gt.trim() !== "") { pht.add(new Option(gt, gt)); pht.selectedIndex = pht.options.length - 1; }
+      }
+  }
+
+  function layngayh() {
+      const ng = new Date();
+      return `${String(ng.getDate()).padStart(2, '0')}/${String(ng.getMonth() + 1).padStart(2, '0')}/${ng.getFullYear()}`;
+  }
+
+  function dien_ai_nhanxet(uu, ton, bp) {
+      if (donghtta) {
+          const cacn = donghtta.querySelectorAll('.cell-input');
+          if(uu && uu.trim() !== "")  cacn[2].value = uu;
+          if(ton && ton.trim() !== "") cacn[3].value = ton;
+          if(bp && bp.trim() !== "")  cacn[4].value = bp;
+          
+          tudochk(cacn[2]); 
+          tudochk(cacn[3]); 
+          tudochk(cacn[4]);
+      }
+  }
+
+  function goi_ai_nhanxet(btn) {
+      donghtta = btn.closest('tr');
+      const nhlk = donghtta.querySelector('.link-input');
+      const lk = nhlk ? nhlk.value : "";
+      
+      if (!lk) { hienhth("⚠️ Dòng này chưa có link minh chứng để AI đọc!"); return; }
+      
+      btn_ai_dang_cho = btn;
+      let promptInput = document.getElementById('ai_prompt_input');
+      promptInput.value = ""; 
+      tudochk(promptInput); 
+      document.getElementById('ai_prompt_modal').style.display = 'flex';
+  }
+
+  function dong_ai_modal() {
+      document.getElementById('ai_prompt_modal').style.display = 'none';
+      btn_ai_dang_cho = null;
+  }
+
+  function xac_nhan_ai() {
+      if (!btn_ai_dang_cho) return;
+      const btn = btn_ai_dang_cho;
+      const prompt = document.getElementById('ai_prompt_input').value.trim();
+      
+      dong_ai_modal(); 
+
+      const nhlk = donghtta.querySelector('.link-input');
+      const lk = nhlk ? nhlk.value : "";
+
+      const cacheKey = "EXTRACT_" + lk + "_" + prompt.toLowerCase();
+      if (window.SKT_AI_CACHE[cacheKey]) {
+          const c = window.SKT_AI_CACHE[cacheKey];
+          dien_ai_nhanxet(c.uu, c.ton, c.bp);
+          const originalText = btn.innerHTML;
+          btn.innerHTML = "✅ Xong (Tức thì)";
+          btn.style.background = "#059669";
+          setTimeout(() => {
+              btn.innerHTML = originalText;
+              btn.style.background = "#10b981";
+          }, 3000);
+          return;
+      }
+
+      const originalText = btn.innerHTML;
+      btn.innerHTML = "⏳ Đang đọc...";
+      btn.disabled = true;
+      btn.style.background = "#6b7280";
+
+      google.script.run
+      .withSuccessHandler(aikq => {
+          if (aikq.tcon) {
+              window.SKT_AI_CACHE[cacheKey] = {uu: aikq.uudiem, ton: aikq.tontai, bp: aikq.bienphap};
+              dien_ai_nhanxet(aikq.uudiem, aikq.tontai, aikq.bienphap);
+              btn.innerHTML = "✅ Xong";
+              btn.style.background = "#059669";
+          } else {
+              hienhth("⚠️ AI: " + aikq.tbao);
+              btn.innerHTML = originalText;
+              btn.style.background = "#10b981";
+          }
+          btn.disabled = false;
+          setTimeout(() => {
+              if(btn.innerHTML === "✅ Xong") {
+                  btn.innerHTML = originalText;
+                  btn.style.background = "#10b981";
+              }
+          }, 3000);
+      })
+      .withFailureHandler(err => {
+          hienhth("❌ Lỗi kết nối AI: " + err.message);
+          btn.innerHTML = originalText;
+          btn.style.background = "#10b981";
+          btn.disabled = false;
+      })
+      .skt_pt_mc_ai(lk, prompt);
+  }
+
+function trallkch(ddn) {
+    if (!donghtta) return;
+    const oo = donghtta.querySelector('.evidence-cell');
+    const nh = donghtta.querySelector('.link-input');
+    const vg = donghtta.querySelector('.link-display-area');
+    const nt = donghtta.querySelector('.btn-upload-icon'); 
+
+    if (ddn && ddn.trim()) {
+        nh.value = ddn;
+        oo.classList.add('evidence-uploaded'); 
+        
+        if(nt) nt.style.display = 'none'; 
+        
+       const clk = ddn.split(',').filter(l => l.trim() !== "");
+        let htlk = clk.map((l1, c1) => 
+            `<a href="javascript:void(0)" onclick="moKhungXemTep('${l1}')" style="display:block; color:#0369a1; text-decoration:none; font-size:11px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📎 File ${c1 + 1}</a>`
+        ).join('');
+
+        vg.innerHTML = `
+            <div style="max-height:60px; overflow-y:auto; margin-bottom:5px;">${htlk}</div>
+            <div style="display: flex; gap: 4px; align-items: stretch; justify-content: space-between;">
+                <button class="btn-ai-nhanxet reactbits-btn" onclick="goi_ai_nhanxet(this)" style="flex: 1; background:#10b981; color:white; border:none; border-radius:3px; padding:4px 2px; font-size:11px; cursor:pointer; font-weight:bold; white-space: normal; line-height: 1.2; word-wrap: break-word;">🤖 AI</button>
+                <button class="btn-upload-icon reactbits-btn" onclick="kichhta(this)" style="flex: 1; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; padding:4px 2px; font-size:11px; cursor:pointer; color:#333; font-weight:bold; white-space: normal; line-height: 1.2; word-wrap: break-word;">📎File</button>
+            </div>`;
+    } else {
+        nh.value = "";
+        oo.classList.remove('evidence-uploaded');
+        if(nt) {
+            nt.style.display = 'inline-block';
+            nt.innerHTML = '📎';
+            nt.style.whiteSpace = 'normal'; 
+        }
+        vg.innerHTML = "";
+    }
+    
+    kiemtlqsu(donghtta);
+}
+
+  function kichhta(nt) {
+      const dg = nt.closest('tr');
+      const npnd = dg.querySelectorAll('.cell-input')[1]; 
+      if (!npnd || !npnd.value.trim()) {
+          hienhth("⚠️ Vui lòng nhập 'Nội dung' kiểm tra trước khi đính kèm minh chứng!");
+          npnd.focus(); return;
+      }
+      donghtta = dg;
+      const nplk = dg.querySelector('.link-input'); 
+      if (typeof mohopthta === 'function') mohopthta(nplk ? nplk.value : ""); 
+      else hienhth("⚠️ Chưa tải được chức năng upload!"); 
+  }
+
+/* ========================================================================== */
+/* ĐỒNG BỘ: KHI ĐÍNH KÈM MINH CHỨNG, DÙNG SYS_QUYEN ĐỂ KIỂM TRA NHANH         */
+/* ========================================================================== */
+function kiemtlqsu(dg) {
+    const sysQ = window.SYS_QUYEN || {};
+    const selectedNKT = document.getElementById('cbNguoiKiemTra').value;
+    
+    const isSelectedInspector = (sysQ.tenNKT_Cua_User && chuanhchu(sysQ.tenNKT_Cua_User) === chuanhchu(selectedNKT) && selectedNKT !== "");
+    const quyenQuanTri = sysQ.isSuperAdmin;
+    
+    const cacn = dg.querySelectorAll('.cell-input');
+    const isSigned = (cacn && cacn.length > 10 && cacn[9] && cacn[9].value.trim() !== "" && cacn[10] && cacn[10].value.trim() !== "");
+    const rowLocked = isSigned && !quyenQuanTri;
+
+    const ntai = dg.querySelector('.btn-ai-nhanxet');
+    
+    if(ntai) {
+        if (rowLocked) {
+            ntai.style.display = 'none';
+        } else if(isSelectedInspector || quyenQuanTri) {
+            ntai.style.display = 'inline-block'; 
+        } else {
+            ntai.style.display = 'none'; 
+        }
+    }
+}
+/* ========================================================================== */
+/* NÂNG CẤP: THUẬT TOÁN LOAD QUYỀN VÀ RENDER UI TỐC ĐỘ O(1)                   */
+/* CHÚ THÍCH: Đưa toàn bộ tính toán quyền hạn vào bộ đệm window.SYS_QUYEN     */
+/* ========================================================================== */
+function taidli() {
+    chuyentxo('initial', true);
+
+    if (!window.ruongbac) return;
+
+    dlgvi = window.ruongbac.conmeo || []; 
+    dlnktra = window.ruongbac.chocon || []; 
+    dlbpha = window.ruongbac.caitui || {}; 
+    
+    tknd = window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || "";
+    document.getElementById('user_display').innerText = "Đăng nhập: " + tknd;
+
+    dienho('cbGiaoVien', dlgvi); 
+    dienho('cbNguoiKiemTra', dlnktra); 
+    dienhopd('cbBoPhan', Object.keys(dlbpha)); 
+
+    // THUẬT TOÁN MỚI: Xây dựng bộ đệm quyền hạn (Role Cache) 1 LẦN DUY NHẤT
+    let emcan = chuanhchu(tknd);
+    const q_h_t = String(window.sktquyenht).trim().toLowerCase();
+    
+    window.SYS_QUYEN = {
+        quyenQuanTri: (q_h_t === 'x' || q_h_t === 'xx' || q_h_t === 'xxx'),
+        isSuperAdmin: (q_h_t === 'xx' || q_h_t === 'xxx'),
+        isQuyenX: (q_h_t === 'x'),
+        tenGV_Cua_User: "",
+        tenNKT_Cua_User: "",
+        isNKT_System: false
+    };
+
+    // Quét mảng tìm tên định danh (Chỉ quét 1 lần)
+    for (let i = 0; i < dlgvi.length; i++) {
+        if (chuanhchu(dlgvi[i].taik) === emcan) { window.SYS_QUYEN.tenGV_Cua_User = dlgvi[i].tenn; break; }
+    }
+    for (let i = 0; i < dlnktra.length; i++) {
+        if (chuanhchu(dlnktra[i].taik) === emcan) { 
+            window.SYS_QUYEN.isNKT_System = true; 
+            window.SYS_QUYEN.tenNKT_Cua_User = dlnktra[i].tenn;
+            break; 
+        }
+    }
+
+    const hpgv = document.getElementById('cbGiaoVien');
+
+    if (window.SYS_QUYEN.tenGV_Cua_User && !window.SYS_QUYEN.isNKT_System && !window.SYS_QUYEN.quyenQuanTri) {
+        // ĐỐI VỚI NGƯỜI ĐƯỢC KIỂM TRA
+        hpgv.value = ""; 
+        hpgv.disabled = true;
+        document.getElementById('cbNguoiKiemTra').disabled = true;
+        document.getElementById('cbBoPhan').disabled = true;
+        document.getElementById('txtMaBoPhan').disabled = true;
+    } else if (window.SYS_QUYEN.tenGV_Cua_User) {
+        // ĐỐI VỚI NGƯỜI KIỂM TRA / QUẢN TRỊ
+        dathopc('cbGiaoVien', window.SYS_QUYEN.tenGV_Cua_User);
+    }
+
+    chuyentxo('initial', false); 
+    dattr(1);
+    
+    apdquye();
+}
+  
+/* ========================================================================== */
+/* HÀM APPLY QUYỀN LÊN LƯỚI - TỐC ĐỘ THỰC THI < 5ms (Giảm tải Main Thread)    */
+/* ========================================================================== */
+function apdquye() {
+    // 1. Gọi bộ đệm hệ thống (O(1))
+    const sysQ = window.SYS_QUYEN || {};
+    
+    let isRecordSigned = false;
+    let hasNoiDung = false; 
+
+    const danhSachDong = document.querySelectorAll('#tableContent tr');
+    danhSachDong.forEach(dg => {
+        const cacn = dg.querySelectorAll('.cell-input');
+        
+        if (cacn && cacn.length > 1) {
+            if (!cacn[1].hasAttribute('data-bind-apd')) {
+                cacn[1].addEventListener('blur', apdquye);
+                cacn[1].setAttribute('data-bind-apd', 'true');
+            }
+            if (cacn[1].value.trim() !== "") hasNoiDung = true;
+        }
+
+        if (cacn && cacn.length > 10) {
+            if (cacn[9] && cacn[9].value.trim() !== "" && cacn[10] && cacn[10].value.trim() !== "") {
+                isRecordSigned = true;
+            }
+        }
+    });
+
+    const selectedGV = document.getElementById('cbGiaoVien').value;
+    const selectedNKT = document.getElementById('cbNguoiKiemTra').value;
+    const selectedBP = document.getElementById('cbBoPhan').value;
+    
+    const duThongTin = (selectedGV !== "" && selectedNKT !== "" && selectedBP !== "");
+
+    // So sánh quyền bằng cache, không gọi vòng lặp
+    const isOwner = (sysQ.tenGV_Cua_User && chuanhchu(sysQ.tenGV_Cua_User) === chuanhchu(selectedGV) && selectedGV !== "");
+    const isSelectedInspector = (sysQ.tenNKT_Cua_User && chuanhchu(sysQ.tenNKT_Cua_User) === chuanhchu(selectedNKT) && selectedNKT !== "");
+    
+    const isInspectorRole = (sysQ.isSuperAdmin || sysQ.isQuyenX || sysQ.isNKT_System);
+    const isHistoryLoaded = (document.getElementById('cbMaHoSo').value !== "");
+
+    // 2. Điều khiển trạng thái Bộ lọc khóa/mở
+    const filters = document.querySelectorAll('#main_content .f-input');
+    filters.forEach(input => {
+        if (input.id === 'cbMaHoSo') {
+            input.disabled = false; 
+        } else {
+            input.disabled = (isHistoryLoaded || isRecordSigned || hasNoiDung) ? true : !isInspectorRole;
+        }
+    });
+
+    const duocPhepCapNhatFile = (sysQ.isSuperAdmin || (sysQ.isQuyenX && isSelectedInspector) || isOwner);
+
+    // 3. Khóa/Mở lưới dữ liệu nhập liệu
+    danhSachDong.forEach(dg => {
+        const cacn = dg.querySelectorAll('.cell-input');
+        
+        cacn.forEach((input, index) => {
+            if (isRecordSigned) {
+                input.disabled = true; 
+            } else {
+                input.disabled = true; // Khóa mặc định chờ đủ điều kiện
+                
+                if (sysQ.isSuperAdmin) {
+                    input.disabled = (index !== 9 && index !== 10) ? !duThongTin : false;
+                } 
+                else if (sysQ.isQuyenX && isSelectedInspector) {
+                    if (index !== 9 && index !== 10) input.disabled = !duThongTin; 
+                }
+                else if (isOwner) {
+                    if (index === 9 || index === 10) input.disabled = false;
+                }
+            }
+        });
+
+        const ntxo = dg.querySelector('.btn-icon-del');
+        if (ntxo) {
+            ntxo.style.visibility = isRecordSigned ? 'hidden' : ((sysQ.isSuperAdmin || (sysQ.isQuyenX && isSelectedInspector)) ? 'visible' : 'hidden');
+        }
+
+        const ntai = dg.querySelector('.btn-ai-nhanxet');
+        if (ntai) {
+            ntai.style.display = isRecordSigned ? 'none' : ((sysQ.isSuperAdmin || (sysQ.isQuyenX && isSelectedInspector)) ? 'inline-block' : 'none');
+        }
+
+        const ntUp = dg.querySelector('.btn-upload-icon');
+        if (ntUp) {
+            ntUp.disabled = isRecordSigned ? !duocPhepCapNhatFile : false;
+        }
+    });
+    
+    // 4. Quản lý trạng thái các nút lệnh thực thi tác vụ
+    const btnSave = document.getElementById('btnSave');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const addRowBtn = document.querySelector('.add-row-container');
+
+    if (isRecordSigned) {
+        if (btnSave) btnSave.disabled = !duocPhepCapNhatFile;
+        if (addRowBtn) addRowBtn.style.display = 'none';
+        if (btnSubmit) btnSubmit.disabled = !(sysQ.isSuperAdmin || (sysQ.isQuyenX && isSelectedInspector));
+    } else {
+        if (sysQ.isSuperAdmin || (sysQ.isQuyenX && isSelectedInspector)) {
+            if (btnSave) btnSave.disabled = false;
+            if (btnSubmit) btnSubmit.disabled = false;
+            if (addRowBtn) addRowBtn.style.display = 'block';
+        } else if (isOwner) {
+            if (btnSave) btnSave.disabled = false;
+            if (btnSubmit) btnSubmit.disabled = true;
+            if (addRowBtn) addRowBtn.style.display = 'none';
+        } else {
+            if (btnSave) btnSave.disabled = true;
+            if (btnSubmit) btnSubmit.disabled = true;
+            if (addRowBtn) addRowBtn.style.display = 'none';
+        }
+    }
+}
+  
+function khindthd(lo) {
+    if ((lo === 'GV' || lo === 'NKT') && kiemttrem(lo)) return;
+    
+    // 👉 NÂNG CẤP: Xóa sạch bảng, reset mã hồ sơ và tạo dòng mới khi đổi Giáo viên hoặc Người kiểm tra
+    if (lo === 'GV' || lo === 'NKT') {
+        document.getElementById('tableContent').innerHTML = "";
+        document.getElementById('cbMaHoSo').value = "";
+        themdongmo();
+    }
+
+    if (lo === 'GV') capnticd();
+    const hp = document.getElementById('cbMaHoSo');
+
+    if (lo === 'MAHS' && hp.value) {
+        dattr(2);
+
+        // THUẬT TOÁN MỚI: QUÉT TRỰC TIẾP TRÊN RAM TRÌNH DUYỆT
+        const ma_tim = hp.value.trim().toLowerCase();
+        const kq = (window.skt_kho_nhatky || []).filter(hang =>
+            hang[16] && hang[16].toString().trim().toLowerCase() === ma_tim
+        );
+
+        if (kq && kq.length > 0) {
+            const bg = kq;
+
+            let emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+            let tgvc = dlgvi.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
+            let tnktc = dlnktra.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
+            
+            const bggv = String(bg[0][0] || ""); 
+            const bgnkt = String(bg[0][1] || ""); 
+            
+            const q_h_t = String(window.sktquyenht || "").trim().toLowerCase();
+            const quyenQuanTri = (q_h_t === 'xx' || q_h_t === 'xxx');
+
+            // 👉 NÂNG CẤP: Chặn load nếu không phải Admin, không phải NKT của hồ sơ này, và không phải GV của hồ sơ này
+            const laGVcuaHoSo = (tgvc && chuanhchu(bggv) === chuanhchu(tgvc));
+            const laNKTcuaHoSo = (tnktc && chuanhchu(bgnkt) === chuanhchu(tnktc));
+
+            if (!quyenQuanTri && !laGVcuaHoSo && !laNKTcuaHoSo) {
+                hienhth("⛔ BẠN KHÔNG CÓ QUYỀN TẢI HỒ SƠ NÀY VÌ KHÔNG PHẢI LÀ NGƯỜI KIỂM TRA HOẶC NGƯỜI ĐƯỢC KIỂM TRA TRONG BIÊN BẢN!");
+                datlbie();
+                return;
+            }
+
+            dienbgw(bg);
+            dattr(3);
+            ['cbGiaoVien','cbNguoiKiemTra','cbBoPhan'].forEach(idd=>document.getElementById(idd).disabled=true);
+            setTimeout(() => { apdquye(); dattr(4); }, 300);
+        } else {
+            dattr(1);
+        }
+    } else {
+        apdquye();
+    }
+}
+//======================================================================================================
+// NÂNG CẤP: Hàm kiểm tra sự kiện nhập liệu cột Ký tên (Căn chỉnh lại lề cho Icon SVG)
+function kiemTraKyTen(o_nhap) {
+    const td = o_nhap.closest('td');
+    const icon = td.querySelector('.icon-check-ky');
+    if (icon) {
+        if (o_nhap.value.trim() !== "") {
+            icon.style.display = 'inline-flex';
+            o_nhap.style.paddingLeft = '28px'; 
+        } else {
+            icon.style.display = 'none';
+            o_nhap.style.paddingLeft = '5px';
+        }
+    }
+}
+
+// NÂNG CẤP: Thay thế emoji bằng Mã nhúng đồ họa (SVG) chuẩn xác theo hình ảnh
+function themdongmo(dld = null) {
+  const datg = new Date().getTime().toString().slice(-5);
+  const idng = Math.floor(Math.random() * 1000); 
+  const tbg = document.getElementById('tableContent');
+  const dmo = document.createElement('tr');
+  
+  if (!dld) dmo.setAttribute('data-isnew', '1');
+  
+  const tchs = '<option value=""></option><option value="Tốt">Tốt</option><option value="Khá">Khá</option><option value="TB">TB</option>';
+  const tcgd = '<option value=""></option><option value="Giỏi">Giỏi</option><option value="Khá">Khá</option><option value="TB">TB</option><option value="Yếu">Yếu</option>';
+  const tcks = '<option value=""></option><option value="Tốt">Tốt</option><option value="Khá">Khá</option><option value="Đạt">Đạt</option><option value="Yếu">Yếu</option>';
+  const tckh = '<option value=""></option><option value="Tốt">Tốt</option><option value="Khá">Khá</option><option value="TB">TB</option><option value="Chưa đạt">Chưa đạt</option>';
+
+  dmo.innerHTML = `
+    <td style="text-align:center;vertical-align:middle"><button class="btn-icon-del" onclick="xoado(this)" title="Xóa dòng">🗑️</button></td>
+    <td style="text-align:center;vertical-align:middle" class="stt-cell"></td>
+    <td><input class="cell-input text-center" value="${layngayh()}" oninput="dinhdng(event)" placeholder="dd/mm/yyyy" disabled></td>
+    <td><textarea class="cell-input" rows="1" oninput="tudochk(this)" disabled></textarea></td>
+    <td><textarea class="cell-input" rows="1" oninput="tudochk(this)" disabled></textarea></td>
+    <td><textarea class="cell-input" rows="1" oninput="tudochk(this)" disabled></textarea></td>
+    <td><textarea class="cell-input" rows="1" oninput="tudochk(this)" disabled></textarea></td>
+    <td><select class="cell-input text-center" disabled>${tchs}</select></td>
+    <td><select class="cell-input text-center" disabled>${tcgd}</select></td>
+    <td><select class="cell-input text-center" disabled>${tcks}</select></td>
+    <td><select class="cell-input text-center" disabled>${tckh}</select></td>
+    <td><textarea class="cell-input text-center" rows="1" oninput="tudochk(this)" style="text-align:center; padding-top:10px;" placeholder="(Ý kiến của giáo viên)" disabled></textarea></td>
+    
+    <td style="position: relative;">
+        <span class="icon-check-ky" style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); display: none; align-items: center; justify-content: center; pointer-events: none; z-index: 10;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="7 12 11 16 17 9"></polyline>
+            </svg>
+        </span>
+        <textarea class="cell-input text-center input-ky-ten" rows="1" oninput="kiemTraKyTen(this); tudochk(this);" style="text-align:center; padding-top:10px; overflow:hidden;" placeholder="(Ghi họ và tên)" disabled></textarea>
+    </td>
+
+    <td style="text-align:center;vertical-align:middle; padding:5px;" class="evidence-cell">
+        <input type="hidden" class="cell-input link-input">
+        <div class="link-display-area" style="width:100%;"></div>
+        <button class="btn-upload-icon reactbits-btn" onclick="kichhta(this)" title="Chèn minh chứng">📎</button>
+    </td>
+    <td class="ma-ho-so-cell">MS-${datg}-${idng}</td>
+  `;
+  tbg.appendChild(dmo);
+  capnst(); capnticd();
+  
+  if(dld) {
+     const cacn = dmo.querySelectorAll('.cell-input');
+     for(let iso = 0; iso <= 10; iso++) cacn[iso].value = dld[iso+4] || ""; 
+     const ddnlk = dld[15]||"";
+     if(ddnlk) { donghtta = dmo; trallkch(ddnlk); }
+     dmo.querySelector('.ma-ho-so-cell').innerText = dld[16]||`MS-${datg}-${idng}`;
+     dmo.querySelectorAll('textarea').forEach(t1 => {
+         tudochk(t1);
+         if(t1.classList.contains('input-ky-ten')) kiemTraKyTen(t1);
+     });
+  }
+  apdquye();
+}
+//=======================================================================
+  function xulylu() { if(hopllu()) thuchms("skt_luubg_nha", document.getElementById('btnSave'), "LƯU KẾT QUẢ"); }
+  
+  function xulyno() { 
+      const quyenQuanTri = (String(window.sktquyenht).trim().toLowerCase() === 'xx');
+      if (quyenQuanTri) {
+          hienhth("⛔ Bạn không có quyền nộp hồ sơ.");
+          return;
+      }
+      if(hoplno()) thuchms("skt_nopbg_cuo", document.getElementById('btnSubmit'), "NỘP KẾT QUẢ"); 
+  }
+
+/* ========================================================================== */
+// 5. Cập nhật nhỏ trong hàm thuchms (Khắc phục lỗi đọc .options của Select cũ)
+/* ========================================================================== */
+function thuchms(ha, nt, ch) {
+    const con_trau_nuoc = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+    const hop_dien_thoai = document.getElementById('cbGiaoVien');
+    const hop_may_tinh = document.getElementById('cbNguoiKiemTra');
+    
+    // NÂNG CẤP: Đọc giá trị trực tiếp từ .value vì các ô này nay đã là thẻ <input>
+    const qua_chuoi_chin = String(hop_dien_thoai.value || "").trim();
+    const qua_dua_hau = String(hop_may_tinh.value || "").trim();
+    
+    const cai_ban_go = String(window.sktquyenht || "").trim().toLowerCase();
+    const quyen_toi_cao = (cai_ban_go === 'xxx'); 
+    
+    const nguoi_cam_can = dlnktra.some(chau_chau => chuanhchu(chau_chau.taik) === con_trau_nuoc && chuanhchu(chau_chau.tenn) === chuanhchu(qua_dua_hau));
+    const nguoi_len_thot = dlgvi.some(cao_cao => chuanhchu(cao_cao.taik) === con_trau_nuoc && chuanhchu(cao_cao.tenn) === chuanhchu(qua_chuoi_chin));
+
+    // ĐỒNG BỘ: Kiểm tra lệnh Nộp là "skt_nopbg_cuo"
+    const isSubmit = (ha === "skt_nopbg_cuo");
+    
+    if (isSubmit) {
+        // Kiểm tra quyền nộp (Chỉ người kiểm tra hoặc quản trị cao nhất)
+        const canSubmit = (nguoi_cam_can && (cai_ban_go === 'x' || cai_ban_go === 'xx' || cai_ban_go === 'xxx')) || quyen_toi_cao;
+        if (!canSubmit) {
+            hienhth("⛔ Bạn không có quyền nộp hồ sơ");
+            return;
+        }
+    } else {
+        // Kiểm tra quyền chỉnh sửa/lưu
+        const canSave = (nguoi_cam_can || nguoi_len_thot || quyen_toi_cao);
+        if (!canSave) {
+            hienhth("⛔ LỖI PHÂN QUYỀN: Thầy/Cô không có quyền chỉnh sửa hồ sơ này!");
+            return; 
+        }
+    }
+
+    const gia_vi_1 = hop_dien_thoai.value;
+    const gia_vi_2 = hop_may_tinh.value;
+    const gia_vi_3 = document.getElementById('cbBoPhan').value;
+    const gia_vi_4 = document.getElementById('txtMaBoPhan').value;
+    const thung_chua_do = [];
+    
+    // Quét dữ liệu trên lưới
+    document.querySelectorAll('#tableContent tr').forEach(dong_chay => {
+        const cac_hat_tieu = dong_chay.querySelectorAll('.cell-input');
+        const ma_the_bai = dong_chay.querySelector('.ma-ho-so-cell');
+        
+        if (cac_hat_tieu && cac_hat_tieu.length >= 12) {
+            thung_chua_do.push([
+                gia_vi_1, gia_vi_2, gia_vi_3, gia_vi_4, 
+                cac_hat_tieu[0] ? cac_hat_tieu[0].value : "", 
+                cac_hat_tieu[1] ? cac_hat_tieu[1].value : "", 
+                cac_hat_tieu[2] ? cac_hat_tieu[2].value : "", 
+                cac_hat_tieu[3] ? cac_hat_tieu[3].value : "", 
+                cac_hat_tieu[4] ? cac_hat_tieu[4].value : "", 
+                cac_hat_tieu[5] ? cac_hat_tieu[5].value : "", 
+                cac_hat_tieu[6] ? cac_hat_tieu[6].value : "", 
+                cac_hat_tieu[7] ? cac_hat_tieu[7].value : "", 
+                cac_hat_tieu[8] ? cac_hat_tieu[8].value : "", 
+                cac_hat_tieu[9] ? cac_hat_tieu[9].value : "", 
+                cac_hat_tieu[10] ? cac_hat_tieu[10].value : "", 
+                cac_hat_tieu[11] ? cac_hat_tieu[11].value : "", 
+                ma_the_bai ? ma_the_bai.innerText.trim() : ""
+            ]);
+        }
+    });
+
+    if (thung_chua_do.length === 0) {
+        hienhth("⚠️ Không có dữ liệu hợp lệ trên lưới để xử lý!");
+        return;
+    }
+    
+    nt.disabled = true; 
+    nt.innerText = "⏳ XỬ LÝ..."; 
+    nt.classList.add('loading-spin');
+    
+    // Nếu là lệnh nộp, chạy logic "Lưu nền (Lệnh 1) cõng Nộp (Lệnh 2)"
+    if (isSubmit) {
+        google.script.run
+        .withSuccessHandler(kq_luu => {
+            if(typeof kq_luu === 'string' && (kq_luu.includes("⚠️") || kq_luu.includes("❌"))) { 
+                 nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
+                 hienhth(kq_luu);
+                 return;
+            }
+            google.script.run
+            .withSuccessHandler(kq_nop => {
+                nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
+                hienhth(kq_nop);
+                if(typeof kq_nop === 'string' && !kq_nop.includes("⚠️") && !kq_nop.includes("❌")) { 
+                    setTimeout(lammdsm, 500); 
+                    datlbie(); 
+                }
+            })
+            .withFailureHandler(lo_nop => {
+                nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
+                hienhth("❌ Lỗi nộp báo cáo: " + lo_nop.message);
+            }).skt_nopbg_cuo(thung_chua_do);
+        })
+        .withFailureHandler(lo_luu => {
+            nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
+            hienhth("❌ Lỗi lưu nền hệ thống: " + lo_luu.message);
+        }).skt_luubg_nha(thung_chua_do);
+    } else {
+        // Lưu thường
+        google.script.run
+        .withSuccessHandler(kq => {
+          nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin'); 
+          hienhth(kq);
+          if(typeof kq === 'string' && !kq.includes("⚠️") && !kq.includes("❌")) { 
+              setTimeout(lammdsm, 500); 
+              datlbie(); 
+          }
+        })
+        .withFailureHandler(lo => {
+            nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
+            hienhth("❌ Lỗi đường truyền mạng: " + lo.message);
+        })[ha](thung_chua_do);
+    }
+}
+  function kiemttrem(lo) {
+    const gv = document.getElementById('cbGiaoVien').value;
+    const nkt = document.getElementById('cbNguoiKiemTra').value;
+    if (!gv || !nkt) return false;
+    const egv = dlgvi.find(x1 => chuanhchu(x1.tenn) === chuanhchu(gv))?.taik;
+    const enk = dlnktra.find(x1 => chuanhchu(x1.tenn) === chuanhchu(nkt))?.taik;
+    if (egv && enk && egv === enk) {
+      hienhth("⚠️ LỖI: Tài khoản người kiểm tra và giáo viên trùng nhau!");
+      document.getElementById(lo === 'GV' ? 'cbGiaoVien' : 'cbNguoiKiemTra').value = ""; return true; 
+    }
+    return false;
+  }
+
+  function capnst() { document.querySelectorAll('#tableContent tr').forEach((dg, iso) => dg.querySelector('.stt-cell').innerText = iso + 1); }
+ // 1. Nâng cấp hàm đổ dữ liệu Giáo viên/NKT
+  function dienho(idd, dl) { 
+    const list = document.getElementById('list_' + idd); 
+    if(list) {
+        list.innerHTML = ''; 
+        dl.forEach(ptu => list.appendChild(new Option(ptu.tenn, ptu.tenn)));
+    }
+  }
+// 2. Nâng cấp hàm đổ dữ liệu Bộ phận
+  function dienhopd(idd, ds) { 
+    const list = document.getElementById('list_' + idd); 
+    if(list) {
+        list.innerHTML = ''; 
+        if(ds) ds.forEach(v1 => { if(v1) list.appendChild(new Option(v1, v1)); });
+    }
+  }
+  function capnmab() { 
+    document.getElementById('txtMaBoPhan').value = dlbpha[document.getElementById('cbBoPhan').value]||""; 
+    
+    // 👉 NÂNG CẤP: Xóa sạch bảng, reset mã hồ sơ và tạo dòng mới khi đổi Bộ phận
+    document.getElementById('tableContent').innerHTML = "";
+    document.getElementById('cbMaHoSo').value = "";
+    themdongmo();
+    
+    apdquye(); // 👉 NÂNG CẤP: Gọi hàm kiểm tra quyền ngay khi chọn xong Bộ phận
+}
+  function hienhth(tb) { document.getElementById('modal_message_nhap').innerText=tb; document.getElementById('modal_overlay_nhap').style.display='flex'; }
+  function donghth() { document.getElementById('modal_overlay_nhap').style.display='none'; }
+  function tudochk(ph) { ph.style.height='auto'; ph.style.height=ph.scrollHeight+'px'; }
+  function dinhdng(s1) { let gi = s1.target.value.replace(/\D/g,''); if(gi.length>8)gi=gi.substring(0,8); let r1=""; if(gi.length>0)r1+=gi.substring(0,2); if(gi.length>2)r1+='/'+gi.substring(2,4); if(gi.length>4)r1+='/'+gi.substring(4,8); s1.target.value=r1; }
+  function chuyentxo(lo, ht) { document.querySelectorAll('.f-input, .cell-input').forEach(ptu=>ptu.classList[ht?'add':'remove']('loading-spin')); }
+  function dattr(tt) { for(let iso=1;iso<=4;iso++){ let p1=document.getElementById('step'+iso); if(p1){ p1.className='step'; if(iso<tt)p1.classList.add('completed'); if(iso===tt)p1.classList.add('active'); }}}
+  
+function datlbie() {
+    ['cbNguoiKiemTra', 'cbBoPhan', 'cbMaHoSo'].forEach(idd => {
+      const p1 = document.getElementById(idd); if(p1) { p1.value = ""; p1.disabled = false; }
+    });
+    
+    let emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+    let tgvc = dlgvi.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
+    let tnktc = dlnktra.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
+    const q_h_t = String(window.sktquyenht).trim().toLowerCase();
+    const quyenQuanTri = (q_h_t === 'x' || q_h_t === 'xx' || q_h_t === 'xxx');
+    
+    const hpgv = document.getElementById('cbGiaoVien');
+    if (tgvc && !tnktc && !quyenQuanTri) {
+        // ĐỐI VỚI NGƯỜI ĐƯỢC KIỂM TRA: Đưa về trạng thái rỗng và khóa lại
+        hpgv.value = "";
+        hpgv.disabled = true;
+        document.getElementById('cbNguoiKiemTra').disabled = true;
+        document.getElementById('cbBoPhan').disabled = true;
+        document.getElementById('txtMaBoPhan').disabled = true;
+    } else {
+        hpgv.value = "";
+        hpgv.disabled = false;
+    }
+
+    document.getElementById('txtMaBoPhan').value = "";
+    document.getElementById('tableContent').innerHTML = ""; 
+    themdongmo(); 
+    dattr(1);
+    
+    apdquye(); // Cập nhật lại vòng kiểm soát quyền
+}
+  
+// 3. Nâng cấp hàm đổ dữ liệu Mã hồ sơ
+  function capnhopm() {
+    const hp = document.getElementById('cbMaHoSo'); 
+    const ht = hp.value;
+    const list = document.getElementById('list_cbMaHoSo');
+    if(list) {
+        list.innerHTML = '';
+        if (dlmhso && dlmhso.length > 0) {
+          const sx = [...dlmhso].sort().reverse();
+          sx.forEach(m1 => list.appendChild(new Option(m1, m1)));
+          if (ht) hp.value = ht;
+          document.getElementById('btnRefreshMaHoSo').title = `Danh sách (${sx.length})`;
+        }
+    }
+  }
+function lammdsm() {
+  const nt = document.getElementById('btnRefreshMaHoSo'); const t1 = nt.innerHTML;
+  nt.disabled = true; nt.innerHTML = "⏳";
+  google.script.run.withSuccessHandler(kq => {
+    nt.disabled = false; nt.innerHTML = t1;
+    if(kq.tcon) { 
+        dlmhso = kq.dlmh; 
+        
+        // Cập nhật làm mới lại cả Kho đệm cục bộ khi thực hiện đồng bộ lại
+        window.skt_kho_nhatky = kq.dlnhatky_san || []; 
+        
+        capnhopm(); 
+        hienhth(`✅ Đã cập nhật ${kq.dlmh.length} hồ sơ`); 
+    }
+    else hienhth("❌ Lỗi: " + kq.tbao);
+  }).skt_layds_mhs_cn();
+}
+
+  function hopllu() {
+    if (!document.getElementById('cbGiaoVien').value || !document.getElementById('cbNguoiKiemTra').value || !document.getElementById('cbBoPhan').value) { hienhth("⚠️ Chưa có đủ thông tin chung!"); return false; }
+    var rows = document.querySelectorAll('#tableContent tr');
+    if (rows.length === 0) return false;
+    var nd = rows[0].querySelectorAll('.cell-input')[1]; 
+    if (!nd || !nd.value.trim()) { hienhth("⚠️ Chưa có nội dung kiểm tra ở dòng 1!"); return false; }
+    return true;
+  }
+
+  function hoplno() {
+    if (!hopllu()) return false;
+    let hl = true;
+    document.querySelectorAll('#tableContent tr').forEach((dg, iso) => {
+        const cn = dg.querySelectorAll('.cell-input');
+        if (!cn[9].value.trim()) { hienhth(`⚠️ Dòng ${iso+1}: Thiếu Ý kiến người được kiểm tra!`); cn[9].focus(); hl = false; return; }
+        if (!cn[10].value.trim()) { hienhth(`⚠️ Dòng ${iso+1}: Thiếu chữ ký xác nhận của người được kiểm tra!`); cn[10].focus(); hl = false; return; }
+    });
+    return hl;
+  }
+
+  function dienbgw(ds) {
+    if(!ds || ds.length === 0) return;
+    const bg0 = ds[0];
+    
+    dathopc('cbGiaoVien', bg0[0]);
+    dathopc('cbNguoiKiemTra', bg0[1]);
+    dathopc('cbBoPhan', bg0[2]);
+    document.getElementById('txtMaBoPhan').value = String(bg0[3]||"").trim();
+    
+    document.getElementById('tableContent').innerHTML = "";
+    ds.forEach(dl => themdongmo(dl));
+    document.querySelectorAll('textarea.cell-input').forEach(t1 => tudochk(t1));
+  }
+
+  function capnticd() { 
+    const t1 = document.getElementById('cbGiaoVien').value; if(!t1) return;
+    const ch = t1.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,'');
+    document.querySelectorAll('.ma-ho-so-cell').forEach(o1 => {
+        const ct = o1.innerText;
+        if(ct.includes('-')) o1.innerText = ch + ct.substring(ct.indexOf('-'));
+    });
+  }
+
+  function xoado(nt) {
+      const emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+      const tnktc = dlnktra.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
+      const nkt = document.getElementById('cbNguoiKiemTra').value;
+      const lnk = (tnktc && chuanhchu(tnktc) === chuanhchu(nkt));
+      
+      const quyenQuanTri = (String(window.sktquyenht).trim().toLowerCase() === 'xx');
+      
+      if (!lnk && !quyenQuanTri) { hienhth("⚠️ Bạn không có quyền xóa dòng này!"); return; }
+      const tb = document.getElementById('tableContent');
+      if(tb.rows.length <= 1) { hienhth("⚠️ Phải giữ lại ít nhất một dòng!"); return; }
+      dongcxoa = nt.closest('tr'); document.getElementById('customConfirmModal').style.display = 'flex';
+  }
+
+  function donghthx() { 
+      document.getElementById('customConfirmModal').style.display = 'none'; 
+  }
+  
+function xulyxo() {
+      if (!dongcxoa) return;
+      
+      const dgd = dongcxoa; 
+      
+      // BƯỚC 1: NẾU LÀ DÒNG CHƯA LƯU, XÓA NGAY TRÊN GIAO DIỆN (BỎ QUA GỌI MÁY CHỦ)
+      if (dgd.getAttribute('data-isnew') === '1') {
+          donghthx();
+          dgd.style.transition = "all 0.5s ease"; 
+          dgd.style.opacity = "0"; 
+          dgd.style.transform = "translateX(50px)";
+          setTimeout(() => { 
+              dgd.remove(); 
+              capnst(); 
+              dongcxoa = null; 
+              if(document.getElementById('tableContent').rows.length === 0) themdongmo(); 
+          }, 500);
+          return;
+      }
+
+      // BƯỚC 2: NẾU DÒNG ĐÃ LƯU, THỰC HIỆN XÓA API NHƯ CŨ
+      const mh = dgd.querySelector('.ma-ho-so-cell').innerText;
+      const nhlk = dgd.querySelector('.link-input');
+      const dl = nhlk ? nhlk.value : "";
+      const ntx = dgd.querySelector('.btn-icon-del');
+      
+      if (ntx) { 
+          ntx.setAttribute('data-original', ntx.innerHTML); 
+          ntx.innerHTML = '⏳'; 
+          ntx.disabled = true; 
+      }
+      
+      donghthx(); 
+      hienhth("⏳ Đang xử lý xóa dữ liệu trên hệ thống. Vui lòng chờ...");
+      
+      const ntd = document.querySelector('#modal_overlay_nhap .btn-cancel');
+      if (ntd) ntd.style.display = 'none'; 
+      
+      const tl = mh + (dl ? "|||" + dl : "");
+      
+      let daPhanHoi = false;
+      const timer = setTimeout(() => {
+          if (!daPhanHoi) {
+              donghth();
+              hienhth("❌ Lỗi: Hệ thống phản hồi quá chậm (Timeout). Vui lòng kiểm tra lại kết nối mạng.");
+              if (ntd) ntd.style.display = 'inline-block';
+              datlntxo(ntx);
+          }
+      }, 20000); 
+
+      google.script.run
+      .withSuccessHandler(function(kq) {
+          daPhanHoi = true;
+          clearTimeout(timer);
+          if (ntd) ntd.style.display = 'inline-block'; 
+
+          // Đồng bộ linh hoạt: Dù kết quả SUCCESS hay bị kẹt NOT_FOUND đều cho phép dọn dẹp khỏi giao diện
+          if (kq === "SUCCESS" || kq === "NOT_FOUND") { 
+              donghth(); 
+              dgd.style.transition = "all 0.5s ease"; 
+              dgd.style.opacity = "0"; 
+              dgd.style.transform = "translateX(50px)";
+              setTimeout(() => { 
+                  dgd.remove(); 
+                  capnst(); 
+                  dongcxoa = null; 
+                  if(document.getElementById('tableContent').rows.length === 0) themdongmo(); 
+              }, 500);
+          } else if (kq === "NO_PERMISSION") { 
+              hienhth("⛔ Bạn không có quyền xóa dữ liệu này!"); 
+              datlntxo(ntx);
+          } else { 
+              hienhth("❌ Hệ thống phản hồi: " + kq); 
+              datlntxo(ntx); 
+          }
+      })
+      .withFailureHandler(function(lo) { 
+          daPhanHoi = true;
+          clearTimeout(timer);
+          if (ntd) ntd.style.display = 'inline-block';
+          hienhth("❌ Lỗi kết nối mạng hoặc máy chủ: " + lo.message); 
+          datlntxo(ntx); 
+      })
+      .skt_xoadon_nki_thc(tl);
+  }
+
+  function datlntxo(nt) { 
+      if(nt) { nt.innerHTML = nt.getAttribute('data-original') || '🗑️'; nt.disabled = false; } 
+      dongcxoa = null; 
+  }
+  //===================================
+  document.addEventListener('DOMContentLoaded', function() {
+   
+  });
+</script>
