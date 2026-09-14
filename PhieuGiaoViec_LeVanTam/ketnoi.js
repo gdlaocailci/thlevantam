@@ -1,13 +1,13 @@
 /* ========================================================================== */
-var ddungApi = "https://script.google.com/macros/s/AKfycbzpamXlYMj4jjw80iIFRFnk7Ct1Xi7dJDvcKa4_I3Y8Wq2SSa_5riYj9GDiR6dN63vT/exec"; 
+var ddungApi = "https://script.google.com/macros/s/AKfycbwKD8bN03tvoY77r00aYmwsE26MFxMNjTRcI7C8CnhgcxcaknKX04sRbbj1BC-IK3NZ/exec"; 
 
 // --- CÁC BIẾN CẤU HÌNH ĐỊNH DANH HỆ THỐNG ---
 var PGV_LINK_LOGO = "https://i.postimg.cc/xjzpvXCm/Logo-HL.png"; 
-var PGV_TEN_TRUONG = "Trường TH&THCS Tả Phời";
-var PGV_TEN_TRUONG_UP = "TRƯỜNG TH&THCS TẢ PHỜI";
+var PGV_TEN_TRUONG = "Trường Tiểu học Lê Văn Tám";
+var PGV_TEN_TRUONG_UP = "TRƯỜNG TIỂU HỌC LÊ VĂN TÁM";
 var PGV_TEN_PM = "Quản lý Nhiệm vụ";
 var PGV_TEN_PM_UP = "QUẢN LÝ CÔNG VIỆC";
-var PGV_PHIEN_BAN = "Phiên bản V2.0";
+var PGV_PHIEN_BAN = "Phiên bản V2.5";
 var PGV_TAC_GIA = "HOÀNG NGỌC LÂM";
 var PGV_GOOGLE_CLIENT_ID = "1097384743947-1jdc5rhhmbu0s9jp5vgt814g4f4id7lu.apps.googleusercontent.com";
 var PGV_MO_TA = "Hệ thống quản lý hiệu quả công việc nội bộ - " + PGV_TEN_TRUONG;
