@@ -1,0 +1,181 @@
+<div class="card shadow-sm p-0 border-0">
+  <div class="card-header bg-white border-bottom-0 pt-3 pb-3">
+    <div class="d-flex align-items-center">
+      <h6 class="text-primary fw-bold mb-0 me-4 text-uppercase"><i class="bi bi-file-earmark-text"></i> TỔNG HỢP BÁO CÁO</h6>
+      <div class="d-flex align-items-center">
+         <span class="fw-bold me-2 text-dark" style="font-size: 18px;">Năm học:</span>
+         <div style="width: 180px;">
+            <select class="form-select form-select-sm shadow-none border-primary" id="locNamBcao" onchange="veBangBcao()">
+              <option value="">--Chọn năm--</option>
+            </select>
+         </div>
+      </div>
+      <div class="ms-auto">
+         <button class="btn btn-sm btn-outline-primary" onclick="taidlBcao(true, false)" title="Tải lại dữ liệu"><i class="bi bi-arrow-clockwise"></i> Tải lại</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card-body p-0">
+    <div class="table-responsive" style="max-height: 80vh; overflow-y: auto;">
+      <table class="table table-bordered table-hover mb-0 align-middle" id="bangBcao" style="table-layout: fixed; width: 100%;">
+        <thead>
+          <tr>
+            <th class="text-center align-middle" style="width: 3%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">#</th>
+            <th class="text-center align-middle" style="width: 19%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">Họ và tên</th> 
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T7</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T8</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T9</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T10</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T11</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T12</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T1</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T2</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T3</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T4</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T5</th>
+            <th class="text-center align-middle" style="width: 6.5%; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T6</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="14" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div> Đang tải dữ liệu...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  if (typeof giaiMaBcao !== 'function') {
+      window.giaiMaBcao = function(toanchu) {
+          if (!toanchu) return { chu: "", tepdinhk: [] };
+          let cactep = [];
+          let chul = toanchu.replace(/\[FILE:(.+?)\|([^\]]+)\]/g, function(khop, ten, ddan) { cactep.push({ tentep: ten, duongd: ddan }); return ""; });
+          return { chu: chul.trim(), tepdinhk: cactep };
+      };
+  }
+
+  function taidlBcao(batbuoc = false, amtham = false) {
+    if (!batbuoc && dataiBcao) return; 
+    if (!amtham) datTaiDl(true, "Đang tải dữ liệu báo cáo...");
+    
+    khachApi.layDlBcao(function(kq) {
+      if (!amtham) datTaiDl(false); 
+      let dlt = Array.isArray(kq) ? kq : kq.dliu; if (!dlt) return;
+      dlBcaoGoc = dlt; dataiBcao = true; 
+      const nams = [...new Set(dlt.map(r => r.nam))].filter(y => y);
+      const lchon = $('#locNamBcao').empty();
+      nams.sort().reverse();
+      nams.forEach(y => lchon.append(`<option value="${y}">${y}</option>`)); 
+      
+      // [TỐI ƯU HÓA] Tự động chọn năm học và vẽ bảng
+      if (nams.length > 0) lchon.val(nams[0]);
+      veBangBcao();
+      
+    }, typeof khiLoiMayChu !== 'undefined' ? khiLoiMayChu : function(e){ console.error(e); if(!amtham) anTaiDl(); });
+  }
+
+  function veBangBcao() {
+    const nchon = $('#locNamBcao').val(), tb = $('#bangBcao tbody').empty();
+    if (!nchon) { tb.append('<tr><td colspan="14" class="text-center text-muted py-4">Vui lòng chọn Năm học.</td></tr>'); return; }
+    let bc = {};
+    dlBcaoGoc.forEach(r => {
+      if (String(r.nam) !== nchon || !r.tenn) return;
+      if (!bc[r.tenn]) bc[r.tenn] = { tenn: r.tenn, thangs: {} };
+      let mt = parseInt(String(r.thang).match(/(\d{1,2})/)?.[0]);
+      if (mt) bc[r.tenn].thangs[mt] = r.ndung;
+    });
+
+    let stth = 1; const tho = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+    for (const k in bc) {
+      const gr = bc[k]; let dr = `<tr><td class="text-center align-middle">${stth++}</td><td class="ps-3 fw-bold align-middle">${gr.tenn}</td>`;
+      tho.forEach(m => {
+        let v = gr.thangs[m], chuh = '-';
+        if (v && String(v).trim() !== "") {
+          let xl = giaiMaBcao(v);
+          let nhtml = xl.chu ? `<div>${xl.chu.replace(/\n/g, '<br>')}</div>` : '';
+          let thtml = '';
+          if (xl.tepdinhk && xl.tepdinhk.length > 0) {
+              thtml = '<div class="mt-2 d-flex flex-wrap gap-1">';
+              xl.tepdinhk.forEach((tc, idt) => { thtml += `<a href="javascript:void(0)" onclick="moKhungXemTep('${tc.duongd}')" class="badge bg-info text-dark text-decoration-none shadow-sm" style="font-size: 11px; border: 1px solid #90caf9;" title="Xem đính kèm: ${tc.tentep}"><i class="bi bi-paperclip"></i> Báo cáo ${idt + 1}</a>`; });
+              thtml += '</div>';
+          }
+          chuh = `<div class="voBocYk"><div class="ndYk">${nhtml}${thtml}</div></div>`;
+        }
+        dr += `<td class="p-2 align-middle">${chuh}</td>`;
+      });
+      tb.append(dr + '</tr>');
+    }
+  }
+
+  // =======================================================================
+  // [KHỐI BỔ SUNG]: THUẬT TOÁN CHỐNG KHUẤT LỀ CHO CÁC Ô THÔNG TIN NỔI
+  // Thiết kế và phát triển: Hoàng Ngọc Lâm - Viết theo khối chuyên biệt
+  // =======================================================================
+  document.addEventListener('mouseover', function(e) {
+      let voBoc = e.target.closest('.voBocYk');
+      if (!voBoc) return;
+      
+      let nd = voBoc.querySelector('.ndYk');
+      if (!nd) return;
+
+      // Lấy kích thước và tọa độ của phần tử bọc
+      let rect = voBoc.getBoundingClientRect();
+      
+      // Kích hoạt hiển thị giả để lấy kích thước thực của nội dung nổi
+      nd.style.visibility = 'hidden';
+      nd.style.display = 'block';
+      // Đặt thuộc tính fixed để nổi lên trên cùng, tránh overflow của thẻ table
+      nd.style.position = 'fixed'; 
+      nd.style.zIndex = '9999';
+      nd.style.width = 'max-content';
+      nd.style.maxWidth = '350px'; 
+      
+      let ndRect = nd.getBoundingClientRect();
+      
+      // Tọa độ mặc định: Hiển thị ngay sát mép dưới và căn giữa theo ô
+      let top = rect.bottom + 5;
+      let left = rect.left + (rect.width / 2) - (ndRect.width / 2);
+
+      // Thuật toán: Xử lý sát lề phải màn hình
+      if (left + ndRect.width > window.innerWidth) {
+          left = window.innerWidth - ndRect.width - 15;
+      }
+      
+      // Thuật toán: Xử lý sát lề trái màn hình
+      if (left < 0) {
+          left = 15;
+      }
+      
+      // Thuật toán: Xử lý sát lề dưới màn hình (Đảo vị trí nổi lên phía trên)
+      if (top + ndRect.height > window.innerHeight) {
+          top = rect.top - ndRect.height - 5;
+      }
+
+      // Áp dụng tọa độ an toàn và hiển thị thật
+      nd.style.top = top + 'px';
+      nd.style.left = left + 'px';
+      nd.style.visibility = 'visible';
+  });
+
+  document.addEventListener('mouseout', function(e) {
+      let voBoc = e.target.closest('.voBocYk');
+      if (!voBoc) return;
+      
+      // Điều kiện an toàn: Không ẩn nếu chuột vẫn đang thao tác bên trong khung nội dung nổi
+      if (voBoc.contains(e.relatedTarget)) return;
+      
+      let nd = voBoc.querySelector('.ndYk');
+      if (nd) {
+          // Xóa toàn bộ style nội tuyến để trả về trạng thái nguyên bản
+          nd.style.display = '';
+          nd.style.position = '';
+          nd.style.top = '';
+          nd.style.left = '';
+          nd.style.visibility = '';
+          nd.style.zIndex = '';
+          nd.style.width = '';
+          nd.style.maxWidth = '';
+      }
+  });
+</script>

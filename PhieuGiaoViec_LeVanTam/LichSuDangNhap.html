@@ -1,0 +1,66 @@
+<div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 2px solid #0d6efd;">
+    <h4 class="fw-bold text-primary text-uppercase mb-0">LỊCH SỬ ĐĂNG NHẬP HỆ THỐNG</h4>
+    <button class="btn btn-sm btn-outline-primary" onclick="pgv_khoi_dong_lich_su(true)">
+        <i class="bi bi-arrow-clockwise"></i> Làm mới
+    </button>
+</div>
+<div class="table-responsive bg-white rounded shadow-sm border p-0" style="height: calc(100vh - 120px); overflow-y: auto;">
+    <table class="table table-hover table-bordered mb-0" id="bangLichSu" style="font-family: 'Times New Roman', Times, serif; font-size: 14px; border: none;">
+        <thead style="position: sticky; top: 0; z-index: 10;">
+            <tr class="text-center" style="background-color: #0d6efd;">
+                <th style="width: 60px; padding: 5px; border-bottom: none; color: white !important;">STT</th>
+                <th style="width: 140px; padding: 5px; border-bottom: none; color: white !important;">Thời gian</th>
+                <th style="width: 140px; padding: 5px; border-bottom: none; color: white !important;">Ngày</th>
+                <th style="padding: 5px; border-bottom: none; color: white !important;">Tên hiển thị</th>
+                <th style="padding: 5px; border-bottom: none; color: white !important;">Tài khoản</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td colspan="5" class="text-center text-muted p-4">Đang chờ lệnh tải...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    let dlLichSuDaTai = false;
+    
+    function pgv_khoi_dong_lich_su(lamMoi = false) {
+        if (!lamMoi && dlLichSuDaTai) return;
+        const tbody = document.querySelector('#bangLichSu tbody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted p-4"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Đang tải dữ liệu hệ thống...</td></tr>';
+        
+        if (typeof window.khachApi === 'undefined' || !window.khachApi.layDlLichSu) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger p-4">Lỗi: Chưa mở cổng kết nối API Lịch sử.</td></tr>';
+            return;
+        }
+        
+        window.khachApi.layDlLichSu(function(kq) {
+            dlLichSuDaTai = true;
+            tbody.innerHTML = '';
+            
+            if (!kq || kq.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted p-4">Hệ thống chưa ghi nhận dữ liệu lịch sử nào.</td></tr>';
+                return;
+            }
+            
+            // Xắp xếp trình tự thời gian từ mới đến cũ
+            const duLieuDaoNguoc = [...kq].reverse();
+            
+            duLieuDaoNguoc.forEach((dong) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-center align-middle">${dong[0] || ''}</td>
+                    <td class="text-center align-middle fw-bold">${dong[1] || ''}</td>
+                    <td class="text-center align-middle">${dong[2] || ''}</td>
+                    <td class="align-middle text-primary fw-bold">${dong[3] || ''}</td>
+                    <td class="align-middle">${dong[4] || ''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }, function(loi) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger p-4">Lỗi tải dữ liệu: ${loi.message}</td></tr>`;
+        });
+    }
+</script>

@@ -1,0 +1,442 @@
+<div class="card shadow-sm p-0 border-0">
+  <div class="card-header bg-white border-bottom-0 pt-2 pb-1">
+    <div class="d-flex align-items-center">
+      <h6 class="text-primary fw-bold mb-0 me-4 text-uppercase"><i class="bi bi-table"></i> TỔNG HỢP KẾT QUẢ</h6>
+      <div class="d-flex align-items-center">
+         <span class="fw-bold me-2 text-dark" style="font-size: 18px;">Năm học:</span>
+         <div style="width: 180px;"><select class="form-select form-select-sm shadow-none border-primary" id="locNamThop" onchange="veBangThop()"><option value="">--Chọn năm--</option></select></div>
+      </div>
+      <div class="ms-auto"><button class="btn btn-sm btn-outline-primary" onclick="taiDlThop(true)" title="Tải lại dữ liệu"><i class="bi bi-arrow-clockwise"></i> Tải lại</button></div>
+    </div>
+  </div>
+
+  <div id="aiToastMessage" style="display: none; position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 15px 25px; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); color: white; font-family: 'Times New Roman', serif; font-size: 16px; transition: opacity 0.3s ease-in-out; opacity: 0;"></div>
+  
+  <style>
+  /* Hiệu ứng Shiny mô phỏng từ nền tảng reactbits.dev */
+  .btn-reactbits-shiny {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .btn-reactbits-shiny::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-20deg);
+    animation: reactbits-sweep 3s infinite;
+  }
+  @keyframes reactbits-sweep {
+    0% { left: -100%; }
+    20% { left: 200%; }
+    100% { left: 200%; }
+  }
+  .btn-reactbits-shiny:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+  }
+</style>
+
+<div class="bg-light p-2 mb-1 mx-2 rounded border" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+  <span class="fw-bold text-secondary" style="font-size: 14px;">Thời gian tính:</span>
+  <select id="tuThang" class="form-select form-select-sm" style="width: auto; font-family: 'Times New Roman', serif;">
+    <option value="">Từ tháng...</option>
+    <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+    <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+    <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
+    <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
+  </select>
+  
+  <span class="fw-bold text-secondary" style="font-size: 14px;">-</span>
+  
+  <select id="denThang" class="form-select form-select-sm" style="width: auto; font-family: 'Times New Roman', serif;">
+    <option value="">Đến tháng...</option>
+    <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+    <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+    <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
+    <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
+  </select>
+
+  <button type="button" class="btn btn-sm btn-success fw-bold btn-reactbits-shiny" onclick="runAIAssistant()" style="white-space: nowrap;">⚡ Tính toán xếp loại</button>
+  <button type="button" id="btnGhiKq" class="btn btn-sm btn-primary fw-bold btn-reactbits-shiny" onclick="ghiKetQuaAI()" style="white-space: nowrap;">💾 Ghi kết quả</button>
+</div>
+  
+  <div class="card-body p-0">
+    <div class="table-responsive" style="max-height: 80vh; overflow-y: auto;">
+      <table class="table table-bordered table-hover mb-0 align-middle" id="bangThop">
+        <thead>
+          <tr>
+            <th class="text-center align-middle" style="width: 50px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">STT</th>
+            <th class="text-center align-middle" style="min-width: 170px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">Họ và tên</th> 
+            <th class="text-center align-middle" style="min-width: 115px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">Kết quả xếp loại</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T7</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T8</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T9</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T10</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T11</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T12</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T1</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T2</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T3</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T4</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T5</th>
+            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T6</th>
+          </tr>
+        </thead>
+        <tbody><tr><td colspan="15" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div> Đang tải dữ liệu...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   BỔ SUNG API CỤC BỘ
+   ========================================================================== */
+if (typeof window.khachApi === 'undefined') { window.khachApi = {}; }
+
+window.khachApi.layDlCauHinh = function(thanhCong, thatBai) {
+    if (typeof ddungApi === 'undefined' || ddungApi === "") {
+        thatBai(new Error("Chưa cấu hình đường dẫn máy chủ ddungApi."));
+        return;
+    }
+    fetch(ddungApi + "?hdong=laydlcauhinh", { method: "GET", redirect: "follow" })
+    .then(response => response.json())
+    .then(data => thanhCong(data))
+    .catch(error => thatBai(error));
+};
+
+window.cauHinhThiDua = null;
+
+function showAIToast(message, type) {
+    let toast = document.getElementById("aiToastMessage");
+    toast.innerHTML = message;
+    
+    if (type === "success") {
+        toast.style.background = "linear-gradient(to right, #15803d, #16a34a)";
+        toast.style.borderLeft = "5px solid #052e16";
+    } else if (type === "warning") {
+        toast.style.background = "linear-gradient(to right, #b45309, #d97706)";
+        toast.style.borderLeft = "5px solid #78350f";
+    } else {
+        toast.style.background = "linear-gradient(to right, #b91c1c, #dc2626)";
+        toast.style.borderLeft = "5px solid #450a0a";
+    }
+    
+    toast.style.display = "block";
+    setTimeout(() => { toast.style.opacity = "1"; }, 10);
+    setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => { toast.style.display = "none"; }, 300); }, 4000);
+}
+
+/* ==========================================================================
+   HÀM TRỢ LÝ AI: TÍNH TOÁN XẾP LOẠI - KHẮC PHỤC TRIỆT ĐỂ LỖI QUY ĐỔI 0.7 VÀ 0.5
+   ========================================================================== */
+function runAIAssistant() {
+    let btn = document.querySelector("button[onclick='runAIAssistant()']");
+    let originalText = btn ? btn.innerHTML : "";
+    if (btn) { btn.innerHTML = "⏳ Đang tính toán theo quy chế..."; btn.disabled = true; btn.style.opacity = "0.7"; }
+
+    try {
+        if (typeof window.khachApi !== 'undefined' && typeof window.khachApi.layDlCauHinh === 'function') {
+            window.khachApi.layDlCauHinh(function(kqra) {
+                if(kqra && kqra.ttai === 'tcong' && kqra.dliu) {
+                    window.cauHinhThiDua = kqra.dliu;
+                    thucHienTinhToan(window.cauHinhThiDua); 
+                } else {
+                    showAIToast("❌ <b>Lỗi thông số:</b><br>Cấu hình tại trang KHAIBAO trống hoặc không hợp lệ.", "error");
+                    if (btn) { btn.innerHTML = originalText; btn.disabled = false; btn.style.opacity = "1"; }
+                }
+            }, function(loie) {
+                showAIToast("❌ <b>Lỗi kết nối API:</b><br>Không thể tải cấu hình từ máy chủ.", "error");
+                if (btn) { btn.innerHTML = originalText; btn.disabled = false; btn.style.opacity = "1"; }
+            });
+        } else {
+            showAIToast("❌ <b>Lỗi hệ thống:</b><br>Hàm kết nối API chưa được khởi tạo.", "error");
+            if (btn) { btn.innerHTML = originalText; btn.disabled = false; btn.style.opacity = "1"; }
+        }
+    } catch(e) {
+        showAIToast("❌ <b>Lỗi thực thi hệ thống:</b><br>" + e.message, "error");
+        if (btn) { btn.innerHTML = originalText; btn.disabled = false; btn.style.opacity = "1"; }
+    }
+
+    function thucHienTinhToan(cfg) {
+        if (btn) btn.innerHTML = "⏳ Đang tính toán...";
+        setTimeout(() => {
+            try {
+                let tuThangVal = document.getElementById("tuThang").value;
+                let denThangVal = document.getElementById("denThang").value;
+                
+                const anhXaThang = { 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8, 1: 9, 2: 10, 3: 11, 4: 12, 5: 13, 6: 14 };
+                let cotBatDau = 3;  
+                let cotKetThuc = 14; 
+
+                if (tuThangVal !== "" && denThangVal !== "") {
+                    let idxTu = anhXaThang[parseInt(tuThangVal)];
+                    let idxDen = anhXaThang[parseInt(denThangVal)];
+                    if (idxTu !== undefined && idxDen !== undefined) {
+                        cotBatDau = Math.min(idxTu, idxDen);
+                        cotKetThuc = Math.max(idxTu, idxDen);
+                    }
+                }
+
+                let tongSoThangYeuCau = cotKetThuc - cotBatDau + 1; 
+                let table = document.getElementById("bangThop");
+                if (!table) throw new Error("Không tìm thấy bảng dữ liệu.");
+                
+                let tbody = table.getElementsByTagName("tbody")[0];
+                if (!tbody) throw new Error("Bảng chưa có nội dung.");
+                
+                let rows = tbody.getElementsByTagName("tr");
+                let updatedCount = 0;
+
+                // ==========================================================================
+                // BỘ QUY ĐỔI ĐỘNG (Xử lý dứt điểm 0.7 thành 70%, 0.5 thành 50%)
+                // ==========================================================================
+                
+                // Hàm 1: Đọc các giá trị cứng (như điểm số, số tháng giới hạn tuyệt đối)
+                function docSo(giaTri) {
+                    if (giaTri === undefined || giaTri === null || giaTri === "") return 0;
+                    let str = giaTri.toString().replace(',', '.').trim();
+                    let num = parseFloat(str);
+                    return isNaN(num) ? 0 : num;
+                }
+
+                // Hàm 2: Hàm đặc nhiệm chuyên đọc các ngưỡng tỷ lệ %
+                function docTyLe(giaTri) {
+                    if (giaTri === undefined || giaTri === null || giaTri === "") return 0;
+                    let str = giaTri.toString().replace(',', '.').trim();
+                    let isPercentStr = str.includes('%');
+                    let num = parseFloat(str.replace('%', ''));
+                    if (isNaN(num)) return 0;
+                    
+                    // NẾU API truyền về giá trị ngầm dạng 0.7 hoặc 0.5 (không có dấu %) -> Đổi lại ra hệ 100
+                    if (!isPercentStr && num > 0 && num <= 1) {
+                        num = num * 100;
+                    }
+                    return num;
+                }
+
+                function layCauHinh(mangTuKhoa, giaTriMacDinh, laTyLe = false) {
+                    let tuDienSach = {};
+                    for (let key in cfg) { tuDienSach[key.trim().toUpperCase()] = cfg[key]; }
+                    for (let i = 0; i < mangTuKhoa.length; i++) {
+                        let k = mangTuKhoa[i].toUpperCase().trim();
+                        if (tuDienSach[k] !== undefined && tuDienSach[k] !== null && tuDienSach[k] !== "") {
+                            return laTyLe ? docTyLe(tuDienSach[k]) : docSo(tuDienSach[k]);
+                        }
+                    }
+                    return giaTriMacDinh;
+                }
+
+                // Cấp 1: Đọc ngưỡng tỷ lệ % (Sử dụng hàm đặc nhiệm docTyLe)
+                let nguong_XS = layCauHinh(['TYLE_XS', 'tyle_xs'], 0, true);
+                let nguong_Tot = layCauHinh(['TYLE_TOT', 'tyle_tot'], 0, true);
+                let nguong_HT = layCauHinh(['TYLE_HT', 'tyle_ht'], 0, true);
+                
+                // Mặc định CHT 100% (cũng dùng docTyLe để bắt chính xác số 0.5 thành 50%)
+                let conGiunDat = layCauHinh(['TYLE_CHT_MAX', 'tyle_cht_max', 'SO_CHT_MAX', 'so_cht_max'], 100, true);   
+
+                // Cấp 2: Đọc các giới hạn khống chế tĩnh (Dùng docSo bình thường)
+                let caiKeoCo = layCauHinh(['MAX_HT_XS', 'max_ht_xs'], 0, false);   
+                let vienBiTron = layCauHinh(['MAX_CHT_XS', 'max_cht_xs'], 0, false); 
+                let quaCamNgot = layCauHinh(['MAX_CHT_TOT', 'max_cht_tot'], 0, false); 
+                
+                // Cấp 3: Đọc hệ số điểm
+                let diemBase_XS = layCauHinh(['DIEM_XS', 'diem_xs'], 100, false);
+                let diemBase_Tot = layCauHinh(['DIEM_TOT', 'diem_tot'], 80, false);
+                let diemBase_HT = layCauHinh(['DIEM_HT', 'diem_ht'], 60, false);
+
+                for (let i = 0; i < rows.length; i++) {
+                    let row = rows[i];
+                    let tds = row.getElementsByTagName("td");
+                    if (tds.length < 15) continue; 
+
+                    let countHTXS = 0, countHTT = 0, countHT = 0, countCHT = 0;
+                    let tongDiemXepLoai = 0, tongDiemSo = 0, validMonths = 0;
+
+                    for (let j = cotBatDau; j <= cotKetThuc; j++) {
+                        if (!tds[j]) continue; 
+                        let cellText = tds[j].innerText.trim();
+                        let textLower = cellText.toLowerCase();
+                        let diem = 0;
+                        let matchDiem = cellText.match(/(\d+)/);
+                        if (matchDiem) diem = parseFloat(matchDiem[1]);
+
+                        if (cellText === "" || cellText === "-" || cellText.includes("...") || textLower.includes("chưa có")) {
+                            tongDiemXepLoai += 0;
+                            tongDiemSo += 0; 
+                            countCHT++; 
+                            validMonths++;
+                            tds[j].innerHTML = `<span style="color: #dc3545; font-weight: bold;">Chưa hoàn thành</span><br><span style="font-size: 13px;">0 điểm</span>`;
+                        } 
+                        else if (textLower.includes("xuất sắc")) {
+                            tongDiemXepLoai += diemBase_XS; tongDiemSo += diem; countHTXS++; validMonths++;
+                        } else if (textLower.includes("chưa hoàn thành")) {
+                            tongDiemXepLoai += 0; tongDiemSo += diem; countCHT++; validMonths++;
+                        } else if (textLower.includes("tốt")) {
+                            tongDiemXepLoai += diemBase_Tot; tongDiemSo += diem; countHTT++; validMonths++;
+                        } else if (textLower.includes("hoàn thành")) {
+                            tongDiemXepLoai += diemBase_HT; tongDiemSo += diem; countHT++; validMonths++;
+                        } else {
+                            tongDiemXepLoai += 0; tongDiemSo += diem; countCHT++; validMonths++;
+                        }
+                    }
+
+                    if (validMonths === 0) continue; 
+
+                    let D = tongSoThangYeuCau; 
+                    let diemTBXepLoai = tongDiemXepLoai / D;
+                    let diemTBSo = tongDiemSo / D;
+                    let avgScore = (diemTBXepLoai + diemTBSo).toFixed(1);
+
+                    let tyLeXS_thucTe = Math.round((countHTXS / D) * 100);
+                    let tyLeTot_thucTe = Math.round(((countHTXS + countHTT) / D) * 100);
+                    let tyLeHT_thucTe = Math.round(((countHTXS + countHTT + countHT) / D) * 100);
+                    let tyLeCHT_thucTe = Math.round((countCHT / D) * 100); 
+
+                    let xepLoai = "Chưa hoàn thành";
+                    // Tooltip minh bạch rõ ràng không còn số thập phân
+                    let thongDiepKiemDuyet = `Thực tế: HT(${tyLeHT_thucTe}%), CHT(${tyLeCHT_thucTe}%)\nYêu cầu: HT(>=${nguong_HT}%), CHT(<=${conGiunDat}%)`;
+
+                    let caiBanBonChan = (countHT <= caiKeoCo && countCHT <= vienBiTron); 
+                    let chiecTiviPhang = (countCHT <= quaCamNgot);                       
+                    let bucTuongVang = (tyLeCHT_thucTe <= conGiunDat); 
+
+                    if (tyLeXS_thucTe >= nguong_XS && caiBanBonChan) {
+                        xepLoai = "Hoàn thành xuất sắc";
+                    } else if (tyLeTot_thucTe >= nguong_Tot && chiecTiviPhang) {
+                        xepLoai = "Hoàn thành tốt";
+                    } else if (tyLeHT_thucTe >= nguong_HT && bucTuongVang) {
+                        xepLoai = "Hoàn thành";
+                    } else {
+                        xepLoai = "Chưa hoàn thành";
+                    }
+
+                    if (tds[2]) {
+                        tds[2].innerHTML = `<div style="text-align: center; line-height: 1.5;" title="${thongDiepKiemDuyet}">
+                                              <span style="color: #b91c1c; font-weight: bold;">${xepLoai}</span><br>
+                                              <span style="font-weight: bold; color: #1e3a8a;">${avgScore} điểm</span>
+                                            </div>`;
+                        tds[2].style.verticalAlign = "middle"; 
+                        updatedCount++;
+                    }
+                }
+
+                xeDapNhaiBongDung();
+
+                if (updatedCount > 0) {
+                    showAIToast("✅ <b>Hoàn tất!</b><br>Đã điền kết quả cho " + updatedCount + " cán bộ và sắp xếp ưu tiên thành công.", "success");
+                } else {
+                    showAIToast("⚠️ <b>Không có dữ liệu!</b><br>Các khoảng tháng đã chọn đang trống.", "warning");
+                }
+
+            } catch (error) {
+                showAIToast("❌ <b>Hệ thống gặp sự cố:</b><br>" + error.message, "error");
+            } finally {
+                if (btn) { btn.innerHTML = originalText; btn.disabled = false; btn.style.opacity = "1"; }
+            }
+        }, 100);
+    }
+}
+
+function xeDapNhaiBongDung() {
+    let caiAoKhoacMuaHe = document.getElementById("bangThop");
+    if (!caiAoKhoacMuaHe) return;
+    let conGaiDiBoAo = caiAoKhoacMuaHe.getElementsByTagName("tbody")[0];
+    let damMayUongNuoc = Array.from(conGaiDiBoAo.getElementsByTagName("tr"));
+
+    if (damMayUongNuoc.length === 1 && damMayUongNuoc[0].innerText.includes("Đang tải dữ liệu")) return;
+
+    damMayUongNuoc.sort((conBocNhaiDa, quaCamNguNgay) => {
+        let cotAoThun = conBocNhaiDa.getElementsByTagName("td");
+        let cotQuanDui = quaCamNguNgay.getElementsByTagName("td");
+        if (cotAoThun.length < 15 || cotQuanDui.length < 15) return 0;
+
+        let chuoiHoaHong = cotAoThun[2].innerText.toLowerCase();
+        let chuoiHoaCuc = cotQuanDui[2].innerText.toLowerCase();
+
+        let mucDoTrai = chuoiHoaHong.includes("xuất sắc") ? 4 : (chuoiHoaHong.includes("tốt") ? 3 : (chuoiHoaHong.includes("chưa hoàn thành") ? 1 : (chuoiHoaHong.includes("hoàn thành") ? 2 : 0)));
+        let mucDoPhai = chuoiHoaCuc.includes("xuất sắc") ? 4 : (chuoiHoaCuc.includes("tốt") ? 3 : (chuoiHoaCuc.includes("chưa hoàn thành") ? 1 : (chuoiHoaCuc.includes("hoàn thành") ? 2 : 0)));
+
+        if (mucDoTrai !== mucDoPhai) return mucDoPhai - mucDoTrai; 
+        
+        let diemTrai = 0, diemPhai = 0;
+        let timDiemTrai = chuoiHoaHong.match(/([\d\.]+)\s*điểm/);
+        let timDiemPhai = chuoiHoaCuc.match(/([\d\.]+)\s*điểm/);
+        if (timDiemTrai) diemTrai = parseFloat(timDiemTrai[1]);
+        if (timDiemPhai) diemPhai = parseFloat(timDiemPhai[1]);
+        return diemPhai - diemTrai; 
+    });
+
+    conGaiDiBoAo.innerHTML = "";
+    for (let i = 0; i < damMayUongNuoc.length; i++) {
+        let cotTamThoi = damMayUongNuoc[i].getElementsByTagName("td");
+        if (cotTamThoi.length > 0) { cotTamThoi[0].innerText = i + 1; }
+        conGaiDiBoAo.appendChild(damMayUongNuoc[i]);
+    }
+}
+  
+function ghiKetQuaAI() {
+    let table = document.getElementById("bangThop");
+    if (!table) return;
+    
+    let namHoc = document.getElementById("locNamThop").value;
+    let tbody = table.getElementsByTagName("tbody")[0];
+    let rows = tbody.getElementsByTagName("tr");
+    let duLieuGhi = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        let tds = rows[i].getElementsByTagName("td");
+        if (tds.length < 15) continue; 
+        
+        let hoTen = tds[1].innerText.trim();
+        let htmlKq = tds[2];
+        let xepLoai = "";
+        
+        if (htmlKq.innerText.trim() !== "") {
+            let theSpan = htmlKq.getElementsByTagName("span");
+            if (theSpan.length > 1) {
+                xepLoai = theSpan[0].innerText.trim() + "\n" + theSpan[1].innerText.trim();
+            } else if (theSpan.length > 0) {
+                xepLoai = theSpan[0].innerText.trim();
+            } else {
+                xepLoai = htmlKq.innerText.trim();
+            }
+        }
+        
+        if (hoTen && xepLoai && xepLoai !== "-" && xepLoai !== "Chưa có" && xepLoai !== "") {
+            duLieuGhi.push({ tenn: hoTen, kq: xepLoai, nam: namHoc });
+        }
+    }
+
+    if (duLieuGhi.length === 0) {
+        showAIToast("⚠️ <b>Chưa có dữ liệu để ghi!</b><br>Vui lòng chạy 'Tính toán xếp loại' trước khi ghi.", "warning");
+        return;
+    }
+
+    let btn = document.getElementById("btnGhiKq");
+    let originalText = btn.innerHTML;
+    btn.innerHTML = "⏳ Đang ghi...";
+    btn.disabled = true;
+
+    if (typeof window.khachApi !== 'undefined' && typeof window.khachApi.ghiKetQuaThop === 'function') {
+        window.khachApi.ghiKetQuaThop(duLieuGhi, function(kqra) {
+            showAIToast("✅ <b>Ghi kết quả thành công!</b><br>" + kqra.tbao, "success");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, function(loie) {
+            showAIToast("❌ <b>Lỗi ghi dữ liệu:</b><br>" + loie.message, "error");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    } else {
+         showAIToast("❌ <b>Lỗi hệ thống:</b><br>Không tìm thấy hàm API ghi dữ liệu.", "error");
+         btn.innerHTML = originalText;
+         btn.disabled = false;
+    }
+}
+</script>

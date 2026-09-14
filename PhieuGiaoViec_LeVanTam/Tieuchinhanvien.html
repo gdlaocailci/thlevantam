@@ -1,0 +1,422 @@
+<!-- Tải thư viện SheetJS nếu chưa có ở file index chính -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+  #vungTieuChiNV { height: calc(100vh - 60px); display: flex; flex-direction: column; background-color: #f8f9fa; width: 100%; overflow: hidden; }
+  .tDeTieuChiNV { font-weight: bold; color: #dc3545; font-size: 20px; text-transform: uppercase; margin: 0; padding: 15px 0; text-align: center; }
+  
+  .bangTieuChiNV-wrapper { flex: 1 1 auto; overflow: auto; width: 100%; padding: 0; border-top: 2px solid #0d6efd; background: #fff; display: block; position: relative; }
+  
+  #bangTieuChiNV { width: 100%; min-width: 1800px; border-collapse: collapse; table-layout: fixed; }
+  #bangTieuChiNV thead th { position: sticky; top: 0; background-color: #0d6efd !important; color: white !important; text-align: center; vertical-align: middle; padding: 8px 4px; font-size: 13px; z-index: 10; border: none; border-right: 1px solid #7ea8f8; border-bottom: 2px solid #0a58ca; }
+  #bangTieuChiNV th:last-child { border-right: none; }
+  #bangTieuChiNV td { border: none !important; border-bottom: 1px dashed #dee2e6 !important; border-right: 1px solid #dee2e6 !important; padding: 0; vertical-align: middle; }
+  #bangTieuChiNV td:last-child { border-right: none !important; }
+  
+  #bangTieuChiNV input, #bangTieuChiNV textarea { width: 100%; border: none; outline: none; padding: 6px; font-size: 13px; background: transparent; resize: none; overflow: hidden; display: block; }
+  #bangTieuChiNV input::placeholder, #bangTieuChiNV textarea::placeholder { color: #adb5bd; font-style: italic; font-size: 12px; }
+  #bangTieuChiNV textarea { min-height: 35px; white-space: pre-wrap; word-wrap: break-word; }
+  
+  .nutDieuKhienNV { padding: 2px 6px; font-size: 12px; margin: 1px; }
+  .cotHanhDongNV { text-align: center; background-color: #f1f4f8; }
+  .cotSttNV { text-align: center; font-weight: bold; background-color: #f1f4f8; }
+
+  /* Khối hiệu ứng và Icon tương tác */
+  .btn-hieu-ung { transition: all 0.3s ease; }
+  .btn-hieu-ung:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
+  .icon-svg { width: 16px; height: 16px; margin-right: 4px; vertical-align: text-bottom; fill: currentColor; }
+</style>
+
+<div id="vungTieuChiNV">
+  <div class="d-flex justify-content-between align-items-center px-3" style="background: white; border-bottom: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary btn-sm fw-bold shadow-sm btn-hieu-ung" onclick="themDongTieuChiNV()">
+        <i class="bi bi-plus-circle"></i> Thêm dòng
+      </button>
+      
+      <!-- Cụm tính năng xử lý Excel (Tải mẫu + Nhập liệu) -->
+      <button class="btn btn-outline-info btn-sm fw-bold shadow-sm btn-hieu-ung" onclick="taiBieuMauExcelNV()">
+        <svg class="icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM15 18H9v-2h6v2zm0-4H9v-2h6v2z"/>
+        </svg>
+        Tải biểu mẫu Excel
+      </button>
+      
+      <button class="btn btn-outline-secondary btn-sm fw-bold shadow-sm btn-hieu-ung" onclick="document.getElementById('nhapDuLieuExcelNV').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+        </svg>
+        Nhập từ Excel
+      </button>
+      <input type="file" id="nhapDuLieuExcelNV" accept=".xlsx, .xls" style="display: none;" onchange="xuLyTepExcelNV(event)">
+    </div>
+    
+    <div class="tDeTieuChiNV">TIÊU CHÍ ĐÁNH GIÁ XẾP LOẠI - NHÂN VIÊN</div>
+    
+    <div>
+      <button class="btn btn-success btn-sm fw-bold shadow-sm btn-hieu-ung" onclick="capNhatTieuChiNV()" id="nutLuuTieuChiNV">
+        <i class="bi bi-save"></i> Cập nhật đồng bộ
+      </button>
+    </div>
+  </div>
+
+  <div class="bangTieuChiNV-wrapper shadow-sm">
+    <table id="bangTieuChiNV" class="table table-hover table-bordered mb-0">
+      <thead>
+        <tr>
+          <th style="width: 90px;" class="cotHanhDongNV">Công cụ</th>
+          <th style="width: 60px;" class="cotSttNV">STT (Cột A)</th>
+          <th style="width: 200px;">Nội dung tiêu chí (Cột B)</th>
+          <th style="width: 120px;">Thang điểm tối đa (Cột C)</th>
+          <th style="width: 120px;">Thời gian giao (Cột D)</th>
+          <th style="width: 150px;">Tiến độ (Cột E)</th>
+          <th style="width: 130px;">Thời gian HT (Cột F)</th>
+          <th style="width: 130px;">Người thực hiện (Cột G)</th>
+          <th style="width: auto;">Điểm đánh giá (Cột H)</th>
+          <th style="width: 150px;">Ghi chú (Cột I)</th>
+          <th style="width: 70px;">Loại XS (J)</th>
+          <th style="width: 70px;">Loại HTT (K)</th>
+          <th style="width: 70px;">Loại HT (L)</th>
+          <th style="width: 80px;">Chưa HT (M)</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/**
+ * Tải khung biểu mẫu chuẩn kèm theo toàn bộ dữ liệu Nhân viên đang có trên giao diện (Sử dụng SheetJS)
+ */
+function taiBieuMauExcelNV() {
+    const duLieuXuat = [
+        // Dòng 1: Tiêu đề cột
+        ["STT (Cột A)", "Nội dung tiêu chí (Cột B)", "Thang điểm tối đa (Cột C)", "Thời gian giao (Cột D)", "Tiến độ (Cột E)", "Thời gian hoàn thành (Cột F)", "Người thực hiện (Cột G)", "Điểm đánh giá (Cột H)", "Ghi chú (Cột I)", "Xếp loại XS (Cột J)", "Xếp loại HTT (Cột K)", "Xếp loại HT (Cột L)", "Chưa hoàn thành (Cột M)"],
+        
+        // Dòng 2, 3, 4: Hướng dẫn nhập liệu
+        ["(Quy ước)", "Tiêu đề lớn bắt đầu bằng dấu * (VD: *Nhiệm vụ chung). Các tiêu chí con gõ bình thường.", "Nhập số (VD: 10)", "Nhập ngày (dd/mm/yyyy)", "Nhập trạng thái (VD: Đang tiến hành)", "Nhập ngày (dd/mm/yyyy)", "Cá nhân/Bộ phận/ALL", "Cú pháp: [Tên mức]|[Điểm]; (VD: Hoàn thành|10; Chưa xong|0)", "Ghi chú tự do", "VD: >=9", "VD: >=7", "VD: >=5", "VD: <5"],
+        ["(Lưu ý)", "Hệ thống sẽ tự động bỏ qua 4 dòng đầu tiên này khi tải lên.", "", "", "", "", "", "", "", "", "", "", ""],
+        ["(Lưu ý)", "Vui lòng BẮT ĐẦU NHẬP DỮ LIỆU TỪ DÒNG SỐ 5 TRỞ XUỐNG.", "", "", "", "", "", "", "", "", "", "", ""]
+    ];
+
+    // Lấy dữ liệu hiện tại từ bảng UI
+    document.querySelectorAll('#bangTieuChiNV tbody tr.dongTieuChiNV').forEach(tr => {
+        let r0 = tr.querySelector('.nhapSttTCNV')?.value || "";
+        let r1 = tr.querySelector('.nhapNoiDungTCNV')?.value || "";
+        let r2 = tr.querySelector('.nhapDiemMaxTCNV')?.value || "";
+        let r3 = tr.querySelector('.nhapTgGiaoTCNV')?.value || "";
+        let r4 = tr.querySelector('.nhapTienDoTCNV')?.value || "";
+        let r5 = tr.querySelector('.nhapTgHtTCNV')?.value || "";
+        let r6 = tr.querySelector('.nhapNguoiThTCNV')?.value || "";
+        let r7 = tr.querySelector('.nhapDiemDgTCNV')?.value || "";
+        let r8 = tr.querySelector('.nhapGhiChuTCNV')?.value || "";
+        let r9 = tr.querySelector('.nhapXSTCNV')?.value || "";
+        let r10 = tr.querySelector('.nhapHTTTCNV')?.value || "";
+        let r11 = tr.querySelector('.nhapHTTCNV')?.value || "";
+        let r12 = tr.querySelector('.nhapCHTTCNV')?.value || "";
+        
+        if(String(r1).trim() !== "") {
+            duLieuXuat.push([r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12]);
+        }
+    });
+
+    if (duLieuXuat.length === 4) {
+        duLieuXuat.push(["I", "*Thực hiện nền nếp, quy chế chuyên môn (Nhân viên)", "", "", "", "", "", "", "", "", "", "", ""]);
+        duLieuXuat.push(["1", "Đảm bảo công tác hành chính, văn thư", "10", "01/08/2026", "Đang thực hiện", "30/08/2026", "Tổ Hành chính", "Hoàn thành|10; Không HT|0", "Đánh giá hàng tháng", ">=9", ">=7", ">=5", "<5"]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(duLieuXuat);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "TieuChiNV");
+    
+    ws['!cols'] = [{wch: 12}, {wch: 55}, {wch: 22}, {wch: 20}, {wch: 25}, {wch: 22}, {wch: 20}, {wch: 45}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}];
+    
+    XLSX.writeFile(wb, "BieuMau_TieuChiDanhGiaNV.xlsx");
+}
+
+function xuLyTepExcelNV(event) {
+    const tepTin = event.target.files[0];
+    if (!tepTin) return;
+
+    if (!confirm("Đồng chí có muốn xóa toàn bộ dữ liệu đang có trên form và thay thế bằng dữ liệu từ tệp Excel này không?")) {
+        event.target.value = ""; 
+        return;
+    }
+
+    const docGia = new FileReader();
+    docGia.onload = function(e) {
+        try {
+            const duLieuNhiPhan = new Uint8Array(e.target.result);
+            const bangTinh = XLSX.read(duLieuNhiPhan, {type: 'array'});
+            
+            const tenTrangTinh = bangTinh.SheetNames[0];
+            const trangTinh = bangTinh.Sheets[tenTrangTinh];
+            
+            const jsonDuLieu = XLSX.utils.sheet_to_json(trangTinh, {header: 1, defval: ""});
+            
+            // Cắt bỏ 4 dòng đầu tiên (dòng 0 đến 3), bắt đầu lấy dữ liệu từ dòng 5 (index 4)
+            if (jsonDuLieu.length > 4) {
+                const mangPhanTuDuLieu = jsonDuLieu.slice(4); 
+                
+                const mangChuanHoa = mangPhanTuDuLieu.map(dong => {
+                    let dongMoi = [];
+                    for(let i = 0; i < 13; i++) {
+                        dongMoi.push(dong[i] !== undefined ? dong[i] : "");
+                    }
+                    return dongMoi;
+                });
+                
+                hienThiTieuChiNV(mangChuanHoa);
+                if(typeof hienThongb === 'function') hienThongb('tcong', 'Đã tải thành công dữ liệu Nhân viên từ Excel lên giao diện.');
+                else alert("Tải dữ liệu từ Excel thành công!");
+            } else {
+                alert("Tệp Excel không chứa đủ dữ liệu (yêu cầu dữ liệu bắt đầu từ dòng 5).");
+            }
+        } catch (loi) {
+            console.error(loi);
+            alert("Đã xảy ra lỗi trong quá trình phân tích tệp Excel. Chi tiết: " + loi.message);
+        }
+        
+        event.target.value = ""; 
+    };
+    
+    docGia.readAsArrayBuffer(tepTin);
+}
+
+// ==========================================================================
+// CÁC HÀM HIỂN THỊ VÀ TƯƠNG TÁC GIAO DIỆN CƠ BẢN (Được giữ nguyên & làm gọn)
+// ==========================================================================
+
+function cdangTCNV(ptu) { 
+    if(!ptu) return;
+    ptu.style.height = 'auto'; 
+    ptu.style.height = (ptu.scrollHeight) + 'px'; 
+}
+
+function themDongTieuChiNV() {
+    const bg = document.querySelector('#bangTieuChiNV tbody');
+    if (!bg) return;
+    
+    const tr = document.createElement('tr');
+    tr.className = "dongTieuChiNV";
+    
+    tr.innerHTML = `
+        <td class="cotHanhDongNV align-middle text-center">
+            <button class="btn btn-sm btn-light nutDieuKhienNV border text-primary shadow-sm btn-hieu-ung" title="Lên" onclick="diChuyenLenNV(this)"><i class="bi bi-arrow-up"></i></button>
+            <button class="btn btn-sm btn-light nutDieuKhienNV border text-primary shadow-sm btn-hieu-ung" title="Xuống" onclick="diChuyenXuongNV(this)"><i class="bi bi-arrow-down"></i></button>
+            <button class="btn btn-sm btn-danger nutDieuKhienNV shadow-sm btn-hieu-ung" title="Xóa" onclick="xoaDongTieuChiNV(this)"><i class="bi bi-x"></i></button>
+        </td>
+        <td class="cotSttNV align-middle"><input type="text" class="nhapSttTCNV text-center fw-bold" placeholder="1"></td>
+        <td><textarea class="nhapNoiDungTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="VD: *Nhiệm vụ chung..."></textarea></td>
+        <td><input type="text" class="nhapDiemMaxTCNV text-center text-danger fw-bold" placeholder="10"></td>
+        <td><input type="text" class="nhapTgGiaoTCNV text-center" placeholder="dd/mm/yyyy"></td>
+        <td><textarea class="nhapTienDoTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="Nhiệm vụ chung" rows="1"></textarea></td>
+        <td><input type="text" class="nhapTgHtTCNV text-center" placeholder="dd/mm/yyyy"></td>
+        <td><textarea class="nhapNguoiThTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="ALL" rows="1"></textarea></td>
+        <td><textarea class="nhapDiemDgTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="Hoàn thành|10; Chưa xong|0"></textarea></td>
+        <td><textarea class="nhapGhiChuTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="TOÀN TRƯỜNG"></textarea></td>
+        <td><input type="text" class="nhapXSTCNV text-center text-success fw-bold" placeholder=">=9"></td>
+        <td><input type="text" class="nhapHTTTCNV text-center text-primary fw-bold" placeholder=">=7"></td>
+        <td><input type="text" class="nhapHTTCNV text-center fw-bold" placeholder=">=5"></td>
+        <td><input type="text" class="nhapCHTTCNV text-center text-danger fw-bold" placeholder="<5"></td>
+    `;
+    
+    bg.appendChild(tr);
+    let oNhapNoiDung = tr.querySelector('.nhapNoiDungTCNV');
+    cdangTCNV(oNhapNoiDung);
+    
+    setTimeout(() => {
+        tr.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        oNhapNoiDung.focus();
+    }, 100);
+}
+
+function xoaDongTieuChiNV(btn) {
+    if (confirm("Đồng chí có chắc chắn muốn xóa dòng tiêu chí NHÂN VIÊN này không?")) btn.closest('tr').remove();
+}
+
+function diChuyenLenNV(btn) {
+    const tr = btn.closest('tr');
+    if (tr.previousElementSibling) tr.parentNode.insertBefore(tr, tr.previousElementSibling);
+}
+
+function diChuyenXuongNV(btn) {
+    const tr = btn.closest('tr');
+    if (tr.nextElementSibling) tr.parentNode.insertBefore(tr.nextElementSibling, tr);
+}
+
+function hienThiTieuChiNV(mangDl) {
+    const bg = document.querySelector('#bangTieuChiNV tbody');
+    bg.innerHTML = "";
+    if (!mangDl || mangDl.length === 0) {
+        themDongTieuChiNV();
+        return;
+    }
+    
+    mangDl.forEach(dong => {
+        const tr = document.createElement('tr');
+        tr.className = "dongTieuChiNV";
+        
+        let es = (val) => {
+            if (val === undefined || val === null) return "";
+            if (Object.prototype.toString.call(val) === '[object Date]') {
+                return new Date(val.getTime() - (val.getTimezoneOffset() * 60000)).toISOString().split('T')[0].split('-').reverse().join('/');
+            }
+            return String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        };
+        
+        tr.innerHTML = `
+            <td class="cotHanhDongNV align-middle text-center">
+                <button class="btn btn-sm btn-light nutDieuKhienNV border text-primary shadow-sm btn-hieu-ung" title="Lên" onclick="diChuyenLenNV(this)"><i class="bi bi-arrow-up"></i></button>
+                <button class="btn btn-sm btn-light nutDieuKhienNV border text-primary shadow-sm btn-hieu-ung" title="Xuống" onclick="diChuyenXuongNV(this)"><i class="bi bi-arrow-down"></i></button>
+                <button class="btn btn-sm btn-danger nutDieuKhienNV shadow-sm btn-hieu-ung" title="Xóa" onclick="xoaDongTieuChiNV(this)"><i class="bi bi-x"></i></button>
+            </td>
+            <td class="cotSttNV align-middle"><input type="text" class="nhapSttTCNV text-center fw-bold" placeholder="1" value="${es(dong[0])}"></td>
+            <td><textarea class="nhapNoiDungTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="VD: *Nhiệm vụ chung...">${es(dong[1])}</textarea></td>
+            <td><input type="text" class="nhapDiemMaxTCNV text-center text-danger fw-bold" placeholder="10" value="${es(dong[2])}"></td>
+            <td><input type="text" class="nhapTgGiaoTCNV text-center" placeholder="dd/mm/yyyy" value="${es(dong[3])}"></td>
+            <td><textarea class="nhapTienDoTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="Nhiệm vụ chung" rows="1">${es(dong[4])}</textarea></td>
+            <td><input type="text" class="nhapTgHtTCNV text-center" placeholder="dd/mm/yyyy" value="${es(dong[5])}"></td>
+            <td><textarea class="nhapNguoiThTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="ALL" rows="1">${es(dong[6])}</textarea></td>
+            <td><textarea class="nhapDiemDgTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="Hoàn thành|10; Chưa xong|0">${es(dong[7])}</textarea></td>
+            <td><textarea class="nhapGhiChuTCNV" oninput="cdangTCNV(this)" onfocus="cdangTCNV(this)" placeholder="TOÀN TRƯỜNG">${es(dong[8])}</textarea></td>
+            <td><input type="text" class="nhapXSTCNV text-center text-success fw-bold" placeholder=">=9" value="${es(dong[9])}"></td>
+            <td><input type="text" class="nhapHTTTCNV text-center text-primary fw-bold" placeholder=">=7" value="${es(dong[10])}"></td>
+            <td><input type="text" class="nhapHTTCNV text-center fw-bold" placeholder=">=5" value="${es(dong[11])}"></td>
+            <td><input type="text" class="nhapCHTTCNV text-center text-danger fw-bold" placeholder="<5" value="${es(dong[12])}"></td>
+        `;
+        bg.appendChild(tr);
+    });
+    
+    setTimeout(() => { document.querySelectorAll('#bangTieuChiNV textarea').forEach(txt => cdangTCNV(txt)); }, 100);
+}
+
+function capNhatTieuChiNV() {
+    if (!confirm("Đồng chí có chắc chắn muốn ghi đè toàn bộ dữ liệu hiện tại lên trang tính hệ thống không?")) return;
+    
+    const nutLuu = document.getElementById("nutLuuTieuChiNV");
+    if(nutLuu) nutLuu.disabled = true;
+    if(typeof hienTaiDl === 'function') hienTaiDl("🚀 Đang đồng bộ dữ liệu Tiêu chí Nhân viên...");
+    
+    try {
+        let mangMoi = [];
+        
+        // Quét từng dòng dữ liệu trong bảng
+        document.querySelectorAll('#bangTieuChiNV tbody tr.dongTieuChiNV').forEach(tr => {
+            // Sử dụng ?.value để đảm bảo không bị lỗi dừng đột ngột (crash) nếu ô input vô tình bị xóa mất class
+            let r0 = tr.querySelector('.nhapSttTCNV')?.value || "";
+            let r1 = tr.querySelector('.nhapNoiDungTCNV')?.value || "";
+            let r2 = tr.querySelector('.nhapDiemMaxTCNV')?.value || "";
+            let r3 = tr.querySelector('.nhapTgGiaoTCNV')?.value || "";
+            let r4 = tr.querySelector('.nhapTienDoTCNV')?.value || "";
+            let r5 = tr.querySelector('.nhapTgHtTCNV')?.value || "";
+            let r6 = tr.querySelector('.nhapNguoiThTCNV')?.value || "";
+            let r7 = tr.querySelector('.nhapDiemDgTCNV')?.value || "";
+            let r8 = tr.querySelector('.nhapGhiChuTCNV')?.value || "";
+            let r9 = tr.querySelector('.nhapXSTCNV')?.value || "";
+            let r10 = tr.querySelector('.nhapHTTTCNV')?.value || "";
+            let r11 = tr.querySelector('.nhapHTTCNV')?.value || "";
+            let r12 = tr.querySelector('.nhapCHTTCNV')?.value || "";
+            
+            // Chỉ lấy các dòng có nội dung tiêu chí
+            if(String(r1).trim() !== "") {
+                mangMoi.push([r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12]);
+            }
+        });
+
+        // In ra Console (F12) để kiểm tra dữ liệu trước khi gửi
+        console.log("🚀 Dữ liệu chuẩn bị gửi đi (mangMoi):", mangMoi);
+
+        const dlGoi = { hdong: "capnhatTieuChiNV", dlbang: mangMoi };
+
+        const fnThanhCong = function(kqTho) {
+            if(typeof anTaiDl === 'function') anTaiDl();
+            if(nutLuu) nutLuu.disabled = false;
+            
+            let kq = (typeof kqTho === 'string') ? JSON.parse(kqTho) : kqTho;
+            let laThanhCong = (kq === true || (kq && kq.ttai === 'tcong'));
+            
+            if(laThanhCong) {
+                if(typeof hienThongb === 'function') hienThongb('tcong', 'Đã cập nhật đồng bộ Tiêu chí Nhân viên lên máy chủ thành công!');
+                else alert("Cập nhật thành công!");
+            } else {
+                let tb = kq ? (kq.tbao || "Lỗi không xác định từ Server") : "Không có phản hồi hợp lệ.";
+                if(typeof hienThongb === 'function') hienThongb('loi', 'Lỗi cập nhật: ' + tb);
+                else alert("Lỗi: " + tb);
+            }
+        };
+
+        const fnLoi = function(loi) {
+            if(typeof anTaiDl === 'function') anTaiDl();
+            if(nutLuu) nutLuu.disabled = false;
+            
+            let loiMsg = (loi && loi.message) ? loi.message : String(loi);
+            console.error("❌ Lỗi kết nối Google Apps Script:", loiMsg);
+            
+            if(typeof hienThongb === 'function') hienThongb('loi', 'Lỗi máy chủ: ' + loiMsg);
+            else alert("Lỗi máy chủ: " + loiMsg);
+        };
+
+        // Gửi dữ liệu tới Google Apps Script
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run.withSuccessHandler(fnThanhCong).withFailureHandler(fnLoi).pgv_capnhat_tieuchi_nv(dlGoi);
+        } else if (typeof khachApi !== 'undefined' && typeof khachApi.goiThuCong === 'function') {
+            khachApi.goiThuCong(dlGoi, fnThanhCong, fnLoi);
+        } else {
+            if(typeof anTaiDl === 'function') anTaiDl();
+            if(nutLuu) nutLuu.disabled = false;
+            alert("Lỗi: Chưa liên kết được API ghi dữ liệu hệ thống.");
+        }
+        
+    } catch (loiHeThong) {
+        console.error("❌ Lỗi khi quét dữ liệu từ bảng HTML:", loiHeThong);
+        if(typeof anTaiDl === 'function') anTaiDl();
+        if(nutLuu) nutLuu.disabled = false;
+        alert("Đã xảy ra lỗi trên giao diện khi thu thập dữ liệu: " + loiHeThong.message);
+    }
+}
+
+function khoiDongTabTieuChiNV() {
+    if(typeof hienTaiDl === 'function') hienTaiDl("⏳ Đang tải Tiêu chí đánh giá Nhân viên...");
+    
+    const fnThanhCong = function(kqTho) {
+        if(typeof anTaiDl === 'function') anTaiDl();
+        
+        let mangDuLieu = null;
+        
+        if (Array.isArray(kqTho)) {
+            mangDuLieu = kqTho;
+        } else if (kqTho && Array.isArray(kqTho.dliu)) {
+            mangDuLieu = kqTho.dliu;
+        }
+
+        if (mangDuLieu !== null) {
+            hienThiTieuChiNV(mangDuLieu);
+        } else {
+            hienThiTieuChiNV([]);
+            let tb = (kqTho && kqTho.tbao) ? kqTho.tbao : "Dữ liệu trả về trống hoặc trang tính đang rỗng.";
+            if(typeof hienThongb === 'function') hienThongb('loi', 'Chưa tải được dữ liệu: ' + tb);
+        }
+    };
+    
+    const fnLoi = function(loi) {
+        if(typeof anTaiDl === 'function') anTaiDl();
+        hienThiTieuChiNV([]);
+        let loiMsg = (loi && loi.message) ? loi.message : String(loi);
+        if(typeof hienThongb === 'function') hienThongb('loi', 'Lỗi kết nối Server: ' + loiMsg);
+    };
+    
+    const dlGoi = { hdong: "laydlTieuChiNV" };
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(fnThanhCong).withFailureHandler(fnLoi).pgv_laydl_tieuchi_nv();
+    } else if (typeof khachApi !== 'undefined' && typeof khachApi.goiThuCong === 'function') {
+        khachApi.goiThuCong(dlGoi, fnThanhCong, fnLoi);
+    } else {
+        if(typeof anTaiDl === 'function') anTaiDl();
+        alert("Lỗi: API đọc dữ liệu hệ thống chưa được thiết lập.");
+    }
+}
+</script>

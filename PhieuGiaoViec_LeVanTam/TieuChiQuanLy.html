@@ -1,0 +1,408 @@
+<!-- Cần đảm bảo thư viện SheetJS đã được tải ở đâu đó trong tệp chính -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+  #vungTieuChiQL { height: calc(100vh - 60px); display: flex; flex-direction: column; background-color: #f8f9fa; width: 100%; overflow: hidden; }
+  .tDeTieuChiQL { font-weight: bold; color: #198754; font-size: 20px; text-transform: uppercase; margin: 0; padding: 15px 0; text-align: center; }
+  
+  .bangTieuChiQL-wrapper { flex: 1 1 auto; overflow: auto; width: 100%; padding: 0; border-top: 2px solid #198754; background: #fff; display: block; position: relative; }
+  
+  #bangTieuChiQL { width: 100%; min-width: 1800px; border-collapse: collapse; table-layout: fixed; }
+  #bangTieuChiQL thead th { position: sticky; top: 0; background-color: #198754 !important; color: white !important; text-align: center; vertical-align: middle; padding: 8px 4px; font-size: 13px; z-index: 10; border: none; border-right: 1px solid #75b798; border-bottom: 2px solid #146c43; }
+  #bangTieuChiQL th:last-child { border-right: none; }
+  #bangTieuChiQL td { border: none !important; border-bottom: 1px dashed #dee2e6 !important; border-right: 1px solid #dee2e6 !important; padding: 0; vertical-align: middle; }
+  #bangTieuChiQL td:last-child { border-right: none !important; }
+  
+  #bangTieuChiQL input, #bangTieuChiQL textarea { width: 100%; border: none; outline: none; padding: 6px; font-size: 13px; background: transparent; resize: none; overflow: hidden; display: block; }
+  #bangTieuChiQL input::placeholder, #bangTieuChiQL textarea::placeholder { color: #adb5bd; font-style: italic; font-size: 12px; }
+  #bangTieuChiQL textarea { min-height: 35px; white-space: pre-wrap; word-wrap: break-word; }
+  
+  .nutDieuKhienQL { padding: 2px 6px; font-size: 12px; margin: 1px; }
+  .cotHanhDongQL { text-align: center; background-color: #f1f4f8; }
+  .cotSttQL { text-align: center; font-weight: bold; background-color: #f1f4f8; }
+
+  /* Hiệu ứng và Icon (Tham khảo Reactbits & Svgrepo) */
+  .btn-hieu-ung { transition: all 0.3s ease; }
+  .btn-hieu-ung:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
+  .icon-svg { width: 16px; height: 16px; margin-right: 4px; vertical-align: text-bottom; fill: currentColor; }
+</style>
+
+<div id="vungTieuChiQL">
+  <div class="d-flex justify-content-between align-items-center px-3" style="background: white; border-bottom: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+  
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-success btn-sm fw-bold shadow-sm btn-hieu-ung" onclick="themDongTieuChiQL()">
+        <i class="bi bi-plus-circle"></i> Thêm dòng
+      </button>
+      
+      <!-- Nút thao tác với Excel -->
+      <button class="btn btn-outline-primary btn-sm fw-bold shadow-sm btn-hieu-ung" onclick="taiBieuMauExcelQL()">
+        <svg class="icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM15 18H9v-2h6v2zm0-4H9v-2h6v2z"/>
+        </svg>
+        Tải biểu mẫu Excel
+      </button>
+      
+      <button class="btn btn-outline-secondary btn-sm fw-bold shadow-sm btn-hieu-ung" onclick="document.getElementById('nhapDuLieuExcelQL').click()">
+        <svg class="icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+        </svg>
+        Nhập từ Excel
+      </button>
+      <input type="file" id="nhapDuLieuExcelQL" accept=".xlsx, .xls" style="display: none;" onchange="xuLyTepExcelQL(event)">
+    </div>
+    
+    <div class="tDeTieuChiQL">TIÊU CHÍ ĐÁNH GIÁ XẾP LOẠI - QUẢN LÝ</div>
+    
+    <div>
+      <button class="btn btn-primary btn-sm fw-bold shadow-sm btn-hieu-ung" onclick="capNhatTieuChiQL()" id="nutLuuTieuChiQL">
+        <i class="bi bi-save"></i> Cập nhật đồng bộ
+      </button>
+    </div>
+  </div>
+
+  <div class="bangTieuChiQL-wrapper shadow-sm">
+    <table id="bangTieuChiQL" class="table table-hover table-bordered mb-0">
+      <thead>
+        <tr>
+          <th style="width: 90px;" class="cotHanhDongQL">Công cụ</th>
+          <th style="width: 60px;" class="cotSttQL">STT (Cột A)</th>
+          <th style="width: 200px;">Nội dung tiêu chí (Cột B)</th>
+          <th style="width: 120px;">Thang điểm tối đa (Cột C)</th>
+          <th style="width: 120px;">Thời gian giao (Cột D)</th>
+          <th style="width: 150px;">Tiến độ (Cột E)</th>
+          <th style="width: 130px;">Thời gian HT (Cột F)</th>
+          <th style="width: 130px;">Người thực hiện (Cột G)</th>
+          <th style="width: auto;">Điểm đánh giá (Cột H)</th>
+          <th style="width: 150px;">Ghi chú (Cột I)</th>
+          <th style="width: 70px;">Loại XS (J)</th>
+          <th style="width: 70px;">Loại HTT (K)</th>
+          <th style="width: 70px;">Loại HT (L)</th>
+          <th style="width: 80px;">Chưa HT (M)</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/**
+ * Tải khung biểu mẫu chuẩn kèm theo toàn bộ dữ liệu Quản lý đang có trên giao diện (Sử dụng SheetJS)
+ */
+function taiBieuMauExcelQL() {
+    const duLieuXuat = [
+        // Dòng 1: Tiêu đề cột
+        ["STT (Cột A)", "Nội dung tiêu chí (Cột B)", "Thang điểm tối đa (Cột C)", "Thời gian giao (Cột D)", "Tiến độ (Cột E)", "Thời gian hoàn thành (Cột F)", "Người thực hiện (Cột G)", "Điểm đánh giá (Cột H)", "Ghi chú (Cột I)", "Xếp loại XS (Cột J)", "Xếp loại HTT (Cột K)", "Xếp loại HT (Cột L)", "Chưa hoàn thành (Cột M)"],
+        
+        // Dòng 2, 3, 4: Hướng dẫn nhập liệu
+        ["(Quy ước)", "Tiêu đề lớn bắt đầu bằng dấu * (VD: *Nhiệm vụ chung). Các tiêu chí con gõ bình thường.", "Nhập số (VD: 10)", "Nhập ngày (dd/mm/yyyy)", "Nhập trạng thái (VD: Đang tiến hành)", "Nhập ngày (dd/mm/yyyy)", "Cá nhân/Bộ phận/ALL", "Cú pháp: [Tên mức]|[Điểm]; (VD: Hoàn thành|10; Chưa xong|0)", "Ghi chú tự do", "VD: >=9", "VD: >=7", "VD: >=5", "VD: <5"],
+        ["(Lưu ý)", "Hệ thống sẽ tự động bỏ qua 4 dòng đầu tiên này khi tải lên.", "", "", "", "", "", "", "", "", "", "", ""],
+        ["(Lưu ý)", "Vui lòng BẮT ĐẦU NHẬP DỮ LIỆU TỪ DÒNG SỐ 5 TRỞ XUỐNG.", "", "", "", "", "", "", "", "", "", "", ""]
+    ];
+
+    // Lấy dữ liệu hiện tại từ bảng UI
+    document.querySelectorAll('#bangTieuChiQL tbody tr.dongTieuChiQL').forEach(tr => {
+        let r0 = tr.querySelector('.nhapSttTCQL')?.value || "";
+        let r1 = tr.querySelector('.nhapNoiDungTCQL')?.value || "";
+        let r2 = tr.querySelector('.nhapDiemMaxTCQL')?.value || "";
+        let r3 = tr.querySelector('.nhapTgGiaoTCQL')?.value || "";
+        let r4 = tr.querySelector('.nhapTienDoTCQL')?.value || "";
+        let r5 = tr.querySelector('.nhapTgHtTCQL')?.value || "";
+        let r6 = tr.querySelector('.nhapNguoiThTCQL')?.value || "";
+        let r7 = tr.querySelector('.nhapDiemDgTCQL')?.value || "";
+        let r8 = tr.querySelector('.nhapGhiChuTCQL')?.value || "";
+        let r9 = tr.querySelector('.nhapXSTCQL')?.value || "";
+        let r10 = tr.querySelector('.nhapHTTTCQL')?.value || "";
+        let r11 = tr.querySelector('.nhapHTTCQL')?.value || "";
+        let r12 = tr.querySelector('.nhapCHTTCQL')?.value || "";
+        
+        if(String(r1).trim() !== "") {
+            duLieuXuat.push([r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12]);
+        }
+    });
+
+    if (duLieuXuat.length === 4) {
+        duLieuXuat.push(["I", "*Thực hiện nền nếp, quy chế chuyên môn (Quản lý)", "", "", "", "", "", "", "", "", "", "", ""]);
+        duLieuXuat.push(["1", "Đảm bảo công tác quản lý chỉ đạo", "10", "01/08/2026", "Đang thực hiện", "30/08/2026", "BGH", "Hoàn thành|10; Không HT|0", "Đánh giá hàng tháng", ">=9", ">=7", ">=5", "<5"]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(duLieuXuat);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "TieuChiQL");
+    
+    ws['!cols'] = [{wch: 12}, {wch: 55}, {wch: 22}, {wch: 20}, {wch: 25}, {wch: 22}, {wch: 20}, {wch: 45}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}];
+    
+    XLSX.writeFile(wb, "BieuMau_TieuChiDanhGiaQL.xlsx");
+}
+
+/**
+ * Xử lý sự kiện khi tải tệp Excel lên, BẮT ĐẦU ĐỌC TỪ DÒNG SỐ 5 (cắt bỏ 4 dòng đầu)
+ */
+function xuLyTepExcelQL(event) {
+    const tepTin = event.target.files[0];
+    if (!tepTin) return;
+
+    if (!confirm("Đồng chí có muốn xóa toàn bộ dữ liệu đang có trên form và thay thế bằng dữ liệu từ tệp Excel này không?")) {
+        event.target.value = ""; 
+        return;
+    }
+
+    const docGia = new FileReader();
+    docGia.onload = function(e) {
+        try {
+            const duLieuNhiPhan = new Uint8Array(e.target.result);
+            const bangTinh = XLSX.read(duLieuNhiPhan, {type: 'array'});
+            
+            const tenTrangTinh = bangTinh.SheetNames[0];
+            const trangTinh = bangTinh.Sheets[tenTrangTinh];
+            
+            const jsonDuLieu = XLSX.utils.sheet_to_json(trangTinh, {header: 1, defval: ""});
+            
+            // Cắt bỏ 4 dòng đầu tiên (dòng 0 đến 3), dữ liệu bắt đầu từ dòng 5 (index 4)
+            if (jsonDuLieu.length > 4) {
+                const mangPhanTuDuLieu = jsonDuLieu.slice(4); 
+                
+                const mangChuanHoa = mangPhanTuDuLieu.map(dong => {
+                    let dongMoi = [];
+                    for(let i = 0; i < 13; i++) {
+                        dongMoi.push(dong[i] !== undefined ? dong[i] : "");
+                    }
+                    return dongMoi;
+                });
+                
+                hienThiTieuChiQL(mangChuanHoa);
+                if(typeof hienThongb === 'function') hienThongb('tcong', 'Đã tải thành công dữ liệu từ Excel lên giao diện.');
+                else alert("Tải dữ liệu từ Excel thành công!");
+            } else {
+                alert("Tệp Excel không chứa đủ dữ liệu (yêu cầu dữ liệu bắt đầu từ dòng 5).");
+            }
+        } catch (loi) {
+            console.error(loi);
+            alert("Đã xảy ra lỗi trong quá trình phân tích tệp Excel. Chi tiết: " + loi.message);
+        }
+        
+        event.target.value = ""; 
+    };
+    
+    docGia.readAsArrayBuffer(tepTin);
+}
+
+// ==========================================================================
+// CÁC HÀM HIỂN THỊ VÀ TƯƠNG TÁC GIAO DIỆN (GIỮ NGUYÊN TỪ BẢN GỐC)
+// ==========================================================================
+
+function cdangTCQL(ptu) { 
+    if(!ptu) return;
+    ptu.style.height = 'auto'; 
+    ptu.style.height = (ptu.scrollHeight) + 'px'; 
+}
+
+function themDongTieuChiQL() {
+    const bg = document.querySelector('#bangTieuChiQL tbody');
+    const tr = document.createElement('tr');
+    tr.className = "dongTieuChiQL";
+    
+    tr.innerHTML = `
+        <td class="cotHanhDongQL align-middle text-center">
+            <button class="btn btn-sm btn-light nutDieuKhienQL border text-success shadow-sm btn-hieu-ung" title="Lên" onclick="diChuyenLenQL(this)"><i class="bi bi-arrow-up"></i></button>
+            <button class="btn btn-sm btn-light nutDieuKhienQL border text-success shadow-sm btn-hieu-ung" title="Xuống" onclick="diChuyenXuongQL(this)"><i class="bi bi-arrow-down"></i></button>
+            <button class="btn btn-sm btn-danger nutDieuKhienQL shadow-sm btn-hieu-ung" title="Xóa" onclick="xoaDongTieuChiQL(this)"><i class="bi bi-x"></i></button>
+        </td>
+        <td class="cotSttQL align-middle"><input type="text" class="nhapSttTCQL text-center fw-bold" placeholder="1"></td>
+        <td><textarea class="nhapNoiDungTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="VD: *Nhiệm vụ chung..."></textarea></td>
+        <td><input type="text" class="nhapDiemMaxTCQL text-center text-danger fw-bold" placeholder="10"></td>
+        <td><input type="text" class="nhapTgGiaoTCQL text-center" placeholder="dd/mm/yyyy"></td>
+        <td><textarea class="nhapTienDoTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="Nhiệm vụ chung" rows="1"></textarea></td>
+        <td><input type="text" class="nhapTgHtTCQL text-center" placeholder="dd/mm/yyyy"></td>
+        <td><textarea class="nhapNguoiThTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="ALL" rows="1"></textarea></td>
+        <td><textarea class="nhapDiemDgTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="Hoàn thành|10; Chưa xong|0"></textarea></td>
+        <td><textarea class="nhapGhiChuTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="TOÀN TRƯỜNG"></textarea></td>
+        <td><input type="text" class="nhapXSTCQL text-center text-success fw-bold" placeholder=">=9"></td>
+        <td><input type="text" class="nhapHTTTCQL text-center text-primary fw-bold" placeholder=">=7"></td>
+        <td><input type="text" class="nhapHTTCQL text-center fw-bold" placeholder=">=5"></td>
+        <td><input type="text" class="nhapCHTTCQL text-center text-danger fw-bold" placeholder="<5"></td>
+    `;
+    
+    bg.appendChild(tr);
+    let oNhapNoiDung = tr.querySelector('.nhapNoiDungTCQL');
+    cdangTCQL(oNhapNoiDung);
+    
+    setTimeout(() => {
+        tr.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        oNhapNoiDung.focus();
+    }, 100);
+}
+
+function xoaDongTieuChiQL(btn) {
+    if (confirm("Đồng chí có chắc chắn muốn xóa dòng tiêu chí Quản lý này không?")) btn.closest('tr').remove();
+}
+
+function diChuyenLenQL(btn) {
+    const tr = btn.closest('tr');
+    if (tr.previousElementSibling) tr.parentNode.insertBefore(tr, tr.previousElementSibling);
+}
+
+function diChuyenXuongQL(btn) {
+    const tr = btn.closest('tr');
+    if (tr.nextElementSibling) tr.parentNode.insertBefore(tr.nextElementSibling, tr);
+}
+
+function hienThiTieuChiQL(mangDl) {
+    const bg = document.querySelector('#bangTieuChiQL tbody');
+    bg.innerHTML = "";
+    if (!mangDl || mangDl.length === 0) {
+        themDongTieuChiQL();
+        return;
+    }
+    
+    mangDl.forEach(dong => {
+        const tr = document.createElement('tr');
+        tr.className = "dongTieuChiQL";
+        
+        let es = (val) => {
+            if (val === undefined || val === null) return "";
+            if (Object.prototype.toString.call(val) === '[object Date]') {
+                return new Date(val.getTime() - (val.getTimezoneOffset() * 60000)).toISOString().split('T')[0].split('-').reverse().join('/');
+            }
+            return String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        };
+        
+        tr.innerHTML = `
+            <td class="cotHanhDongQL align-middle text-center">
+                <button class="btn btn-sm btn-light nutDieuKhienQL border text-success shadow-sm btn-hieu-ung" title="Lên" onclick="diChuyenLenQL(this)"><i class="bi bi-arrow-up"></i></button>
+                <button class="btn btn-sm btn-light nutDieuKhienQL border text-success shadow-sm btn-hieu-ung" title="Xuống" onclick="diChuyenXuongQL(this)"><i class="bi bi-arrow-down"></i></button>
+                <button class="btn btn-sm btn-danger nutDieuKhienQL shadow-sm btn-hieu-ung" title="Xóa" onclick="xoaDongTieuChiQL(this)"><i class="bi bi-x"></i></button>
+            </td>
+            <td class="cotSttQL align-middle"><input type="text" class="nhapSttTCQL text-center fw-bold" placeholder="1" value="${es(dong[0])}"></td>
+            <td><textarea class="nhapNoiDungTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="VD: *Nhiệm vụ chung...">${es(dong[1])}</textarea></td>
+            <td><input type="text" class="nhapDiemMaxTCQL text-center text-danger fw-bold" placeholder="10" value="${es(dong[2])}"></td>
+            <td><input type="text" class="nhapTgGiaoTCQL text-center" placeholder="dd/mm/yyyy" value="${es(dong[3])}"></td>
+            <td><textarea class="nhapTienDoTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="Nhiệm vụ chung" rows="1">${es(dong[4])}</textarea></td>
+            <td><input type="text" class="nhapTgHtTCQL text-center" placeholder="dd/mm/yyyy" value="${es(dong[5])}"></td>
+            <td><textarea class="nhapNguoiThTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="ALL" rows="1">${es(dong[6])}</textarea></td>
+            <td><textarea class="nhapDiemDgTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="Hoàn thành|10; Chưa xong|0">${es(dong[7])}</textarea></td>
+            <td><textarea class="nhapGhiChuTCQL" oninput="cdangTCQL(this)" onfocus="cdangTCQL(this)" placeholder="TOÀN TRƯỜNG">${es(dong[8])}</textarea></td>
+            <td><input type="text" class="nhapXSTCQL text-center text-success fw-bold" placeholder=">=9" value="${es(dong[9])}"></td>
+            <td><input type="text" class="nhapHTTTCQL text-center text-primary fw-bold" placeholder=">=7" value="${es(dong[10])}"></td>
+            <td><input type="text" class="nhapHTTCQL text-center fw-bold" placeholder=">=5" value="${es(dong[11])}"></td>
+            <td><input type="text" class="nhapCHTTCQL text-center text-danger fw-bold" placeholder="<5" value="${es(dong[12])}"></td>
+        `;
+        bg.appendChild(tr);
+    });
+    
+    setTimeout(() => { document.querySelectorAll('#bangTieuChiQL textarea').forEach(txt => cdangTCQL(txt)); }, 100);
+}
+
+// ==========================================================================
+// CÁC HÀM GHI/ĐỌC DỮ LIỆU VỚI MÁY CHỦ
+// ==========================================================================
+
+function capNhatTieuChiQL() {
+    if (!confirm("Đồng chí có chắc chắn muốn ghi đè toàn bộ dữ liệu hiện tại lên trang tính hệ thống không?")) return;
+    
+    const nutLuu = document.getElementById("nutLuuTieuChiQL");
+    if(nutLuu) nutLuu.disabled = true;
+    if(typeof hienTaiDl === 'function') hienTaiDl("🚀 Đang đồng bộ dữ liệu Tiêu chí Quản lý...");
+    
+    let mangMoi = [];
+    document.querySelectorAll('#bangTieuChiQL tbody tr.dongTieuChiQL').forEach(tr => {
+        let r0 = tr.querySelector('.nhapSttTCQL').value;
+        let r1 = tr.querySelector('.nhapNoiDungTCQL').value;
+        let r2 = tr.querySelector('.nhapDiemMaxTCQL').value;
+        let r3 = tr.querySelector('.nhapTgGiaoTCQL').value;
+        let r4 = tr.querySelector('.nhapTienDoTCQL').value;
+        let r5 = tr.querySelector('.nhapTgHtTCQL').value;
+        let r6 = tr.querySelector('.nhapNguoiThTCQL').value;
+        let r7 = tr.querySelector('.nhapDiemDgTCQL').value;
+        let r8 = tr.querySelector('.nhapGhiChuTCQL').value;
+        let r9 = tr.querySelector('.nhapXSTCQL').value;
+        let r10 = tr.querySelector('.nhapHTTTCQL').value;
+        let r11 = tr.querySelector('.nhapHTTCQL').value;
+        let r12 = tr.querySelector('.nhapCHTTCQL').value;
+        
+        if(String(r1).trim() !== "") {
+            mangMoi.push([r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12]);
+        }
+    });
+
+    const dlGoi = { hdong: "capnhatTieuChiQL", dlbang: mangMoi };
+
+    const fnThanhCong = function(kqTho) {
+        if(typeof anTaiDl === 'function') anTaiDl();
+        if(nutLuu) nutLuu.disabled = false;
+        
+        let kq = (typeof kqTho === 'string') ? JSON.parse(kqTho) : kqTho;
+        let laThanhCong = (kq === true || (kq && kq.ttai === 'tcong'));
+        
+        if(laThanhCong) {
+            if(typeof hienThongb === 'function') hienThongb('tcong', 'Đã cập nhật đồng bộ Tiêu chí Quản lý lên máy chủ thành công!');
+            else alert("Cập nhật thành công!");
+        } else {
+            let tb = kq ? (kq.tbao || "Lỗi không xác định") : "Không có phản hồi hợp lệ.";
+            if(typeof hienThongb === 'function') hienThongb('loi', 'Lỗi cập nhật: ' + tb);
+            else alert("Lỗi: " + tb);
+        }
+    };
+
+    const fnLoi = function(loi) {
+        if(typeof anTaiDl === 'function') anTaiDl();
+        if(nutLuu) nutLuu.disabled = false;
+        let loiMsg = (loi && loi.message) ? loi.message : String(loi);
+        if(typeof hienThongb === 'function') hienThongb('loi', 'Lỗi máy chủ: ' + loiMsg);
+        else alert("Lỗi máy chủ: " + loiMsg);
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(fnThanhCong).withFailureHandler(fnLoi).pgv_capnhat_tieuchi_ql(dlGoi);
+    } else if (typeof khachApi !== 'undefined' && typeof khachApi.goiThuCong === 'function') {
+        khachApi.goiThuCong(dlGoi, fnThanhCong, fnLoi);
+    } else {
+        if(typeof anTaiDl === 'function') anTaiDl();
+        if(nutLuu) nutLuu.disabled = false;
+        alert("Lỗi: Chưa liên kết được API ghi dữ liệu hệ thống.");
+    }
+}
+
+function khoiDongTabTieuChiQL() {
+    if(typeof hienTaiDl === 'function') hienTaiDl("⏳ Đang tải Tiêu chí đánh giá Quản lý...");
+    
+    const fnThanhCong = function(kqTho) {
+        if(typeof anTaiDl === 'function') anTaiDl();
+        
+        let mangDuLieu = null;
+        
+        if (Array.isArray(kqTho)) {
+            mangDuLieu = kqTho;
+        } else if (kqTho && Array.isArray(kqTho.dliu)) {
+            mangDuLieu = kqTho.dliu;
+        }
+
+        if (mangDuLieu !== null) {
+            hienThiTieuChiQL(mangDuLieu);
+        } else {
+            hienThiTieuChiQL([]);
+            let tb = (kqTho && kqTho.tbao) ? kqTho.tbao : "Dữ liệu trả về trống hoặc trang tính đang rỗng.";
+            if(typeof hienThongb === 'function') hienThongb('loi', 'Chưa tải được dữ liệu: ' + tb);
+        }
+    };
+    
+    const fnLoi = function(loi) {
+        if(typeof anTaiDl === 'function') anTaiDl();
+        hienThiTieuChiQL([]);
+        let loiMsg = (loi && loi.message) ? loi.message : String(loi);
+        if(typeof hienThongb === 'function') hienThongb('loi', 'Lỗi kết nối Server: ' + loiMsg);
+    };
+    
+    const dlGoi = { hdong: "laydlTieuChiQL" };
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(fnThanhCong).withFailureHandler(fnLoi).pgv_laydl_tieuchi_ql();
+    } else if (typeof khachApi !== 'undefined' && typeof khachApi.goiThuCong === 'function') {
+        khachApi.goiThuCong(dlGoi, fnThanhCong, fnLoi);
+    } else {
+        if(typeof anTaiDl === 'function') anTaiDl();
+        alert("Lỗi: API đọc dữ liệu hệ thống chưa được thiết lập.");
+    }
+}
+</script>
