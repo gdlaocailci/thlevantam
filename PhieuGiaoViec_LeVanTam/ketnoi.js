@@ -1,4 +1,3 @@
-
 var ddungApi = "https://script.google.com/macros/s/AKfycbwKD8bN03tvoY77r00aYmwsE26MFxMNjTRcI7C8CnhgcxcaknKX04sRbbj1BC-IK3NZ/exec"; 
 
 // --- CÁC BIẾN CẤU HÌNH ĐỊNH DANH HỆ THỐNG ---
