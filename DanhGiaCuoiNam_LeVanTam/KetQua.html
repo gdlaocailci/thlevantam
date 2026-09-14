@@ -1,0 +1,242 @@
+<script>
+/**
+ * MODULE: KẾT QUẢ ĐÁNH GIÁ (Kiến trúc nhúng Module)
+ * Thiết kế và phát triển: Hoàng Ngọc Lâm
+ */
+(function() {
+    if (document.getElementById('ket-qua-ui')) return;
+
+    const style = document.createElement('style');
+    style.textContent = `
+        #ket-qua-ui { display: none; margin-top: 0px; background: white; padding: 0px 20px 15px 20px; border-radius: 5px; box-sizing: border-box; }
+        .kq-header-sticky { position: sticky; top: 77px; background: #fff; z-index: 990; padding-top: 5px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 2px solid var(--mau-c); text-align: center; }
+        .kq-bo-loc { display: inline-flex; align-items: center; background: #e9ecef; padding: 5px 15px; border-radius: 20px; }
+        .kq-bo-loc label { font-weight: bold; color: var(--mau-c); margin-right: 10px; font-size: 15px; }
+        .kq-bo-loc select { padding: 5px 15px; border-radius: 15px; border: 1px solid #ced4da; font-family: inherit; font-size: 15px; color: #dc3545; font-weight: bold; outline: none; cursor: pointer; }
+        .table-kq { width: 100%; border-collapse: collapse; margin-top: 0; }
+        .table-kq th, .table-kq td { border: 1px solid #dee2e6; padding: 12px 10px; text-align: left; vertical-align: middle; font-size: 16px; }
+        .table-kq th { background: #e9ecef; color: var(--mau-c); text-align: center; font-weight: bold; text-transform: uppercase; }
+        .table-kq td:nth-child(1), .table-kq td:nth-child(3) { text-align: center; }
+    `;
+    document.head.appendChild(style);
+
+    const ketQuaHTML = `
+        <div id="ket-qua-ui">
+            <div class="kq-header-sticky">
+                <div class="kq-bo-loc">
+                    <label for="kq-locNamHoc">Năm học:</label>
+                    <select id="kq-locNamHoc" onchange="kq_LocDuLieuTheoNam()">
+                        <option value="">-- Chọn năm học --</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="kq-dang-tai" style="text-align: center; color: var(--mau-c); font-style: italic; margin: 30px; font-size: 16px; display: none;">
+                Đang tiến hành trích xuất và sắp xếp dữ liệu...
+            </div>
+            
+            <div id="kq-vung-bang" style="display: none; overflow-x: auto;">
+                <table class="table-kq">
+                    <thead>
+                        <tr>
+                            <th width="5%">STT</th>
+                            <th width="35%">Họ và tên</th>
+                            <th width="20%">Phân loại</th>
+                            <th width="40%">Kết quả xếp loại</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kq-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    const mainUi = document.getElementById('main-ui');
+    if (mainUi) mainUi.insertAdjacentHTML('beforeend', ketQuaHTML);
+
+    const uiNode = document.getElementById('ket-qua-ui');
+    if (uiNode) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'style') {
+                    const isVisible = uiNode.style.display === 'block';
+                    const kDau = document.querySelector('.k-dau');
+                    const sysHeader = document.querySelector('.k-header-sticky');
+                    const kqHeader = document.querySelector('.kq-header-sticky');
+
+                    if (isVisible) {
+                        if (kDau) {
+                            kDau.style.borderBottom = 'none';
+                            kDau.style.paddingBottom = '0px';
+                            kDau.style.marginBottom = '0px'; 
+                        }
+                        if (sysHeader && kqHeader) {
+                            kqHeader.style.top = sysHeader.offsetHeight + 'px';
+                        }
+                    } else {
+                        if (kDau) {
+                            kDau.style.borderBottom = '';
+                            kDau.style.paddingBottom = '';
+                            kDau.style.marginBottom = '';
+                        }
+                    }
+                }
+            });
+        });
+        observer.observe(uiNode, { attributes: true });
+    }
+})();
+
+var kq_DuLieuToanBo = [];
+
+async function kq_TaiDuLieu() {
+    let elDangTai = document.getElementById("kq-dang-tai");
+    let elVungBang = document.getElementById("kq-vung-bang");
+    if (elDangTai) elDangTai.style.display = "block";
+    if (elVungBang) elVungBang.style.display = "none";
+    
+    try {
+        const z_y_a = (typeof DG_CONFIG_GAS_URL !== 'undefined') ? DG_CONFIG_GAS_URL : "";
+        const t_k = await fetchAPI(z_y_a + "?z_p_a=l_k_q"); 
+        if (t_k.status === 'success') {
+            kq_DuLieuToanBo = t_k.d_l_k || [];
+            kq_NapDropdownNamHoc(kq_DuLieuToanBo);
+            if (elDangTai) elDangTai.style.display = "none";
+            if (elVungBang) elVungBang.style.display = "block";
+            kq_LocDuLieuTheoNam();
+        } else {
+            if (elDangTai) elDangTai.innerText = "Chưa có dữ liệu trên hệ thống.";
+        }
+    } catch (err) {
+        if (elDangTai) elDangTai.innerText = "Lỗi kết nối máy chủ. Chưa tải được dữ liệu.";
+    }
+}
+
+function kq_NapDropdownNamHoc(d_l) {
+    const selectNam = document.getElementById("kq-locNamHoc");
+    if (!selectNam) return;
+    selectNam.innerHTML = '<option value="">-- Chọn năm học --</option>';
+    let cacNam = new Set();
+    if (Array.isArray(d_l)) {
+        d_l.forEach(item => {
+            if (item.n_hoc && item.n_hoc.trim() !== "") cacNam.add(item.n_hoc.trim());
+        });
+    }
+    let mangNam = Array.from(cacNam).sort().reverse();
+    mangNam.forEach(nam => {
+        let opt = document.createElement("option");
+        opt.value = nam;
+        opt.textContent = nam;
+        selectNam.appendChild(opt);
+    });
+    if(mangNam.length > 0) {
+        selectNam.value = mangNam[0];
+    }
+}
+
+function kq_LocDuLieuTheoNam() {
+    const selectObj = document.getElementById("kq-locNamHoc");
+    if (!selectObj) return;
+    const namChon = selectObj.value.trim();
+    const k_b = document.getElementById("kq-tbody");
+    if (!k_b) return;
+    
+    if (!namChon) {
+        k_b.innerHTML = '<tr><td colspan="4" style="text-align:center; font-style: italic; color: #555;">Vui lòng chọn năm học để xem kết quả</td></tr>';
+        return;
+    }
+    
+    let duLieuLoc = [];
+    if (Array.isArray(kq_DuLieuToanBo)) {
+        duLieuLoc = kq_DuLieuToanBo.filter(item => {
+            let checkNam = item.n_hoc ? item.n_hoc.trim() : "";
+            return checkNam === namChon;
+        });
+    }
+    
+    kq_HienThiBang(duLieuLoc);
+
+    if (typeof capNhatXepLoaiTuModule === 'function') {
+        let elTen = document.getElementById("ui-ten-hien-thi");
+        let ten = elTen ? elTen.innerText.trim() : "";
+        capNhatXepLoaiTuModule(ten, namChon, kq_DuLieuToanBo);
+    }
+}
+
+function kq_HienThiBang(d_l) {
+    d_l.sort((a, b) => {
+        let parseA = kq_PhanTichXepLoai(a.x_l_q || "");
+        let parseB = kq_PhanTichXepLoai(b.x_l_q || "");
+        if (parseA.muc !== parseB.muc) {
+            return parseB.muc - parseA.muc;
+        } else {
+            return parseB.diem - parseA.diem;
+        }
+    });
+
+    const k_b = document.getElementById("kq-tbody");
+    if (!k_b) return;
+    let html = "";
+    d_l.forEach((item, index) => {
+        let colorCode = "#333";
+        let rawStr = item.x_l_q ? item.x_l_q.toLowerCase() : "";
+        if (rawStr.includes("xuất sắc")) colorCode = "#dc3545";
+        else if (rawStr.includes("tốt")) colorCode = "#0056b3";
+        
+        html += `<tr>
+            <td>${index + 1}</td>
+            <td style="font-weight: bold; color: #1e1e1e;">${item.t_v_c || ""}</td>
+            <td>${item.p_l || ""}</td>
+            <td style="color: ${colorCode}; font-weight: 500; white-space: pre-line;">${item.x_l_q || ""}</td>
+        </tr>`;
+    });
+    if (html === "") html = '<tr><td colspan="4" style="text-align:center;">Chưa có viên chức nào nộp đánh giá trong năm học này</td></tr>';
+    k_b.innerHTML = html;
+}
+
+function kq_PhanTichXepLoai(chuoi) {
+    let str = chuoi ? chuoi.toLowerCase() : "";
+    let muc = 0;
+    if (str.includes("xuất sắc")) muc = 4;
+    else if (str.includes("tốt")) muc = 3;
+    else if (str.includes("chưa hoàn thành")) muc = 1;
+    else if (str.includes("hoàn thành")) muc = 2;
+    
+    let diem = 0;
+    let match = str.match(/([0-9]+[.,]?[0-9]*)\s*điểm/);
+    if (match) {
+        diem = parseFloat(match[1].replace(',', '.'));
+    }
+    return { muc: muc, diem: diem };
+}
+
+function capNhatXepLoaiTuModule(tenGoi, namChon, dataNguon) {
+    if (tenGoi === "..." || tenGoi === "KHÁCH" || tenGoi === "CHƯA RÕ") return;
+    let xepLoai = "CHƯA ĐÁNH GIÁ";
+    let elPhanLoai = document.getElementById("ui-phan-loai");
+    let phanLoai = elPhanLoai ? elPhanLoai.innerText : "";
+    let dungThu = "--"; 
+
+    if (Array.isArray(dataNguon) && dataNguon.length > 0) {
+        let ds = dataNguon.filter(item => (item.n_hoc ? item.n_hoc.trim() : "") === namChon);
+        ds.sort((a, b) => {
+            let parseA = kq_PhanTichXepLoai(a.x_l_q || "");
+            let parseB = kq_PhanTichXepLoai(b.x_l_q || "");
+            return (parseA.muc !== parseB.muc) ? (parseB.muc - parseA.muc) : (parseB.diem - parseA.diem);
+        });
+
+        let uIdx = ds.findIndex(item => item.t_v_c === tenGoi);
+        if (uIdx !== -1) {
+            xepLoai = ds[uIdx].x_l_q || "CHƯA ĐÁNH GIÁ";
+            phanLoai = ds[uIdx].p_l || phanLoai;
+            dungThu = uIdx + 1; 
+        }
+    }
+    
+    if (document.getElementById("ui-nam-hoc")) document.getElementById("ui-nam-hoc").innerText = namChon;
+    if (document.getElementById("ui-xep-loai")) document.getElementById("ui-xep-loai").innerText = xepLoai;
+    if (document.getElementById("ui-dung-thu")) document.getElementById("ui-dung-thu").innerText = dungThu;
+    if (document.getElementById("ui-phan-loai")) document.getElementById("ui-phan-loai").innerText = phanLoai;
+}
+</script>

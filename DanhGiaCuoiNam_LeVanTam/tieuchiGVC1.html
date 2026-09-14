@@ -1,0 +1,342 @@
+<script>
+/**
+ * MODULE: QUẢN LÝ TIÊU CHÍ ĐÁNH GIÁ GIÁO VIÊN CẤP 1
+ * Tối ưu hóa: Gọi hàm Global AutoResizeTextarea từ index.html
+ */
+(function() {
+    if (document.getElementById('tieuchi-gvc1-ui')) return;
+
+    const style = document.createElement('style');
+    style.textContent = `
+        #tieuchi-gvc1-ui { display: none; margin-top: 0px; background: white; padding: 0px 20px 15px 20px; border-radius: 5px; box-sizing: border-box; overflow-y: visible; }
+        
+        .tc-header-sticky { 
+            position: sticky; 
+            top: 77px;
+            background: #fff; 
+            z-index: 990; 
+            padding-top: 5px;
+            padding-bottom: 10px; 
+            margin-bottom: 10px;  
+            border-bottom: 2px solid red;
+        }
+        
+        .tc-tieu-de { color: var(--mau-c); text-transform: uppercase; text-align: center; margin: 0 0 10px 0; padding: 0; font-size: 20px; font-weight: bold; }
+        .tc-hanh-dong { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+        .tc-nam-hoc { display: flex; align-items: center; gap: 8px; background: #f1f3f5; padding: 5px 12px; border-radius: 6px; }
+        .tc-nam-hoc label { font-weight: bold; color: var(--mau-c); margin: 0; }
+        .tc-nam-hoc input { border: 1px solid #ccc; border-radius: 4px; padding: 6px 10px; font-family: inherit; width: 130px; text-align: center; }
+        
+        .table-tieuchi { width: 100%; border-collapse: collapse; margin-top: 0; }
+        .table-tieuchi th, .table-tieuchi td { border: 1px solid #dee2e6; padding: 8px 10px; vertical-align: middle; }
+        .table-tieuchi th { background: #e9ecef; color: var(--mau-c); font-size: 15px; font-weight: bold; text-align: center; }
+        .table-tieuchi td { text-align: left; }
+        
+        .table-tieuchi textarea {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.4;
+            padding: 4px 0;
+            margin: 0;
+            resize: none;
+            overflow: hidden !important;
+            box-sizing: border-box;
+            height: auto;
+            min-height: 38px;
+            scrollbar-width: none !important;
+        }
+        .table-tieuchi textarea::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+        .table-tieuchi textarea:focus {
+            background: #fef9e6;
+        }
+        
+        .td-buttons {
+            text-align: center;
+            white-space: nowrap;
+            width: 50px;
+        }
+        .btn-di-chuyen, .btn-xoa-dong {
+            display: block;
+            width: 100%;
+            margin: 4px 0;
+            padding: 6px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .btn-di-chuyen { background: #6c757d; color: white; }
+        .btn-di-chuyen:hover { background: #5a6268; }
+        .btn-xoa-dong { background: #dc3545; color: white; }
+        .btn-xoa-dong:hover { background: #c82333; }
+        
+        .btn-them-moi { background: #28a745; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.2s; }
+        .btn-them-moi:hover { background: #218838; }
+        .btn-cap-nhat { background: var(--mau-c); color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.2s; }
+        .btn-cap-nhat:hover { background: #004494; transform: translateY(-1px); }
+    `;
+    document.head.appendChild(style);
+
+    const tieuchiHTML = `
+        <div id="tieuchi-gvc1-ui">
+            <div class="tc-header-sticky">
+                <h3 class="tc-tieu-de">TIÊU CHÍ ĐÁNH GIÁ GIÁO VIÊN TIỂU HỌC</h3>
+                <div class="tc-hanh-dong">
+                    <div class="tc-nam-hoc">
+                        <label>📅 Năm học:</label>
+                        <input type="text" id="tcgvc1-namhoc" placeholder="VD: 2025-2026" value="">
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-them-moi" onclick="tcgvc1_ThemDong()">+ Thêm mới</button>
+                        <button class="btn-cap-nhat" onclick="tcgvc1_LuuCapNhat()">CẬP NHẬT (LƯU THAY ĐỔI)</button>
+                    </div>
+                </div>
+            </div>
+            <div style="overflow-x: auto; overflow-y: visible;">
+                <table class="table-tieuchi">
+                    <thead>
+                        <tr><th width="7%">Sửa</th><th width="5%">TT</th><th width="28%">Tiêu chí</th><th width="10%">Thang giá trị</th><th width="8%">Quy điểm</th><th width="8%">Xuất sắc</th><th width="8%">HTT</th><th width="8%">Hoàn thành</th><th width="7%">CHT</th></tr>
+                    </thead>
+                    <tbody id="tcgvc1-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    const mainUi = document.getElementById('main-ui');
+    if (mainUi) mainUi.insertAdjacentHTML('beforeend', tieuchiHTML);
+
+    const uiNode = document.getElementById('tieuchi-gvc1-ui');
+    if (uiNode) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'style') {
+                    const isVisible = uiNode.style.display === 'block';
+                    const kDau = document.querySelector('.k-dau');
+                    const sysHeader = document.querySelector('.k-header-sticky');
+                    const tcHeader = document.querySelector('.tc-header-sticky');
+                    if (isVisible) {
+                        if (kDau) { kDau.style.borderBottom = 'none'; kDau.style.paddingBottom = '0px'; kDau.style.marginBottom = '0px'; }
+                        if (sysHeader && tcHeader) tcHeader.style.top = sysHeader.offsetHeight + 'px';
+                    } else {
+                        if (kDau) { kDau.style.borderBottom = ''; kDau.style.paddingBottom = ''; kDau.style.marginBottom = ''; }
+                    }
+                }
+            });
+        });
+        observer.observe(uiNode, { attributes: true });
+    }
+})();
+
+var tcgvc1_DuLieuGoc = [];
+var tcgvc1_NamHocGoc = "";
+
+async function tcgvc1_TaiDuLieu() {
+    if (tcgvc1_DuLieuGoc && tcgvc1_DuLieuGoc.length > 0) {
+        tcgvc1_HienThiBang();
+        return;
+    }
+
+    if (typeof f_x_j === 'function') f_x_j(true);
+    try {
+        const gasUrl = (typeof DG_CONFIG_GAS_URL !== 'undefined') ? DG_CONFIG_GAS_URL : "";
+        const response = await fetchAPI(gasUrl + "?z_p_a=get_tieuchi_gvc1");
+        if (response.status === 'success') {
+            tcgvc1_DuLieuGoc = response.data || [];
+            if (response.nam_hoc !== undefined && response.nam_hoc !== null) {
+                tcgvc1_NamHocGoc = response.nam_hoc;
+                const inpNam = document.getElementById('tcgvc1-namhoc');
+                if (inpNam) inpNam.value = response.nam_hoc;
+            }
+            tcgvc1_HienThiBang();
+        } else {
+            hienThiThongBaoUI("Lỗi tải tiêu chí: " + (response.message || "Không xác định"));
+        }
+    } catch (err) {
+        hienThiThongBaoUI("Mất kết nối khi tải danh sách tiêu chí.");
+    }
+    if (typeof f_x_j === 'function') f_x_j(false);
+}
+
+function tcgvc1_HienThiBang() {
+    const tbody = document.getElementById('tcgvc1-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    tcgvc1_DuLieuGoc.forEach((item, idx) => {
+        tbody.insertAdjacentHTML('beforeend', tcgvc1_TaoDong(idx, item));
+    });
+    if (typeof f_x_auto_resize_textarea === 'function') f_x_auto_resize_textarea('tcgvc1-tbody');
+}
+
+function tcgvc1_TaoDong(index, item) {
+    const tieu_chi = escapeHtml(item.tieu_chi || '');
+    const thang_gia_tri = escapeHtml(item.thang_gia_tri || '');
+    const quy_diem = escapeHtml(item.quy_diem || '');
+    const xuat_sac = escapeHtml(item.xuat_sac || '');
+    const htt = escapeHtml(item.htt || '');
+    const hoan_thanh = escapeHtml(item.hoan_thanh || '');
+    const cht = escapeHtml(item.cht || '');
+    
+    return `<tr>
+        <td class="td-buttons">
+            <button class="btn-di-chuyen" onclick="tcgvc1_DiChuyen(this, 'up')" title="Di chuyển lên">▲</button>
+            <button class="btn-xoa-dong" onclick="tcgvc1_XoaDong(this)">Xóa</button>
+            <button class="btn-di-chuyen" onclick="tcgvc1_DiChuyen(this, 'down')" title="Di chuyển xuống">▼</button>
+        </td>
+        <td class="tcgvc1-stt" style="text-align:center">${index+1}</td>
+        <td><textarea class="tcgvc1-tieuchi" rows="1" placeholder="Nhập tiêu chí">${tieu_chi}</textarea></td>
+        <td><textarea class="tcgvc1-thang" rows="1" placeholder="VD: 0-10">${thang_gia_tri}</textarea></td>
+        <td><textarea class="tcgvc1-quydiem" rows="1" placeholder="Điểm tối đa">${quy_diem}</textarea></td>
+        <td><textarea class="tcgvc1-xuatsac" rows="1" placeholder="Mức xuất sắc">${xuat_sac}</textarea></td>
+        <td><textarea class="tcgvc1-htt" rows="1" placeholder="HTT">${htt}</textarea></td>
+        <td><textarea class="tcgvc1-hoanthanh" rows="1" placeholder="Hoàn thành">${hoan_thanh}</textarea></td>
+        <td><textarea class="tcgvc1-cht" rows="1" placeholder="CHT">${cht}</textarea></td>
+    </tr>`;
+}
+
+function tcgvc1_DiChuyen(btn, direction) {
+    const row = btn.closest('tr');
+    const tbody = row.parentNode;
+    const rows = Array.from(tbody.children);
+    const currentIndex = rows.indexOf(row);
+    
+    if (direction === 'up' && currentIndex > 0) {
+        tbody.insertBefore(row, rows[currentIndex - 1]);
+    } else if (direction === 'down' && currentIndex < rows.length - 1) {
+        tbody.insertBefore(row, rows[currentIndex + 2]);
+    } else {
+        return;
+    }
+    tcgvc1_CapNhatSTT();
+    if (typeof f_x_auto_resize_textarea === 'function') f_x_auto_resize_textarea('tcgvc1-tbody');
+}
+
+function tcgvc1_ThemDong() {
+    const tbody = document.getElementById('tcgvc1-tbody');
+    const emptyItem = { tieu_chi: '', thang_gia_tri: '', quy_diem: '', xuat_sac: '', htt: '', hoan_thanh: '', cht: '' };
+    tbody.insertAdjacentHTML('afterbegin', tcgvc1_TaoDong(0, emptyItem));
+    tcgvc1_CapNhatSTT();
+    if (typeof f_x_auto_resize_textarea === 'function') f_x_auto_resize_textarea('tcgvc1-tbody');
+}
+
+function tcgvc1_XoaDong(btn) {
+    if (confirm("Xóa tiêu chí này khỏi danh sách?")) {
+        btn.closest('tr').remove();
+        tcgvc1_CapNhatSTT();
+        if (typeof f_x_auto_resize_textarea === 'function') f_x_auto_resize_textarea('tcgvc1-tbody');
+    }
+}
+
+function tcgvc1_CapNhatSTT() {
+    const tbody = document.getElementById('tcgvc1-tbody');
+    if (!tbody) return;
+    Array.from(tbody.children).forEach((tr, idx) => {
+        const sttCell = tr.querySelector('.tcgvc1-stt');
+        if (sttCell) sttCell.innerText = idx + 1;
+    });
+}
+
+async function tcgvc1_LuuCapNhat() {
+    const tbody = document.getElementById('tcgvc1-tbody');
+    const newData = [];
+    
+    Array.from(tbody.children).forEach(tr => {
+        const tieu_chi = tr.querySelector('.tcgvc1-tieuchi')?.value.trim() || '';
+        if (tieu_chi !== '') {
+            newData.push({
+                tieu_chi: tieu_chi,
+                thang_gia_tri: tr.querySelector('.tcgvc1-thang')?.value.trim() || '',
+                quy_diem: tr.querySelector('.tcgvc1-quydiem')?.value.trim() || '',
+                xuat_sac: tr.querySelector('.tcgvc1-xuatsac')?.value.trim() || '',
+                htt: tr.querySelector('.tcgvc1-htt')?.value.trim() || '',
+                hoan_thanh: tr.querySelector('.tcgvc1-hoanthanh')?.value.trim() || '',
+                cht: tr.querySelector('.tcgvc1-cht')?.value.trim() || ''
+            });
+        }
+    });
+    
+    const namHocMoi = document.getElementById('tcgvc1-namhoc')?.value.trim() || '';
+    const dataChanged = JSON.stringify(tcgvc1_DuLieuGoc) !== JSON.stringify(newData);
+    const yearChanged = tcgvc1_NamHocGoc !== namHocMoi;
+    
+    if (!dataChanged && !yearChanged) {
+        hienThiThongBaoUI("Không có thay đổi nào để lưu.");
+        return;
+    }
+    
+    const overlay = document.getElementById("o-luu-overlay");
+    if (overlay) overlay.style.display = "flex";
+    try {
+        const gasUrl = (typeof DG_CONFIG_GAS_URL !== 'undefined') ? DG_CONFIG_GAS_URL : "";
+        await fetch(gasUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ 
+                action: 'luu_tieuchi_gvc1', 
+                data: newData,
+                nam_hoc: namHocMoi
+            })
+        });
+        setTimeout(() => {
+            if (overlay) overlay.style.display = "none";
+            tcgvc1_ThongBaoThanhCong("Đã cập nhật bảng tiêu chí và năm học thành công!");
+            tcgvc1_DuLieuGoc = []; 
+            tcgvc1_TaiDuLieu();
+        }, 1500);
+    } catch (err) {
+        if (overlay) overlay.style.display = "none";
+        hienThiThongBaoUI("Lỗi kết nối khi lưu dữ liệu. Vui lòng thử lại.");
+    }
+}
+
+function tcgvc1_ThongBaoThanhCong(noiDung) {
+    const hopThongBao = document.getElementById("o-thong-bao");
+    if (hopThongBao) {
+        const divs = hopThongBao.getElementsByTagName("div");
+        const nutXacNhan = hopThongBao.getElementsByTagName("button")[0];
+        if (divs.length >= 2 && nutXacNhan) {
+            const tieuDeGoc = divs[0].innerHTML;
+            const noiDungGoc = divs[1].innerHTML;
+            const hamDongGoc = nutXacNhan.onclick;
+            divs[0].innerHTML = "CẬP NHẬT THÀNH CÔNG";
+            divs[1].innerHTML = noiDung;
+            hopThongBao.style.display = "flex";
+            nutXacNhan.onclick = function() {
+                hopThongBao.style.display = "none";
+                divs[0].innerHTML = tieuDeGoc;
+                divs[1].innerHTML = noiDungGoc;
+                nutXacNhan.onclick = hamDongGoc;
+            };
+        }
+    } else {
+        alert(noiDung);
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+if (typeof window.tcgvc1_TaiDuLieu === 'undefined') {
+    window.tcgvc1_TaiDuLieu = tcgvc1_TaiDuLieu;
+    window.tcgvc1_ThemDong = tcgvc1_ThemDong;
+    window.tcgvc1_XoaDong = tcgvc1_XoaDong;
+    window.tcgvc1_LuuCapNhat = tcgvc1_LuuCapNhat;
+}
+</script>
