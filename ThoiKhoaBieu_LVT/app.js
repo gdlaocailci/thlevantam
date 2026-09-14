@@ -1799,3 +1799,36 @@ document.addEventListener('DOMContentLoaded', () => {
         boGiamSatTuan.observe(theHienThiTuan, { childList: true, characterData: true, subtree: true });
     }
 });
+
+// =========================================================================
+// KHỐI NÂNG CẤP UI: TRÌNH ĐIỀU KHIỂN PHÓNG TO / THU NHỎ TOÀN MÀN HÌNH MODAL
+// =========================================================================
+window.toggleToanManHinhModal = function(idModal, nutBam) {
+    const modal = document.getElementById(idModal);
+    if (!modal) return;
+    
+    // Tìm khung giao diện nền trắng (khung chứa nội dung chính) của Modal
+    const khungNoiDung = modal.querySelector('div.bg-white');
+    if (!khungNoiDung) return;
+
+    // Kiểm tra trạng thái hiện tại dựa trên Class
+    const dangToanManHinh = khungNoiDung.classList.contains('w-full') && khungNoiDung.classList.contains('h-full');
+
+    if (dangToanManHinh) {
+        // [TRẠNG THÁI 1]: Thu nhỏ về khung mặc định (Restore)
+        khungNoiDung.classList.remove('w-full', 'h-full', 'max-h-screen', 'rounded-none');
+        khungNoiDung.classList.add('w-11/12', 'md:w-3/4', 'lg:w-1/2', 'max-h-[85vh]', 'rounded-xl');
+        
+        // Chuyển đổi Icon thành "Phóng to"
+        nutBam.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
+        nutBam.title = "Phóng to toàn màn hình";
+    } else {
+        // [TRẠNG THÁI 2]: Phóng to toàn màn hình (Maximize)
+        khungNoiDung.classList.remove('w-11/12', 'md:w-3/4', 'lg:w-1/2', 'max-h-[80vh]', 'max-h-[85vh]', 'rounded-xl');
+        khungNoiDung.classList.add('w-full', 'h-full', 'max-h-screen', 'rounded-none');
+        
+        // Chuyển đổi Icon thành "Thu nhỏ"
+        nutBam.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>`;
+        nutBam.title = "Thu nhỏ về mặc định";
+    }
+};
