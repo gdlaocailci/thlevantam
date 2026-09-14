@@ -2,15 +2,15 @@
    TỆP CẤU HÌNH GIAO DIỆN (ketnoi.js)
    CHỨC NĂNG: LƯU TRỮ VÀ ĐỒNG BỘ TOÀN BỘ CÁC THÔNG SỐ ĐỊNH DANH HỆ THỐNG
    ========================================================================== */
-var DG_CONFIG_GAS_URL = "https://script.google.com/macros/s/AKfycbwzKkNe8XwpT25pr2mDr-vmQk8I1j_iYXYFMoQhyFulFCHENmsSR3xqh_WShkiCjbKX1A/exec";
+var DG_CONFIG_GAS_URL = "https://script.google.com/macros/s/AKfycbxNcKjYAMhiHTpNsVw6XlhJnOF0nAiTOWC9w7fKyYDibxwx7bb3A32rmpZYok-mqxA6Lg/exec";
 
 var DG_LINK_LOGO = "https://i.postimg.cc/xjzpvXCm/Logo-HL.png"; 
 
 // Bổ sung biến lưu trữ liên kết video hướng dẫn
 var DG_LINK_YOUTUBE = "https://www.youtube.com/channel/UCdfiTWwv78VITvzlgxnv02Q";
 
-var DG_TEN_TRUONG = "Trường TH&THCS Tả Phời";
-var DG_TEN_TRUONG_UP = "TRƯỜNG TH&THCS Tả Phời";
+var DG_TEN_TRUONG = "Trường Tiểu học Lê Văn Tám";
+var DG_TEN_TRUONG_UP = "TRƯỜNG Tiểu học Lê Văn Tám";
 
 var DG_TEN_PM = "Hệ Thống Đánh Giá Xếp Loại Viên Chức";
 var DG_TEN_PM_UP = "HỆ THỐNG ĐÁNH GIÁ XẾP LOẠI CUỐI NĂM";
