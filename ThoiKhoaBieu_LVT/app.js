@@ -7,16 +7,28 @@ let ngayDauTuanUI = '';
 
 document.addEventListener('DOMContentLoaded', () => { khoiTaoGiaoDien(); });
 
-async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3) {
+// =========================================================================
+// KHỐI KẾT NỐI MẠNG CỐT LÕI (NÂNG CẤP CHỐNG TREO BĂNG THÔNG)
+// Thay thế toàn bộ hàm fetchVoiCoCheThuLai trong file app.js
+// =========================================================================
+async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3, thoiGianCho = 15000) {
     for (let i = 0; i < soLanThu; i++) {
+        // [LÕI NÂNG CẤP]: Bổ sung bộ điều khiển ngắt kết nối (AbortController) để chống treo mạng
+        const boDieuKhien = new AbortController();
+        const idHenGio = setTimeout(() => boDieuKhien.abort(), thoiGianCho);
+        
+        // Tích hợp tín hiệu ngắt vào tùy chọn fetch để ghi đè lệnh gốc
+        const tuyChonMoi = { ...tuyChon, signal: boDieuKhien.signal };
+
         try {
-            const phanHoi = await fetch(url, tuyChon);
+            const phanHoi = await fetch(url, tuyChonMoi);
+            clearTimeout(idHenGio); // Dọn dẹp bộ đếm giờ nếu phản hồi thành công trước thời hạn
             
             if (!phanHoi.ok) {
                 throw new Error(`Máy chủ từ chối kết nối (Mã lỗi HTTP: ${phanHoi.status})`);
             }
 
-            // [LÕI NÂNG CẤP]: Đọc thẳng văn bản 1 lần duy nhất, KHÔNG dùng clone()
+            // Đọc thẳng văn bản 1 lần duy nhất, KHÔNG dùng clone()
             const noiDungText = await phanHoi.text();
 
             // Kiểm tra tính hợp lệ của dữ liệu (Chống HTML ảo từ Google)
@@ -34,9 +46,18 @@ async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3) {
             });
 
         } catch (loi) {
-            if (i === soLanThu - 1) throw loi; // Văng lỗi ra giao diện nếu đã thử hết giới hạn
-            console.warn(`Đường truyền bị nghẽn, tự động kết nối lại lần ${i + 1}...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Lùi bước 1s, 2s
+            clearTimeout(idHenGio); // Luôn dọn dẹp bộ đếm giờ nếu xảy ra lỗi mạng
+            
+            // Phân loại lỗi để hiển thị cảnh báo chính xác
+            let thongBaoLoi = loi.name === 'AbortError' ? 'Máy chủ phản hồi quá lâu (Timeout)' : loi.message;
+            
+            if (i === soLanThu - 1) {
+                throw new Error(`Mất kết nối: ${thongBaoLoi}. Vui lòng kiểm tra lại đường truyền.`); 
+            }
+            
+            console.warn(`Tạm nghẽn (${thongBaoLoi}), hệ thống tự động kết nối lại lần ${i + 1}...`);
+            // Tăng dần thời gian lùi bước để tránh nhồi lệnh làm nghẽn thêm máy chủ (2s, 4s...)
+            await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1))); 
         }
     }
 }
