@@ -10,7 +10,7 @@ var DG_LINK_LOGO = "https://i.postimg.cc/xjzpvXCm/Logo-HL.png";
 var DG_LINK_YOUTUBE = "https://www.youtube.com/channel/UCdfiTWwv78VITvzlgxnv02Q";
 
 var DG_TEN_TRUONG = "Trường Tiểu học Lê Văn Tám";
-var DG_TEN_TRUONG_UP = "TRƯỜNG Tiểu học Lê Văn Tám";
+var DG_TEN_TRUONG_UP = "TRƯỜNG TIỂU HỌC LÊ VĂN TÁM";
 
 var DG_TEN_PM = "Hệ Thống Đánh Giá Xếp Loại Viên Chức";
 var DG_TEN_PM_UP = "HỆ THỐNG ĐÁNH GIÁ XẾP LOẠI CUỐI NĂM";
