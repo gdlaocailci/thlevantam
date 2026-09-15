@@ -184,13 +184,13 @@ function capNhatNgayDauTuan() {
 }
 
 // =========================================================================
-// KHỐI 1: KHỞI TẠO VÀ TẢI DỮ LIỆU CƠ BẢN (NÂNG CẤP CACHE LOCALSTORAGE)
+// KHỐI 1: KHỞI TẠO VÀ TẢI DỮ LIỆU CƠ BẢN (NÂNG CẤP BÁO HIỆU ĐỒNG BỘ NGẦM)
 // =========================================================================
 async function khoiTaoGiaoDien() {
-    // [NÂNG CẤP]: Khởi tạo định danh cache động theo mã dự án
     const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
     const KEY_CH = 'SmartTKB_CauHinh_' + MA_DA;
     const KEY_TKB = 'SmartTKB_DuLieuTuan_' + MA_DA;
+    const hienThiTuan = document.getElementById('hienThiTuanHienTai');
 
     try {
         if(typeof CAU_HINH_FRONTEND !== 'undefined') {
@@ -221,10 +221,12 @@ async function khoiTaoGiaoDien() {
                 }
 
                 tuanDangXem = parseInt(thongSoHocVu.TUAN_HIEN_TAI) || 1;
-                let hienThiTuan = document.getElementById('hienThiTuanHienTai');
-                if (hienThiTuan) hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
+                
+                if (hienThiTuan) {
+                    // Hiển thị Tuần kèm biểu tượng báo hiệu đang đồng bộ nền
+                    hienThiTuan.innerHTML = `Tuần ${tuanDangXem} <svg class="inline w-4 h-4 text-blue-500 animate-spin ml-1.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg>`;
+                }
 
-                // Vẽ ngay lập tức dữ liệu cũ, không để màn hình trắng chờ đợi
                 xuatMaTranBang(duLieuTkbHienTai);
                 coCache = true;
             }
@@ -260,19 +262,19 @@ async function khoiTaoGiaoDien() {
         }
         
         tuanDangXem = parseInt(thongSoHocVu.TUAN_HIEN_TAI) || 1;
-        let hienThiTuan = document.getElementById('hienThiTuanHienTai');
-        if (hienThiTuan) hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
         
         if (thongSoHocVu.TKB_TUAN && thongSoHocVu.TKB_TUAN.length > 0) {
             let chuoiTkbMoi = JSON.stringify(thongSoHocVu.TKB_TUAN);
             let chuoiTkbCu = localStorage.getItem(KEY_TKB);
             
-            // Chỉ cập nhật và render lại UI nếu TKB ngầm trả về có sự thay đổi
             if (chuoiTkbMoi !== chuoiTkbCu) {
                 duLieuTkbHienTai = thongSoHocVu.TKB_TUAN;
                 localStorage.setItem(KEY_TKB, chuoiTkbMoi);
                 xuatMaTranBang(duLieuTkbHienTai);
             }
+            
+            // Xóa biểu tượng tải nền khi đã chốt dữ liệu
+            if (hienThiTuan) hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
         } else {
             await taiDuLieuTKB(coCache); 
         }
@@ -289,15 +291,16 @@ async function khoiTaoGiaoDien() {
 }
 
 async function taiDuLieuTKB(coCache = false) {
-    // [NÂNG CẤP]: Khởi tạo định danh cache động theo mã dự án
     const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
     const KEY_TKB = 'SmartTKB_DuLieuTuan_' + MA_DA;
-
     const vungHienThi = document.getElementById('vungHienThiDuLieu');
+    const hienThiTuan = document.getElementById('hienThiTuanHienTai');
     
-    // Nếu chưa có bộ nhớ đệm, hiện UI loading vòng xoay
     if (!coCache) {
         vungHienThi.innerHTML = `<tr><td class="text-center text-blue-600 font-bold py-10 reactbits-fade-in text-lg" style="font-family:'Times New Roman',Times,serif;"><div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang tải TKB Tuần ${tuanDangXem}...</td></tr>`;
+    } else if (hienThiTuan && !hienThiTuan.innerHTML.includes('animate-spin')) {
+        // Bật báo hiệu ngầm nếu đang chuyển tuần mà màn hình đã có đệm
+        hienThiTuan.innerHTML = `Tuần ${tuanDangXem} <svg class="inline w-4 h-4 text-blue-500 animate-spin ml-1.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg>`;
     }
     
     try {
@@ -311,15 +314,12 @@ async function taiDuLieuTKB(coCache = false) {
             throw new Error("Máy chủ trả về dữ liệu hỏng. Hãy kiểm tra lại mã nguồn CODE.gs.");
         }
 
-        if (duLieu.trangThai === 'loi_he_thong') {
-            throw new Error(duLieu.thongBao);
-        }
+        if (duLieu.trangThai === 'loi_he_thong') throw new Error(duLieu.thongBao);
 
         if (Array.isArray(duLieu)) {
             let chuoiTkbMoi = JSON.stringify(duLieu);
             let chuoiTkbCu = localStorage.getItem(KEY_TKB);
             
-            // Cập nhật ngầm: Chỉ render lưới nếu bản vẽ mới khác bản vẽ đệm
             if (!coCache || chuoiTkbMoi !== chuoiTkbCu) {
                 duLieuTkbHienTai = duLieu;
                 localStorage.setItem(KEY_TKB, chuoiTkbMoi);
@@ -330,12 +330,16 @@ async function taiDuLieuTKB(coCache = false) {
         }
 
     } catch (loi) {
-        vungHienThi.innerHTML = `<tr><td class="text-center text-red-500 font-bold py-10 text-lg" style="font-family:'Times New Roman',Times,serif;">
-            ⚠️ Lỗi nạp dữ liệu TKB:<br><span class="text-base text-slate-700 font-normal mt-2 inline-block">${loi.message}</span>
-        </td></tr>`;
+        if (!coCache) {
+            vungHienThi.innerHTML = `<tr><td class="text-center text-red-500 font-bold py-10 text-lg" style="font-family:'Times New Roman',Times,serif;">
+                ⚠️ Lỗi nạp dữ liệu TKB:<br><span class="text-base text-slate-700 font-normal mt-2 inline-block">${loi.message}</span>
+            </td></tr>`;
+        }
+    } finally {
+        // Hoàn trả text cứng, tắt biểu tượng tải
+        if (hienThiTuan) hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
     }
 }
-
 // =========================================================================
 // HÀM BỔ SUNG: NẠP DỮ LIỆU BỘ LỌC THEO ĐÚNG ID TRONG INDEX.HTML
 // =========================================================================
