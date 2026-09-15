@@ -6,7 +6,7 @@
 
 const KETNOI = {
     // 1. Thông tin định danh cơ quan/đơn vị
-    TEN_DINH_DANH: "Nguyễn Du OS",
+    TEN_DINH_DANH: "Lê Văn Tám OS",
     TIEU_DE_TRANG: "Cổng thông tin Quản trị - Trường Tiểu học Lê Văn Tám",
     
     // 2. Tài nguyên hình ảnh đại diện (Logo & Giao diện)
@@ -19,7 +19,7 @@ const KETNOI = {
     LINK_YOUTUBE: "https://www.youtube.com/channel/UCdfiTWwv78VITvzlgxnv02Q",
     
     // 3. Đường dẫn máy chủ xử lý dữ liệu (Google Apps Script API)
-     WEB_APP_URL: "https://script.google.com/macros/s/AKfycbxlgzfQI5YQQG6q91spFUG2n3KW5nhyW4Xka5Lp8XZD7pRVACa44F1qeb4bfuH27BhA6g/exec",
+     WEB_APP_URL: "https://script.google.com/macros/s/AKfycbx2o3Z7Edw2BBUAeu8H0938mYK6-jqFNXvl3giCHrjb9jdojClk49py2W_2muFTfDk45A/exec",
 
     // 4. Mã định danh ứng dụng Google (OAuth 2.0 Client ID)
     CLIENT_ID: "1097384743947-1jdc5rhhmbu0s9jp5vgt814g4f4id7lu.apps.googleusercontent.com"
