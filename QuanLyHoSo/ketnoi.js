@@ -6,13 +6,13 @@
 
 const KETNOI = {
     // 1. Đường dẫn máy chủ xử lý dữ liệu (Google Apps Script API)
-    WEB_APP_URL: "https://script.google.com/macros/s/AKfycbxENr-5IhHLob_kNnsy9UlfL8V9mC7yFEivfxYDLYe07A62kO_IoFzMJUt6P1yKCmJW2A/exec",
+    WEB_APP_URL: "https://script.google.com/macros/s/AKfycbyb518N7S3l3gL-IHB7XZWHZ4wnbfW6jG5uGW1dSbeIUH3-4wZtvwXR1x8SfM3NkoIXfg/exec",
 
     // 2. Mã định danh ứng dụng Google (OAuth 2.0 Client ID)
     CLIENT_ID: "1097384743947-1jdc5rhhmbu0s9jp5vgt814g4f4id7lu.apps.googleusercontent.com",
     // 3. Thông tin định danh cơ quan/đơn vị
     TEN_DINH_DANH: "Nguyễn Du OS",
-    TIEU_DE_TRANG: "Cổng thông tin Quản lý hồ sơ - Trường Tiểu học Nguyễn Du",
+    TIEU_DE_TRANG: "Cổng thông tin Quản lý hồ sơ - Trường Tiểu học Lê Văn Tám",
     
     // Bổ sung liên kết YouTube Hướng dẫn
     LINK_YOUTUBE: "https://www.youtube.com/channel/UCdfiTWwv78VITvzlgxnv02Q",
