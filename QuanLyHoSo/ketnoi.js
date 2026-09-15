@@ -6,7 +6,7 @@
 
 const KETNOI = {
     // 1. Đường dẫn máy chủ xử lý dữ liệu (Google Apps Script API)
-    WEB_APP_URL: "https://script.google.com/macros/s/AKfycbyb518N7S3l3gL-IHB7XZWHZ4wnbfW6jG5uGW1dSbeIUH3-4wZtvwXR1x8SfM3NkoIXfg/exec",
+    WEB_APP_URL: "https://script.google.com/macros/s/AKfycbx-e6ljEtkzFFjMjuFGn0ELP9qAg_5UNfNVM5wYjyDwZk3vD6WGdSWnTKoBH75S4ePrLg/exec",
 
     // 2. Mã định danh ứng dụng Google (OAuth 2.0 Client ID)
     CLIENT_ID: "1097384743947-1jdc5rhhmbu0s9jp5vgt814g4f4id7lu.apps.googleusercontent.com",
