@@ -187,6 +187,11 @@ function capNhatNgayDauTuan() {
 // KHỐI 1: KHỞI TẠO VÀ TẢI DỮ LIỆU CƠ BẢN (NÂNG CẤP CACHE LOCALSTORAGE)
 // =========================================================================
 async function khoiTaoGiaoDien() {
+    // [NÂNG CẤP]: Khởi tạo định danh cache động theo mã dự án
+    const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
+    const KEY_CH = 'SmartTKB_CauHinh_' + MA_DA;
+    const KEY_TKB = 'SmartTKB_DuLieuTuan_' + MA_DA;
+
     try {
         if(typeof CAU_HINH_FRONTEND !== 'undefined') {
             let tieuDeHeThong = document.getElementById('tenHeThong'); 
@@ -200,8 +205,8 @@ async function khoiTaoGiaoDien() {
         // --- BƯỚC 1: RENDER SIÊU TỐC TỪ BỘ NHỚ ĐỆM (CACHE) ---
         let coCache = false;
         try {
-            let cacheCauHinh = localStorage.getItem('SmartTKB_CauHinh');
-            let cacheTkb = localStorage.getItem('SmartTKB_DuLieuTuan');
+            let cacheCauHinh = localStorage.getItem(KEY_CH);
+            let cacheTkb = localStorage.getItem(KEY_TKB);
             
             if (cacheCauHinh && cacheTkb) {
                 thongSoHocVu = JSON.parse(cacheCauHinh);
@@ -232,7 +237,7 @@ async function khoiTaoGiaoDien() {
         if (thongSoMoi.trangThai === 'loi_he_thong') throw new Error(thongSoMoi.thongBao);
         
         thongSoHocVu = thongSoMoi;
-        localStorage.setItem('SmartTKB_CauHinh', JSON.stringify(thongSoHocVu)); 
+        localStorage.setItem(KEY_CH, JSON.stringify(thongSoHocVu)); 
         
         kiemSoatGiaoDien(); 
         napDuLieuBoLocGiaoVien();
@@ -260,12 +265,12 @@ async function khoiTaoGiaoDien() {
         
         if (thongSoHocVu.TKB_TUAN && thongSoHocVu.TKB_TUAN.length > 0) {
             let chuoiTkbMoi = JSON.stringify(thongSoHocVu.TKB_TUAN);
-            let chuoiTkbCu = localStorage.getItem('SmartTKB_DuLieuTuan');
+            let chuoiTkbCu = localStorage.getItem(KEY_TKB);
             
             // Chỉ cập nhật và render lại UI nếu TKB ngầm trả về có sự thay đổi
             if (chuoiTkbMoi !== chuoiTkbCu) {
                 duLieuTkbHienTai = thongSoHocVu.TKB_TUAN;
-                localStorage.setItem('SmartTKB_DuLieuTuan', chuoiTkbMoi);
+                localStorage.setItem(KEY_TKB, chuoiTkbMoi);
                 xuatMaTranBang(duLieuTkbHienTai);
             }
         } else {
@@ -283,29 +288,11 @@ async function khoiTaoGiaoDien() {
     }
 }
 
-// =========================================================================
-// HÀM BỔ SUNG: NẠP DỮ LIỆU BỘ LỌC THEO ĐÚNG ID TRONG INDEX.HTML
-// =========================================================================
-function napDuLieuBoLocGiaoVien() {
-    // Trỏ chính xác vào ID datalist đang có sẵn trong file index.html
-    let dtList = document.getElementById('danhSachGvList');
-    if (!dtList) return;
-    
-    // Xóa bộ đệm cũ
-    dtList.innerHTML = '';
-    
-    // Nạp tùy chọn khôi phục lưới TKB toàn trường
-    dtList.innerHTML += `<option value="Toàn trường"></option>`;
-
-    // Quét và đổ dữ liệu từ biến toàn cục thongSoHocVu
-    if (thongSoHocVu.DANH_SACH_GIAO_VIEN && thongSoHocVu.DANH_SACH_GIAO_VIEN.length > 0) {
-        thongSoHocVu.DANH_SACH_GIAO_VIEN.forEach(gv => {
-            dtList.innerHTML += `<option value="${gv}"></option>`;
-        });
-    }
-}
-
 async function taiDuLieuTKB(coCache = false) {
+    // [NÂNG CẤP]: Khởi tạo định danh cache động theo mã dự án
+    const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
+    const KEY_TKB = 'SmartTKB_DuLieuTuan_' + MA_DA;
+
     const vungHienThi = document.getElementById('vungHienThiDuLieu');
     
     // Nếu chưa có bộ nhớ đệm, hiện UI loading vòng xoay
@@ -330,12 +317,12 @@ async function taiDuLieuTKB(coCache = false) {
 
         if (Array.isArray(duLieu)) {
             let chuoiTkbMoi = JSON.stringify(duLieu);
-            let chuoiTkbCu = localStorage.getItem('SmartTKB_DuLieuTuan');
+            let chuoiTkbCu = localStorage.getItem(KEY_TKB);
             
             // Cập nhật ngầm: Chỉ render lưới nếu bản vẽ mới khác bản vẽ đệm
             if (!coCache || chuoiTkbMoi !== chuoiTkbCu) {
                 duLieuTkbHienTai = duLieu;
-                localStorage.setItem('SmartTKB_DuLieuTuan', chuoiTkbMoi);
+                localStorage.setItem(KEY_TKB, chuoiTkbMoi);
                 xuatMaTranBang(duLieuTkbHienTai);
             }
         } else {
@@ -346,6 +333,28 @@ async function taiDuLieuTKB(coCache = false) {
         vungHienThi.innerHTML = `<tr><td class="text-center text-red-500 font-bold py-10 text-lg" style="font-family:'Times New Roman',Times,serif;">
             ⚠️ Lỗi nạp dữ liệu TKB:<br><span class="text-base text-slate-700 font-normal mt-2 inline-block">${loi.message}</span>
         </td></tr>`;
+    }
+}
+
+// =========================================================================
+// HÀM BỔ SUNG: NẠP DỮ LIỆU BỘ LỌC THEO ĐÚNG ID TRONG INDEX.HTML
+// =========================================================================
+function napDuLieuBoLocGiaoVien() {
+    // Trỏ chính xác vào ID datalist đang có sẵn trong file index.html
+    let dtList = document.getElementById('danhSachGvList');
+    if (!dtList) return;
+    
+    // Xóa bộ đệm cũ
+    dtList.innerHTML = '';
+    
+    // Nạp tùy chọn khôi phục lưới TKB toàn trường
+    dtList.innerHTML += `<option value="Toàn trường"></option>`;
+
+    // Quét và đổ dữ liệu từ biến toàn cục thongSoHocVu
+    if (thongSoHocVu.DANH_SACH_GIAO_VIEN && thongSoHocVu.DANH_SACH_GIAO_VIEN.length > 0) {
+        thongSoHocVu.DANH_SACH_GIAO_VIEN.forEach(gv => {
+            dtList.innerHTML += `<option value="${gv}"></option>`;
+        });
     }
 }
 
