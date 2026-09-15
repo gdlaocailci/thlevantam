@@ -66,66 +66,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================================
-// KHỐI 2: GIAO TIẾP MÁY CHỦ VÀ LOGIC DROPDOWN LIÊN HOÀN (V2 - CHẠY NGẦM)
+// KHỐI 2: GIAO TIẾP MÁY CHỦ VÀ LOGIC DROPDOWN LIÊN HOÀN
 // =========================================================================
 async function taiCayDanhMucThongKe() {
     const btn = document.querySelector('button[onclick="goiTraCuuThongKe()"]');
-    const theGocBtn = btn ? btn.innerHTML : `Tra cứu`;
-    const cacheKey = "THONG_KE_CAY_DANH_MUC";
-    const duLieuDem = localStorage.getItem(cacheKey);
-
-    // 1. NẠP DỮ LIỆU ĐỆM TỨC THÌ (NẾU CÓ) BẬT NGAY DROPDOWN
-    if (duLieuDem) {
-        try {
-            cayDanhMucThongKe = JSON.parse(duLieuDem);
-            let dsNam = Object.keys(cayDanhMucThongKe);
-            if (dsNam.length > 0) {
-                let htmlArr = [];
-                dsNam.forEach(n => htmlArr.push(`<option value="${n}">`));
-                document.getElementById('dlNamHocTk').innerHTML = htmlArr.join('');
-                
-                // Chỉ gán giá trị mặc định nếu ô input đang trống (bảo toàn lựa chọn của GV)
-                if (!document.getElementById('inputNamHocTk').value) {
-                    document.getElementById('inputNamHocTk').value = dsNam[dsNam.length - 1];
-                    xuLyDoiNamHocTk();
-                }
-            }
-        } catch (loiDem) {
-            console.warn("Lỗi đọc đệm Cây Thống kê, hệ thống tự động tải mới.");
-        }
-    } else {
-        // Nếu lần đầu tiên truy cập chưa có đệm, hiển thị trạng thái tải
-        if (btn) btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang tải...`;
-    }
-
-    // 2. FETCH NGẦM ĐỂ ĐỒNG BỘ DỮ LIỆU MỚI (KHÔNG KHÓA MÀN HÌNH)
+    if (btn) btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang tải...`;
+    
     try {
+        // [NÂNG CẤP]: Áp dụng fetchVoiCoCheThuLai
         const fetchFunc = (typeof fetchVoiCoCheThuLai === 'function') ? fetchVoiCoCheThuLai : fetch;
         const phanHoi = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layCayQuanHeThongKe`);
-        const dataMoi = await phanHoi.json();
-        const hashMoi = JSON.stringify(dataMoi);
-
-        // 3. CHỈ CẬP NHẬT LẠI UI NẾU MÁY CHỦ CÓ SỰ THAY ĐỔI
-        if (duLieuDem !== hashMoi) {
-            cayDanhMucThongKe = dataMoi;
-            localStorage.setItem(cacheKey, hashMoi);
-            
-            let dsNam = Object.keys(cayDanhMucThongKe);
-            if (dsNam.length > 0) {
-                let htmlArr = [];
-                dsNam.forEach(n => htmlArr.push(`<option value="${n}">`));
-                document.getElementById('dlNamHocTk').innerHTML = htmlArr.join('');
-                
-                if (!document.getElementById('inputNamHocTk').value) {
-                    document.getElementById('inputNamHocTk').value = dsNam[dsNam.length - 1];
-                    xuLyDoiNamHocTk();
-                }
-            }
+        cayDanhMucThongKe = await phanHoi.json();
+        
+        let dsNam = Object.keys(cayDanhMucThongKe);
+        if (dsNam.length > 0) {
+            let htmlArr = [];
+            dsNam.forEach(n => htmlArr.push(`<option value="${n}">`));
+            document.getElementById('dlNamHocTk').innerHTML = htmlArr.join('');
+            document.getElementById('inputNamHocTk').value = dsNam[dsNam.length - 1];
+            xuLyDoiNamHocTk();
         }
     } catch (loi) {
-        console.error("Lỗi đồng bộ ngầm cây danh mục:", loi);
+        console.error("Lỗi tải cây danh mục:", loi);
     } finally {
-        if (btn) btn.innerHTML = theGocBtn; 
+        if (btn) btn.innerHTML = `Tra cứu`; 
     }
 }
 
@@ -166,7 +130,7 @@ function xuLyDoiThangTk() {
 }
 
 // =========================================================================
-// KHỐI 3: GỌI TRA CỨU VÀ VẼ GIAO DIỆN KẾT QUẢ (V2 - CHẠY NGẦM)
+// KHỐI 3: GỌI TRA CỨU VÀ VẼ GIAO DIỆN KẾT QUẢ
 // =========================================================================
 async function goiTraCuuThongKe() {
     let namHoc = document.getElementById('inputNamHocTk').value.trim();
@@ -192,68 +156,25 @@ async function goiTraCuuThongKe() {
     if (giaoVien === "Toàn trường") giaoVien = ""; 
 
     const vungKetQua = document.getElementById('vungKetQuaThongKe');
-    const nutXacNhan = document.querySelector('button[onclick="goiTraCuuThongKe()"]');
-    const theGocNutXacNhan = nutXacNhan ? nutXacNhan.innerHTML : `Tra cứu`;
-    
-    // Khởi tạo Key lưu trữ riêng biệt cho từng bộ lọc
-    const cacheKey = `THONG_KE_BAO_CAO_${namHoc}_${thang}_${tuan}_${giaoVien}`;
-    const duLieuDem = localStorage.getItem(cacheKey);
-    let daVeBaoCao = false;
+    vungKetQua.classList.remove('p-4', 'overflow-auto');
+    vungKetQua.classList.add('p-0', 'overflow-hidden');
+    vungKetQua.innerHTML = `<div class="m-auto text-center text-blue-600 font-bold w-full"><div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang truy xuất CSDL...</div>`;
 
-    let mangDinhMucChuan = {};
-    let mapTenGiaoVien = {}; 
-
-    // Hàm phụ trợ xuất lưới
-    const xuLyVeLuoiUI = (data, kieuGv) => {
-        requestAnimationFrame(() => {
-            if (kieuGv === "Toàn trường" || kieuGv === "") {
-                veBangThongKeToanTruong(data, namHoc, thang, tuan, soTuanTraCuu, mangDinhMucChuan, mapTenGiaoVien);
-            } else {
-                veMaTranThongKeCaNhan(data, kieuGv, namHoc, thang, tuan);
-            }
-        });
-    };
-
-    // 1. CHUẨN BỊ ĐỊNH MỨC TỪ RAM (NẾU CÓ)
-    if (typeof duLieuDanhMucGV !== 'undefined' && duLieuDanhMucGV.length > 0) {
-        duLieuDanhMucGV.forEach(g => {
-            let ma = (g.maGv || g.hoTen || '').toString().trim();
-            let maKey = ma.toLowerCase(); 
-            mangDinhMucChuan[maKey] = parseInt(g.dinhMuc) || 0;
-            mapTenGiaoVien[maKey] = (g.hoTen || ma).toString().trim();
-        });
-    }
-
-    // 2. KỊCH BẢN ĐÃ CÓ BỘ NHỚ ĐỆM -> VẼ NGAY LẬP TỨC
-    if (duLieuDem) {
-        try {
-            duLieuThongKeHienTai = JSON.parse(duLieuDem);
-            vungKetQua.classList.remove('p-4', 'overflow-hidden');
-            vungKetQua.classList.add('p-0', 'overflow-auto');
-            
-            let kieuGv = document.getElementById('inputGiaoVienTk').value.trim();
-            xuLyVeLuoiUI(duLieuThongKeHienTai, kieuGv);
-            daVeBaoCao = true;
-
-            // Hiển thị trạng thái đồng bộ ngầm
-            if (nutXacNhan) {
-                nutXacNhan.innerHTML = `<svg class="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg><span class="opacity-90">Đang đồng bộ...</span>`;
-            }
-        } catch(e) { console.warn("Lỗi đệm Báo cáo"); }
-    } 
-
-    if (!daVeBaoCao) {
-        vungKetQua.classList.remove('p-4', 'overflow-auto');
-        vungKetQua.classList.add('p-0', 'overflow-hidden');
-        vungKetQua.innerHTML = `<div class="m-auto text-center text-blue-600 font-bold w-full"><div class="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang truy xuất CSDL...</div>`;
-    }
-
-    // 3. FETCH NGẦM ĐỂ XÁC MINH VÀ LÀM MỚI
     try {
+        let mangDinhMucChuan = {};
+        let mapTenGiaoVien = {}; 
+        
+        // [NÂNG CẤP]: Áp dụng fetchVoiCoCheThuLai để kết nối ổn định
         const fetchFunc = (typeof fetchVoiCoCheThuLai === 'function') ? fetchVoiCoCheThuLai : fetch;
 
-        // Nếu thiếu định mức GV, lấy ngầm từ máy chủ
-        if (Object.keys(mangDinhMucChuan).length === 0) {
+        if (typeof duLieuDanhMucGV !== 'undefined' && duLieuDanhMucGV.length > 0) {
+            duLieuDanhMucGV.forEach(g => {
+                let ma = (g.maGv || g.hoTen || '').toString().trim();
+                let maKey = ma.toLowerCase(); 
+                mangDinhMucChuan[maKey] = parseInt(g.dinhMuc) || 0;
+                mapTenGiaoVien[maKey] = (g.hoTen || ma).toString().trim();
+            });
+        } else {
             try {
                 const resDM = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDanhMucGV`);
                 const dataDM = await resDM.json();
@@ -261,37 +182,34 @@ async function goiTraCuuThongKe() {
                     for (let i = 1; i < dataDM.length; i++) {
                         let ma = (dataDM[i][0] || '').toString().trim();
                         let maKey = ma.toLowerCase();
+                        let ten = (dataDM[i][1] || ma).toString().trim();
+                        let dinhMuc = dataDM[i][3];
                         if (maKey !== '') {
-                            mangDinhMucChuan[maKey] = parseInt(dataDM[i][3]) || 0;
-                            mapTenGiaoVien[maKey] = (dataDM[i][1] || ma).toString().trim();
+                            mangDinhMucChuan[maKey] = parseInt(dinhMuc) || 0;
+                            mapTenGiaoVien[maKey] = ten;
                         }
                     }
                 }
-            } catch(e) { console.warn("Lỗi tải định mức ngầm:", e); }
+            } catch(e) { console.warn("Lỗi tải định mức:", e); }
         }
 
         const phanHoi = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=traCuuThongKe&namHoc=${namHoc}&thang=${thang}&tuan=${tuan}&giaoVien=${giaoVien}`);
-        const dataMoi = await phanHoi.json();
-        const hashMoi = JSON.stringify(dataMoi);
+        duLieuThongKeHienTai = await phanHoi.json();
         
-        // 4. CẬP NHẬT LƯỚI NẾU CÓ DỮ LIỆU ĐƯỢC CHỈNH SỬA TỪ MÁY CHỦ
-        if (duLieuDem !== hashMoi) {
-            localStorage.setItem(cacheKey, hashMoi);
-            duLieuThongKeHienTai = dataMoi;
-            
-            let kieuGv = document.getElementById('inputGiaoVienTk').value.trim();
-            vungKetQua.classList.remove('p-4', 'overflow-hidden');
-            vungKetQua.classList.add('p-0', 'overflow-auto');
-            xuLyVeLuoiUI(duLieuThongKeHienTai, kieuGv);
-        }
+        let kieuGv = document.getElementById('inputGiaoVienTk').value.trim();
         
-    } catch (loi) {
+        // [NÂNG CẤP]: Sử dụng requestAnimationFrame để tránh nghẽn luồng render
+        requestAnimationFrame(() => {
+            if (kieuGv === "Toàn trường" || kieuGv === "") {
+                veBangThongKeToanTruong(duLieuThongKeHienTai, namHoc, thang, tuan, soTuanTraCuu, mangDinhMucChuan, mapTenGiaoVien);
+            } else {
+                veMaTranThongKeCaNhan(duLieuThongKeHienTai, kieuGv, namHoc, thang, tuan);
+            }
+        });
+        
+        } catch (loi) {
         console.error("Lỗi Tra cứu:", loi);
-        if (!daVeBaoCao) {
-            vungKetQua.innerHTML = `<div class="m-auto text-center text-red-500 font-bold w-full">Lỗi kết nối máy chủ dữ liệu.</div>`;
-        }
-    } finally {
-        if (nutXacNhan) nutXacNhan.innerHTML = theGocNutXacNhan;
+        vungKetQua.innerHTML = `<div class="m-auto text-center text-red-500 font-bold w-full">Lỗi kết nối máy chủ dữ liệu.</div>`;
     }
 }
 
