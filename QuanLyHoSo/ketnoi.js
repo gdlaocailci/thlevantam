@@ -11,7 +11,7 @@ const KETNOI = {
     // 2. Mã định danh ứng dụng Google (OAuth 2.0 Client ID)
     CLIENT_ID: "1097384743947-1jdc5rhhmbu0s9jp5vgt814g4f4id7lu.apps.googleusercontent.com",
     // 3. Thông tin định danh cơ quan/đơn vị
-    TEN_DINH_DANH: "Nguyễn Du OS",
+    TEN_DINH_DANH: "Lê Văn Tám OS",
     TIEU_DE_TRANG: "Cổng thông tin Quản lý hồ sơ - Trường Tiểu học Lê Văn Tám",
     
     // Bổ sung liên kết YouTube Hướng dẫn
