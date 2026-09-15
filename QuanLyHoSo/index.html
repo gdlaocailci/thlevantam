@@ -1555,43 +1555,60 @@ function toggleTaoThuMucModal(isShow) {
     function rearrangeGrid() { applyGridOrder(null, true); }
 
     function applyGridOrder(excludeIcon = null, useTransition = true) {
-        let orderArray = JSON.parse(localStorage.getItem(PREFIX_MEM + 'iconOrder')) || [];
-        let currentTitles = Array.from(icons).map(i => i.getAttribute('data-title')).filter(Boolean);
-        
-        let newOrder = orderArray.filter(title => currentTitles.includes(title));
-        currentTitles.forEach(title => {
-            if (!newOrder.includes(title)) newOrder.push(title);
-        });
-        
-        orderArray = newOrder;
-        localStorage.setItem(PREFIX_MEM + 'iconOrder', JSON.stringify(orderArray));
+    let orderArray = JSON.parse(localStorage.getItem(PREFIX_MEM + 'iconOrder')) || [];
+    let currentTitles = Array.from(icons).map(i => i.getAttribute('data-title')).filter(Boolean);
+    
+    // 1. Đồng bộ mảng sắp xếp, cho phép tồn tại các phần tử trùng tên
+    let newOrder = [];
+    let tempTitles = [...currentTitles];
+    
+    orderArray.forEach(title => {
+        let idx = tempTitles.indexOf(title);
+        if (idx !== -1) {
+            newOrder.push(title);
+            tempTitles.splice(idx, 1);
+        }
+    });
+    
+    // Thêm các icon mới (hoặc các bản sao trùng tên) vào danh sách
+    tempTitles.forEach(title => newOrder.push(title));
+    
+    orderArray = newOrder;
+    localStorage.setItem(PREFIX_MEM + 'iconOrder', JSON.stringify(orderArray));
 
-        const cfg = getGridConfig();
-        let maxColHeight = window.innerHeight - 70; 
-        if (maxColHeight < 200) maxColHeight = 500; 
+    const cfg = getGridConfig();
+    let maxColHeight = window.innerHeight - 70; 
+    if (maxColHeight < 200) maxColHeight = 500; 
+    
+    let maxRows = Math.floor(maxColHeight / cfg.height);
+    if (maxRows < 1) maxRows = 1;
+
+    // 2. Sử dụng Set để ghi nhớ các phần tử DOM đã được cấp tọa độ
+    let positionedIcons = new Set();
+
+    orderArray.forEach((title, index) => {
+        // Tìm Icon khớp tên nhưng chưa nằm trong danh sách đã xử lý
+        let icon = Array.from(icons).find(i => i.getAttribute('data-title') === title && !positionedIcons.has(i));
         
-        let maxRows = Math.floor(maxColHeight / cfg.height);
-        if (maxRows < 1) maxRows = 1;
+        if (icon) {
+            positionedIcons.add(icon); // Gắn cờ đã cấp vị trí
+            
+            let col = Math.floor(index / maxRows);
+            let row = index % maxRows;
+            let targetLeft = cfg.startX + col * cfg.width;
+            let targetTop = cfg.startY + row * cfg.height;
+            
+            icon.dataset.gridLeft = targetLeft;
+            icon.dataset.gridTop = targetTop;
 
-        orderArray.forEach((title, index) => {
-            let icon = Array.from(icons).find(i => i.getAttribute('data-title') === title);
-            if (icon) {
-                let col = Math.floor(index / maxRows);
-                let row = index % maxRows;
-                let targetLeft = cfg.startX + col * cfg.width;
-                let targetTop = cfg.startY + row * cfg.height;
-                
-                icon.dataset.gridLeft = targetLeft;
-                icon.dataset.gridTop = targetTop;
-
-                if (icon !== excludeIcon) {
-                    icon.style.transition = useTransition ? 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none';
-                    icon.style.left = targetLeft + 'px';
-                    icon.style.top = targetTop + 'px';
-                }
+            if (icon !== excludeIcon) {
+                icon.style.transition = useTransition ? 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none';
+                icon.style.left = targetLeft + 'px';
+                icon.style.top = targetTop + 'px';
             }
-        });
-    }
+        }
+    });
+}
 
     let draggedIcon = null, offsetX = 0, offsetY = 0, dragThresholdPassed = false, startX, startY;
     let lastSwapTime = 0;
