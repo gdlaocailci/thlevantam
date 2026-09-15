@@ -1554,7 +1554,7 @@ function toggleTaoThuMucModal(isShow) {
     function initializeLayout() { applyGridOrder(null, false); }
     function rearrangeGrid() { applyGridOrder(null, true); }
 
-function applyGridOrder(excludeIcon = null, useTransition = true) {
+    function applyGridOrder(excludeIcon = null, useTransition = true) {
     let orderArray = JSON.parse(localStorage.getItem(PREFIX_MEM + 'iconOrder')) || [];
     let currentTitles = Array.from(icons).map(i => i.getAttribute('data-title')).filter(Boolean);
     
