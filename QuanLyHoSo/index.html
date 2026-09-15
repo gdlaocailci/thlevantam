@@ -266,6 +266,11 @@
             .desktop-icon:hover .icon-box::after { left: -100%; }
             .desktop-icon:hover .icon-box { transform: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); filter: none; }
         }
+
+        /* KHỐI GIAO DIỆN PHÓNG TO THƯ MỤC */
+        .window-maximize { background: transparent; border: none; color: #ffffff; font-weight: bold; cursor: pointer; width: 30px; height: 30px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .window-maximize:hover { background: rgba(255, 255, 255, 0.2); }
+        .folder-maximized .window-container { width: 100vw !important; height: 100vh !important; max-width: 100% !important; border-radius: 0 !important; }
     </style>
 </head>
 <body>
@@ -815,12 +820,15 @@
         </div>
     </div>
 
-    <div id="window-folder-view" class="window-overlay">
-        <div class="window-container">
-            <div class="window-titlebar" style="background: #2c3e50;">
-                <div class="window-title" id="folder-view-title" style="color: #ffffff;"><span class="material-icons" style="color: #ffffff;">folder_open</span> Đang trích xuất dữ liệu thư mục...</div>
-                <button class="window-close" style="color: #ffffff;" onclick="dongCuaSoThuMuc()">✕</button>
-            </div>
+    <div class="window-titlebar" style="background: #2c3e50;">
+    <div class="window-title" id="folder-view-title" style="color: #ffffff;"><span class="material-icons" style="color: #ffffff;">folder_open</span> Đang trích xuất dữ liệu thư mục...</div>
+    <div style="display: flex; gap: 5px;">
+        <button class="window-maximize" id="btn-folder-maximize" onclick="toggleFolderMaximize()" title="Phóng to / Thu nhỏ">
+            <span class="material-icons" style="font-size: 18px;">fullscreen</span>
+        </button>
+        <button class="window-close" style="color: #ffffff;" onclick="dongCuaSoThuMuc()" title="Đóng">✕</button>
+    </div>
+</div>
             <!-- BỔ SUNG Ô TÌM KIẾM NHANH HỒ SƠ -->
             <div style="padding: 15px 25px 0 25px; background: rgba(30, 30, 30, 0.45);">
                 <input type="text" id="folder-search-filter" onkeyup="locDanhSachTrongThuMuc()" placeholder="🔍 Gõ từ khóa để lọc nhanh tên hồ sơ trong thư mục..." style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; outline: none; box-sizing: border-box; transition: border-color 0.2s;" onfocus="this.style.borderColor='#1976D2'" onblur="this.style.borderColor='#ccc'">
@@ -2507,6 +2515,30 @@ function xuLySuaHoSo() {
             }
         }
     }
+
+    function dongCuaSoThuMuc() {
+    const folderWindow = document.getElementById('window-folder-view');
+    folderWindow.style.display = 'none';
+    document.getElementById('folder-content-area').innerHTML = '';
+    
+    // Trả lại kích thước gốc khi đóng thư mục để lần mở sau không bị tràn viền
+    folderWindow.classList.remove('folder-maximized');
+    const maxBtnIcon = document.querySelector('#btn-folder-maximize .material-icons');
+    if (maxBtnIcon) maxBtnIcon.innerText = 'fullscreen';
+}
+
+function toggleFolderMaximize() {
+    const folderWindow = document.getElementById('window-folder-view');
+    const maxBtnIcon = document.querySelector('#btn-folder-maximize .material-icons');
+    
+    if (folderWindow.classList.contains('folder-maximized')) {
+        folderWindow.classList.remove('folder-maximized');
+        maxBtnIcon.innerText = 'fullscreen'; // Đổi icon thành phóng to
+    } else {
+        folderWindow.classList.add('folder-maximized');
+        maxBtnIcon.innerText = 'fullscreen_exit'; // Đổi icon thành thu nhỏ
+    }
+}
 </script>
 </body>
 </html>
