@@ -304,7 +304,7 @@ document.addEventListener('click', function(e) {
 });
 
 // =========================================================================
-// KHỐI 3: GỌI API KÉP (TKB + PPCT) VÀ VẼ LƯỚI MA TRẬN
+// KHỐI 3: GỌI API KÉP VÀ ĐỒNG BỘ NGẦM (BACKGROUND SYNC - V3)
 // =========================================================================
 async function taiDuLieuTkbVaPpct() {
     const tuan = document.getElementById('locTuanUI').value.trim();
@@ -312,20 +312,48 @@ async function taiDuLieuTkbVaPpct() {
     const khoi = document.getElementById('locKhoiPPCT').getAttribute('data-khoi-so');
     const mon = document.getElementById('locMonPPCT').value.trim();
     const tbody = document.getElementById('vungDuLieuLichPPCT');
+    const nutXacNhan = document.querySelector('button[onclick="taiDuLieuTkbVaPpct()"]');
+    const theGocNutXacNhan = nutXacNhan.innerHTML; // Lưu trạng thái gốc của nút
 
     if (!tuan || !lop || !khoi || khoi === 'KX') {
         alert("Đồng chí vui lòng điền đầy đủ: Tuần, Lớp để truy xuất dữ liệu.");
         return;
     }
 
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-blue-600 font-bold">
-        <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
-        Đang đồng bộ Lịch giảng dạy và Phân phối chương trình...
-    </td></tr>`;
+    // 1. TẠO KHÓA BỘ NHỚ ĐỆM ĐỘC LẬP
+    const cacheKey = `PPCT_CACHE_${tuan}_${lop}_${mon}`;
+    const duLieuDem = localStorage.getItem(cacheKey);
 
+    // 2. KỊCH BẢN 1: CÓ DỮ LIỆU ĐỆM -> VẼ NGAY LẬP TỨC VÀ ĐỒNG BỘ NGẦM
+    if (duLieuDem) {
+        try {
+            const cacheParsed = JSON.parse(duLieuDem);
+            duLieuTkbTuan = cacheParsed.duLieuTkb || [];
+            duLieuPpctGoc = cacheParsed.duLieuPpct || []; 
+            veBangKhungLichPPCT(mon); // Vẽ ngay tức thì
+            
+            // Hiển thị trạng thái đồng bộ ngầm trên nút bấm (Sử dụng icon SVGRepo)
+            nutXacNhan.innerHTML = `
+                <svg class="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 11-6.219-8.56"></path>
+                </svg>
+                <span class="opacity-90">Đang đồng bộ...</span>`;
+            nutXacNhan.classList.add('opacity-80', 'cursor-wait');
+        } catch (e) {
+            console.warn("Lỗi đọc đệm, tiến hành tải mới toàn bộ.");
+        }
+    } else {
+        // 3. KỊCH BẢN 2: LẦN ĐẦU TIÊN TRUY CẬP -> HIỂN THỊ LOADING TOÀN MÀN HÌNH
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-blue-600 font-bold reactbits-fade-in">
+            <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+            Đang trích xuất Lịch giảng dạy và Phân phối chương trình...
+        </td></tr>`;
+        nutXacNhan.disabled = true;
+    }
+
+    // 4. TIẾN HÀNH FETCH GIAO TIẾP VỚI MÁY CHỦ (CHẠY NỀN)
     try {
         const tuanHeThong = typeof tuanDangXem !== 'undefined' ? tuanDangXem : 1;
-        // [NÂNG CẤP]: Nếu là Tất cả, gửi tham số rỗng để Backend hiểu là truy xuất toàn khối/lớp
         const monGoi = (mon === 'Tất cả') ? '' : mon;
         const urlAPI = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTkbVaPpct&tuan=${tuan}&lop=${encodeURIComponent(lop)}&khoi=${khoi}&mon=${encodeURIComponent(monGoi)}&tuanHienTai=${tuanHeThong}`;
         
@@ -334,12 +362,25 @@ async function taiDuLieuTkbVaPpct() {
         if (!phanHoi.ok) throw new Error("Mất kết nối máy chủ");
         const ketQua = await phanHoi.json();
         
-        duLieuTkbTuan = ketQua.duLieuTkb || [];
-        duLieuPpctGoc = ketQua.duLieuPpct || []; 
+        const hashMoi = JSON.stringify(ketQua);
         
-        veBangKhungLichPPCT(mon);
+        // 5. SO SÁNH: CHỈ VẼ LẠI KHI CÓ SỰ THAY ĐỔI
+        if (duLieuDem !== hashMoi) {
+            localStorage.setItem(cacheKey, hashMoi); // Lưu đệm mới
+            duLieuTkbTuan = ketQua.duLieuTkb || [];
+            duLieuPpctGoc = ketQua.duLieuPpct || []; 
+            veBangKhungLichPPCT(mon); // Cập nhật lại UI mượt mà
+        }
     } catch (loi) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-red-600 font-bold">Lỗi truy xuất dữ liệu từ máy chủ. Đảm bảo file CODE.gs hỗ trợ truy xuất khi tham số mon bị rỗng.</td></tr>`;
+        if (!duLieuDem) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-red-600 font-bold">⚠️ Sự cố truy xuất dữ liệu từ máy chủ. Đảm bảo kết nối mạng ổn định.</td></tr>`;
+        }
+        console.error("Lỗi đồng bộ ngầm PPCT:", loi);
+    } finally {
+        // Phục hồi trạng thái nút bấm
+        nutXacNhan.innerHTML = theGocNutXacNhan;
+        nutXacNhan.classList.remove('opacity-80', 'cursor-wait');
+        nutXacNhan.disabled = false;
     }
 }
 
@@ -698,6 +739,7 @@ function xuLyNhapExcelPPCT(event) {
                     // [LOGIC XEM TRƯỚC CHUẨN]: Chọn Tất cả -> Lấy môn Excel. Chọn môn cụ thể -> Lấy môn ô lọc.
                     let tenMonHienThi = (monUI === 'Tất cả' || monUI === '') ? (row.mon || row.monHoc) : monUI;
 
+                    // [NÂNG CẤP CSS]: Bổ sung whitespace-normal, break-words và style inline để tự động xuống dòng an toàn
                     htmlPreview += `
                     <tr class="dong-xem-truoc-excel bg-indigo-50/40 hover:bg-indigo-100 transition-colors border-b border-indigo-200">
                         <td colspan="3" class="text-center italic text-indigo-600/70 text-[13px] align-middle font-semibold border-r border-indigo-200">
@@ -705,8 +747,8 @@ function xuLyNhapExcelPPCT(event) {
                         </td>
                         <td class="border-r border-indigo-200 align-middle text-center p-2 font-extrabold text-red-600">${row.tiet}</td>
                         <td class="border-r border-indigo-200 align-middle text-center font-bold text-indigo-800" data-loai="mon">${tenMonHienThi}</td>
-                        <td class="border-r border-indigo-200 align-middle text-left p-2 font-semibold text-slate-900">${row.tenBaiHoc}</td>
-                        <td class="align-middle text-left p-2 italic text-gray-700">${row.dieuChinh}</td>
+                        <td class="border-r border-indigo-200 align-middle text-left p-2 font-semibold text-slate-900 whitespace-normal break-words" style="white-space: normal !important; min-width: 200px; max-width: 400px; word-wrap: break-word; word-break: break-word;">${row.tenBaiHoc}</td>
+                        <td class="align-middle text-left p-2 italic text-gray-700 whitespace-normal break-words" style="white-space: normal !important; min-width: 200px; max-width: 350px; word-wrap: break-word; word-break: break-word;">${row.dieuChinh}</td>
                     </tr>`;
                 });
 
@@ -842,6 +884,8 @@ async function luuDuLieuPPCTLenMayChu(event) {
         
         if (ketQua.trangThai === 'Thành công') {
             alert(`Đã lưu Phân phối chương trình Khối ${khoi} lên hệ thống thành công!`);
+            const cacheKeyToClear = `PPCT_CACHE_${tuan}_${lop}_${mon}`;
+            localStorage.removeItem(cacheKeyToClear);
             
             document.querySelectorAll('tr[data-da-sua="true"]').forEach(tr => {
                 tr.removeAttribute('data-da-sua');
