@@ -2514,6 +2514,30 @@ function xuLySuaHoSo() {
             }
         }
     }
+
+    function dongCuaSoThuMuc() {
+    const folderWindow = document.getElementById('window-folder-view');
+    folderWindow.style.display = 'none';
+    document.getElementById('folder-content-area').innerHTML = '';
+    
+    // Trả lại kích thước gốc khi đóng thư mục để lần mở sau không bị tràn viền
+    folderWindow.classList.remove('folder-maximized');
+    const maxBtnIcon = document.querySelector('#btn-folder-maximize .material-icons');
+    if (maxBtnIcon) maxBtnIcon.innerText = 'fullscreen';
+}
+
+function toggleFolderMaximize() {
+    const folderWindow = document.getElementById('window-folder-view');
+    const maxBtnIcon = document.querySelector('#btn-folder-maximize .material-icons');
+    
+    if (folderWindow.classList.contains('folder-maximized')) {
+        folderWindow.classList.remove('folder-maximized');
+        maxBtnIcon.innerText = 'fullscreen'; // Đổi icon thành phóng to
+    } else {
+        folderWindow.classList.add('folder-maximized');
+        maxBtnIcon.innerText = 'fullscreen_exit'; // Đổi icon thành thu nhỏ
+    }
+}
 </script>
 </body>
 </html>
