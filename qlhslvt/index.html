@@ -194,7 +194,7 @@ let hks_khoDuLieuTong_arr = [];
           return await hks_phanHoiNhanCung_obj.json();
       } catch (hks_loiNgoaiLe_obj) {
           console.error("Lỗi gốc:", hks_loiNgoaiLe_obj);
-          throw new Error("Bạn hãy đăng nhập lại!");
+          throw new Error("Internet yếu. Hãy đăng nhập lại!");
       }
   }
 
