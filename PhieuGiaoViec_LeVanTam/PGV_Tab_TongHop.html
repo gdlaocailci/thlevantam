@@ -193,11 +193,6 @@ function runAIAssistant() {
                 let rows = tbody.getElementsByTagName("tr");
                 let updatedCount = 0;
 
-                // ==========================================================================
-                // BỘ QUY ĐỔI ĐỘNG (Xử lý dứt điểm 0.7 thành 70%, 0.5 thành 50%)
-                // ==========================================================================
-                
-                // Hàm 1: Đọc các giá trị cứng (như điểm số, số tháng giới hạn tuyệt đối)
                 function docSo(giaTri) {
                     if (giaTri === undefined || giaTri === null || giaTri === "") return 0;
                     let str = giaTri.toString().replace(',', '.').trim();
@@ -205,7 +200,6 @@ function runAIAssistant() {
                     return isNaN(num) ? 0 : num;
                 }
 
-                // Hàm 2: Hàm đặc nhiệm chuyên đọc các ngưỡng tỷ lệ %
                 function docTyLe(giaTri) {
                     if (giaTri === undefined || giaTri === null || giaTri === "") return 0;
                     let str = giaTri.toString().replace(',', '.').trim();
@@ -213,7 +207,6 @@ function runAIAssistant() {
                     let num = parseFloat(str.replace('%', ''));
                     if (isNaN(num)) return 0;
                     
-                    // NẾU API truyền về giá trị ngầm dạng 0.7 hoặc 0.5 (không có dấu %) -> Đổi lại ra hệ 100
                     if (!isPercentStr && num > 0 && num <= 1) {
                         num = num * 100;
                     }
@@ -232,20 +225,15 @@ function runAIAssistant() {
                     return giaTriMacDinh;
                 }
 
-                // Cấp 1: Đọc ngưỡng tỷ lệ % (Sử dụng hàm đặc nhiệm docTyLe)
                 let nguong_XS = layCauHinh(['TYLE_XS', 'tyle_xs'], 0, true);
                 let nguong_Tot = layCauHinh(['TYLE_TOT', 'tyle_tot'], 0, true);
                 let nguong_HT = layCauHinh(['TYLE_HT', 'tyle_ht'], 0, true);
-                
-                // Mặc định CHT 100% (cũng dùng docTyLe để bắt chính xác số 0.5 thành 50%)
                 let conGiunDat = layCauHinh(['TYLE_CHT_MAX', 'tyle_cht_max', 'SO_CHT_MAX', 'so_cht_max'], 100, true);   
 
-                // Cấp 2: Đọc các giới hạn khống chế tĩnh (Dùng docSo bình thường)
                 let caiKeoCo = layCauHinh(['MAX_HT_XS', 'max_ht_xs'], 0, false);   
                 let vienBiTron = layCauHinh(['MAX_CHT_XS', 'max_cht_xs'], 0, false); 
                 let quaCamNgot = layCauHinh(['MAX_CHT_TOT', 'max_cht_tot'], 0, false); 
                 
-                // Cấp 3: Đọc hệ số điểm
                 let diemBase_XS = layCauHinh(['DIEM_XS', 'diem_xs'], 100, false);
                 let diemBase_Tot = layCauHinh(['DIEM_TOT', 'diem_tot'], 80, false);
                 let diemBase_HT = layCauHinh(['DIEM_HT', 'diem_ht'], 60, false);
@@ -256,6 +244,7 @@ function runAIAssistant() {
                     if (tds.length < 15) continue; 
 
                     let countHTXS = 0, countHTT = 0, countHT = 0, countCHT = 0;
+                    // [ĐÃ KHÔI PHỤC]: Trả lại biến tongDiemXepLoai đúng như mã gốc
                     let tongDiemXepLoai = 0, tongDiemSo = 0, validMonths = 0;
 
                     for (let j = cotBatDau; j <= cotKetThuc; j++) {
@@ -263,9 +252,14 @@ function runAIAssistant() {
                         let cellText = tds[j].innerText.trim();
                         let textLower = cellText.toLowerCase();
                         let diem = 0;
-                        let matchDiem = cellText.match(/(\d+)/);
-                        if (matchDiem) diem = parseFloat(matchDiem[1]);
+                        
+                        // [ĐÃ NÂNG CẤP]: Chỉ thay đổi phần regex quét số thập phân
+                        let matchDiem = cellText.match(/(\d+([.,]\d+)?)/);
+                        if (matchDiem) {
+                            diem = parseFloat(matchDiem[1].replace(',', '.'));
+                        }
 
+                        // [ĐÃ KHÔI PHỤC LẠI CÔNG THỨC CỘNG GỐC]
                         if (cellText === "" || cellText === "-" || cellText.includes("...") || textLower.includes("chưa có")) {
                             tongDiemXepLoai += 0;
                             tongDiemSo += 0; 
@@ -289,6 +283,8 @@ function runAIAssistant() {
                     if (validMonths === 0) continue; 
 
                     let D = tongSoThangYeuCau; 
+                    
+                    // [ĐÃ KHÔI PHỤC LẠI LOGIC CHUẨN]: Tính riêng 2 loại điểm và cộng vào nhau
                     let diemTBXepLoai = tongDiemXepLoai / D;
                     let diemTBSo = tongDiemSo / D;
                     let avgScore = (diemTBXepLoai + diemTBSo).toFixed(1);
@@ -299,7 +295,6 @@ function runAIAssistant() {
                     let tyLeCHT_thucTe = Math.round((countCHT / D) * 100); 
 
                     let xepLoai = "Chưa hoàn thành";
-                    // Tooltip minh bạch rõ ràng không còn số thập phân
                     let thongDiepKiemDuyet = `Thực tế: HT(${tyLeHT_thucTe}%), CHT(${tyLeCHT_thucTe}%)\nYêu cầu: HT(>=${nguong_HT}%), CHT(<=${conGiunDat}%)`;
 
                     let caiBanBonChan = (countHT <= caiKeoCo && countCHT <= vienBiTron); 
@@ -365,10 +360,13 @@ function xeDapNhaiBongDung() {
         if (mucDoTrai !== mucDoPhai) return mucDoPhai - mucDoTrai; 
         
         let diemTrai = 0, diemPhai = 0;
-        let timDiemTrai = chuoiHoaHong.match(/([\d\.]+)\s*điểm/);
-        let timDiemPhai = chuoiHoaCuc.match(/([\d\.]+)\s*điểm/);
-        if (timDiemTrai) diemTrai = parseFloat(timDiemTrai[1]);
-        if (timDiemPhai) diemPhai = parseFloat(timDiemPhai[1]);
+        
+        // [ĐÃ NÂNG CẤP]: Cải tiến bắt số thập phân (dấu chấm/phẩy) khi sắp xếp
+        let timDiemTrai = chuoiHoaHong.match(/([\d.,]+)\s*điểm/);
+        let timDiemPhai = chuoiHoaCuc.match(/([\d.,]+)\s*điểm/);
+        
+        if (timDiemTrai) diemTrai = parseFloat(timDiemTrai[1].replace(',', '.'));
+        if (timDiemPhai) diemPhai = parseFloat(timDiemPhai[1].replace(',', '.'));
         return diemPhai - diemTrai; 
     });
 
@@ -379,7 +377,8 @@ function xeDapNhaiBongDung() {
         conGaiDiBoAo.appendChild(damMayUongNuoc[i]);
     }
 }
-  
+
+// CÁC HÀM GỐC KHÔI PHỤC LẠI BÊN DƯỚI ĐÂY
 function ghiKetQuaAI() {
     let table = document.getElementById("bangThop");
     if (!table) return;
@@ -439,4 +438,45 @@ function ghiKetQuaAI() {
          btn.disabled = false;
     }
 }
+
+function veBangThop() { 
+    if (!Array.isArray(dlThopGoc)) dlThopGoc = [];
+    const nchon = $('#locNamThop').val(), tb = $('#bangThop tbody').empty(); 
+    if (!nchon) { 
+        tb.append('<tr><td colspan="15" class="text-center text-muted py-4">Vui lòng chọn Năm học.</td></tr>'); 
+        return; 
+    } 
+
+    let bc = {}; 
+    dlThopGoc.forEach(r => { 
+        if (String(r[2]) !== nchon || !r[0]) return; 
+        if (!bc[r[0]]) bc[r[0]] = { tenn: r[0], thangs: {} }; 
+        let mt = parseInt(String(r[3]).match(/(\d{1,2})/)?.[0]); 
+        if (mt) bc[r[0]].thangs[mt] = r[4]; 
+    }); 
+    
+    let stth = 1; 
+    const tho = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]; 
+    let chuoi_html = "";
+    
+    for (const k in bc) { 
+        const gr = bc[k]; 
+        let keyTimKiem = gr.tenn.trim().toLowerCase();
+        let maId = (window.PGV_MAP_TEN_ID && window.PGV_MAP_TEN_ID[keyTimKiem]) ? window.PGV_MAP_TEN_ID[keyTimKiem] : "Chưa xác định";
+        
+        let dr = `<tr>
+            <td class="text-center align-middle">${stth++}</td>
+            <td class="ps-3 align-middle">
+                <div class="fw-bold text-primary text-uppercase" style="font-size: 13px;">${gr.tenn}</div>
+                <div class="text-secondary mt-1" style="font-size: 11px; font-style: italic; font-weight: normal;">
+                    <i class="bi bi-person-vcard me-1"></i>ID: ${maId}
+                </div>
+            </td>
+            <td class="align-middle"><input type="text" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold text-danger" disabled placeholder="..."></td>`; 
+        tho.forEach(m => dr += `<td class="text-center small align-middle ${gr.thangs[m] ? 'bg-light' : ''}">${gr.thangs[m] || '-'}</td>`); 
+        chuoi_html += dr + '</tr>'; 
+    } 
+    tb.html(chuoi_html); 
+}
+
 </script>
