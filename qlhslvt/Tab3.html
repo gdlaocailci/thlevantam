@@ -383,17 +383,23 @@ function hks_xuLyThongKeBoNhoDem_fn(hks_chuKyHoatDong_str, hks_tuKhoaLop_str = '
       return hks_ketQuaCuoi_arr;
   }
 
- function hks_layDuLieuPhanBa_fn() {
+async function hks_layDuLieuPhanBa_fn() {
     let hks_namChon_str = document.getElementById('t3_nam').value;
     let hks_locLop_el = document.getElementById('t3_locLop');
-    // Đảm bảo lấy được từ khóa lọc nếu phần tử tồn tại
     let hks_tuKhoaLop_str = hks_locLop_el ? hks_locLop_el.value.trim() : '';
 
     if(!hks_namChon_str) { Swal.fire("Cảnh báo!", "Giá trị trục gốc bằng null!", "warning"); return; }
-    hks_hienThiManHinhTai_fn(true);
+    
+    // [BẢN NÂNG CẤP]: Kiểm tra tải cache nội bộ không cần phủ mờ
+    if (!hks_khoDuLieuTong_arr || hks_khoDuLieuTong_arr.length === 0) {
+        hks_hienThiManHinhTai_fn(true);
+        if (typeof hks_capNhatBoNhoDem_fn === 'function') await hks_capNhatBoNhoDem_fn();
+        hks_hienThiManHinhTai_fn(false);
+    } else {
+        document.querySelector('#bang3_1 tbody').innerHTML = '<tr><td colspan="46" class="text-center py-3 text-warning"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang kết xuất báo cáo...</td></tr>';
+    }
     
     setTimeout(() => {
-        // Truyền cả năm học và từ khóa lọc vào hàm lõi
         let hks_ketQuaThongKe_arr = hks_xuLyThongKeBoNhoDem_fn(hks_namChon_str, hks_tuKhoaLop_str);
         hks_veBangPhanBa_fn(hks_ketQuaThongKe_arr);
     }, 10); 
