@@ -1,5 +1,5 @@
 <div class="tab-pane" id="tab5">
-  <div class="text-center"><h4>DANH SÁCH HỌC SINH CHUYỂN TRƯỜNG</h4></div>
+  <div class="text-center mb-1"><h4 class="mb-1 mt-1">DANH SÁCH HỌC SINH CHUYỂN TRƯỜNG</h4></div>
   <div class="filter-box">
     <div class="row g-2 align-items-end">
       <div class="col-md-2"><label>Năm học cũ</label><select id="t5_nam" class="form-select form-select-sm fw-bold text-primary"></select></div>
@@ -35,16 +35,12 @@
 </div>
 
 <script>
-  // ====================================================================
-  // --- MODULE: XỬ LÝ DỮ LIỆU BẢNG 5 (HỌC SINH CHUYỂN TRƯỜNG) ---
-  // ====================================================================
-  
-  // Khai báo var để có tính toàn cục (Cho phép Tab 1 can thiệp làm sạch)
-  var hks_khoDuLieuChuyen_arr = [];
+ // Khai báo var để có tính toàn cục (Cho phép Tab 1 can thiệp làm sạch)
+  var hks_khoDuLieuChuyen_arr = null;
 
   async function hks_taiKhoDuLieuChuyen_fn() {
-      // Nếu dữ liệu đã có trong đệm, bỏ qua việc gọi API và tiến hành vẽ bảng ngay
-      if (hks_khoDuLieuChuyen_arr && hks_khoDuLieuChuyen_arr.length > 0) { 
+      // Nếu dữ liệu đã được tải về (kể cả khi không có HS chuyển trường nào), vẽ bảng luôn
+      if (hks_khoDuLieuChuyen_arr !== null) { 
           hks_layDuLieuPhanNam_fn(); 
           return; 
       }
