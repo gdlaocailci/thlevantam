@@ -66,14 +66,25 @@
 </div>
 
 <script>
-  async function hks_layDuLieuPhanMot_fn() {
-    hks_hienThiManHinhTai_fn(true);
+async function hks_layDuLieuPhanMot_fn() {
+    // [BẢN NÂNG CẤP]: Cải tiến UX, chặn phủ mờ màn hình (chống mệt mỏi) nếu chỉ lọc dữ liệu nội bộ
+    let hks_chuaCoDuLieu_bol = (!hks_khoDuLieuTong_arr || hks_khoDuLieuTong_arr.length === 0);
     
-    if (!hks_khoDuLieuTong_arr || hks_khoDuLieuTong_arr.length === 0) {
+    if (hks_chuaCoDuLieu_bol) {
+        hks_hienThiManHinhTai_fn(true); // Chỉ phủ mờ nếu thực sự phải chờ API Server
         try {
-            let hks_res_obj = await hks_thucThiGiaoTiep_fn('hks_taiToanBoThucThe_api', {hks_dinhTuyenNguon_str: hks_hoSoNguoiDungHienTai_obj.reqId});
-            if (hks_res_obj && hks_res_obj.success) { hks_khoDuLieuTong_arr = hks_res_obj.data || []; }
+            // Sử dụng hàm đệm toàn cục để hứng Promise chung, chống chồng chéo API
+            if (typeof hks_capNhatBoNhoDem_fn === 'function') {
+                await hks_capNhatBoNhoDem_fn();
+            } else {
+                let hks_res_obj = await hks_thucThiGiaoTiep_fn('hks_taiToanBoThucThe_api', {hks_dinhTuyenNguon_str: hks_hoSoNguoiDungHienTai_obj.reqId});
+                if (hks_res_obj && hks_res_obj.success) { hks_khoDuLieuTong_arr = hks_res_obj.data || []; }
+            }
         } catch(e) { console.error("Lỗi lấy dữ liệu cục bộ: ", e); }
+        hks_hienThiManHinhTai_fn(false);
+    } else {
+        // [BẢN NÂNG CẤP]: Nếu đã có cache, dùng spinner cục bộ ở thân bảng
+        document.querySelector('#bang1 tbody').innerHTML = '<tr><td colspan="20" class="text-center py-3 text-primary"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang kết xuất dữ liệu nội bộ...</td></tr>';
     }
 
     let n = document.getElementById('t1_nam').value || "";
@@ -122,30 +133,22 @@
   }
 
   function hks_veBangPhanMot_fn(hks_duLieuBang_arr) {
-    const hks_thanBang_el = document.querySelector('#bang1 tbody'); hks_thanBang_el.innerHTML = '';
-    hks_duLieuBang_arr.forEach(hks_dongDuLieu_arr => hks_chenDongPhanMot_fn(hks_dongDuLieu_arr));
-    hks_hienThiManHinhTai_fn(false);
+    const hks_thanBang_el = document.querySelector('#bang1 tbody'); 
+    hks_thanBang_el.innerHTML = '';
+    
+    // [BẢN NÂNG CẤP]: Dùng DocumentFragment gom toàn bộ DOM rồi mới đính vào bảng (chỉ 1 reflow), giải quyết dứt điểm kẹt giao diện
+    const hks_manhGhepBoNho_frag = document.createDocumentFragment();
+    
+    hks_duLieuBang_arr.forEach(hks_dongDuLieu_arr => {
+        // Tham số true yêu cầu trả về node DOM thay vì ép chèn ngay vào bảng
+        let hks_theDong_el = hks_chenDongPhanMot_fn(hks_dongDuLieu_arr, true);
+        hks_manhGhepBoNho_frag.appendChild(hks_theDong_el);
+    });
+    
+    hks_thanBang_el.appendChild(hks_manhGhepBoNho_frag);
   }
 
-  function hks_danhDauChinhSua_fn(el) {
-      let tr = el.closest('tr');
-      if (!tr.classList.contains('hks-dong-da-sua')) {
-          tr.classList.add('hks-dong-da-sua');
-          let cellTen = tr.cells[5]; 
-          if (cellTen) {
-              let icon = document.createElement('i');
-              icon.className = 'bi bi-pencil-fill hks-icon-sua';
-              icon.style = 'color: #b71c1c; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: 13px; z-index: 10; pointer-events: none;';
-              icon.title = "Đã chỉnh sửa";
-              cellTen.style.position = 'relative';
-              let input = cellTen.querySelector('input');
-              if(input) input.style.paddingRight = '20px';
-              cellTen.appendChild(icon);
-          }
-      }
-  }
-
-  function hks_chenDongPhanMot_fn(hks_duLieuBang_arr = null) {
+  function hks_chenDongPhanMot_fn(hks_duLieuBang_arr = null, hks_traVePhanTu_bol = false) {
     const hks_thanBang_el = document.querySelector('#bang1 tbody');
     const hks_theDong_el = document.createElement('tr');
     
@@ -161,7 +164,7 @@
        let hks_hienThiXoa_str = hks_trangThaiSuaMot_bol ? 'inline-block' : 'none';
        hks_chuoiHtmlXoa_str = `<i class="bi bi-x-circle-fill text-secondary fs-6" style="cursor:pointer; display:${hks_hienThiXoa_str}" title="Hủy" onclick="this.closest('tr').remove()"></i>`;
     } else {
-       let hks_chuoiSTT_str = hks_thanBang_el.rows.length + 1;
+       let hks_chuoiSTT_str = hks_thanBang_el.rows.length + 1; // Sẽ xử lý đồng bộ CSS hiển thị
        let hks_hienThiXoa_str = (hks_trangThaiSuaMot_bol && hks_laQuanTriCapCao_bol) ? 'inline-block' : 'none'; 
        let hks_hienThiSTT_str = (hks_trangThaiSuaMot_bol && hks_laQuanTriCapCao_bol) ? 'none' : 'inline-block';
        if (hks_laQuanTriCapCao_bol) {
@@ -181,12 +184,10 @@
       {k:'sel', o: hks_danhSachChuKy_arr}, {k:'sel', o: hks_danhSachPhanLoai_arr}, 
       {k:'text'}, {k:'text'}, {k:'text'}, {k:'text'}, {k:'sel', o:['Nam','Nữ']},
       {k:'text'}, {k:'text'}, {k:'sel', o: hks_danhSachChiSo_arr},
-      {k:'text'}, // [BẢN NÂNG CẤP]: Cột Tôn giáo 
-      {k:'text'}, {k:'text'}, {k:'num'}, {k:'num'}, {k:'num'},
+      {k:'text'}, {k:'text'}, {k:'text'}, {k:'num'}, {k:'num'}, {k:'num'},
       {k:'text'}, {k:'text'}, {k:'text'}, {k:'check'}
     ];
 
-    // [BẢN NÂNG CẤP]: Ma trận nội suy liên kết cột UI với chỉ số mảng CSDL (49 là chỉ số mảng lưu Tôn giáo)
     const hks_thuTuCotDB_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 49, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
     let hks_voHieuHoa_bol = !hks_trangThaiSuaMot_bol;
@@ -227,17 +228,39 @@
 
       hks_theDong_el.appendChild(hks_theCot_el);
     });
-    hks_thanBang_el.appendChild(hks_theDong_el);
-
-    if (!hks_duLieuBang_arr) {
-        let hks_khungCuon_el = hks_thanBang_el.closest('.table-container');
-        if (hks_khungCuon_el) hks_khungCuon_el.scrollTop = hks_khungCuon_el.scrollHeight;
-        
-        setTimeout(() => {
-            let hks_oHoDem_el = hks_theDong_el.cells[4].querySelector('input');
-            if (hks_oHoDem_el) hks_oHoDem_el.focus();
-        }, 100);
+    
+    // [BẢN NÂNG CẤP]: Phân luồng điều khiển trả về Element (Tối ưu kết xuất số lượng lớn) hoặc tự append (Khi người dùng tự thêm 1 dòng mới)
+    if (hks_traVePhanTu_bol) {
+        return hks_theDong_el;
+    } else {
+        hks_thanBang_el.appendChild(hks_theDong_el);
+        if (!hks_duLieuBang_arr) {
+            let hks_khungCuon_el = hks_thanBang_el.closest('.table-container');
+            if (hks_khungCuon_el) hks_khungCuon_el.scrollTop = hks_khungCuon_el.scrollHeight;
+            setTimeout(() => {
+                let hks_oHoDem_el = hks_theDong_el.cells[4].querySelector('input');
+                if (hks_oHoDem_el) hks_oHoDem_el.focus();
+            }, 100);
+        }
     }
+  }
+
+  function hks_danhDauChinhSua_fn(el) {
+      let tr = el.closest('tr');
+      if (!tr.classList.contains('hks-dong-da-sua')) {
+          tr.classList.add('hks-dong-da-sua');
+          let cellTen = tr.cells[5]; 
+          if (cellTen) {
+              let icon = document.createElement('i');
+              icon.className = 'bi bi-pencil-fill hks-icon-sua';
+              icon.style = 'color: #b71c1c; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: 13px; z-index: 10; pointer-events: none;';
+              icon.title = "Đã chỉnh sửa";
+              cellTen.style.position = 'relative';
+              let input = cellTen.querySelector('input');
+              if(input) input.style.paddingRight = '20px';
+              cellTen.appendChild(icon);
+          }
+      }
   }
 
 function hks_xuLyHanhDongXoa_fn(hks_nutBamUI_el, hks_thongTinTruyen_obj) {
