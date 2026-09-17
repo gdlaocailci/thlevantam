@@ -76,8 +76,10 @@
   }
 
   function veBangBcao() {
+    if (!Array.isArray(dlBcaoGoc)) dlBcaoGoc = [];
     const nchon = $('#locNamBcao').val(), tb = $('#bangBcao tbody').empty();
     if (!nchon) { tb.append('<tr><td colspan="14" class="text-center text-muted py-4">Vui lòng chọn Năm học.</td></tr>'); return; }
+    
     let bc = {};
     dlBcaoGoc.forEach(r => {
       if (String(r.nam) !== nchon || !r.tenn) return;
@@ -88,7 +90,21 @@
 
     let stth = 1; const tho = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
     for (const k in bc) {
-      const gr = bc[k]; let dr = `<tr><td class="text-center align-middle">${stth++}</td><td class="ps-3 fw-bold align-middle">${gr.tenn}</td>`;
+      const gr = bc[k]; 
+      
+      // Lấy ID từ bộ từ điển toàn cục (khắc phục độ trễ)
+      let keyTimKiem = gr.tenn.trim().toLowerCase();
+      let maId = (window.PGV_MAP_TEN_ID && window.PGV_MAP_TEN_ID[keyTimKiem]) ? window.PGV_MAP_TEN_ID[keyTimKiem] : "Chưa xác định";
+      
+      let dr = `<tr>
+          <td class="text-center align-middle">${stth++}</td>
+          <td class="ps-3 align-middle">
+              <div class="fw-bold text-primary text-uppercase" style="font-size: 13px;">${gr.tenn}</div>
+              <div class="text-secondary mt-1" style="font-size: 11px; font-style: italic;">
+                  <i class="bi bi-person-vcard me-1"></i>ID: ${maId}
+              </div>
+          </td>`;
+          
       tho.forEach(m => {
         let v = gr.thangs[m], chuh = '-';
         if (v && String(v).trim() !== "") {
