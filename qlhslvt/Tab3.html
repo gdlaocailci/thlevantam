@@ -389,7 +389,7 @@ function hks_xuLyThongKeBoNhoDem_fn(hks_chuKyHoatDong_str, hks_tuKhoaLop_str = '
     // Đảm bảo lấy được từ khóa lọc nếu phần tử tồn tại
     let hks_tuKhoaLop_str = hks_locLop_el ? hks_locLop_el.value.trim() : '';
 
-    if(!hks_namChon_str) { Swal.fire("Cảnh báo!", "Giá trị trục gốc bằng null!", "warning"); return; }
+    if(!hks_namChon_str) { Swal.fire("Cảnh báo!", "Bạn chưa chọn năm học!", "warning"); return; }
     hks_hienThiManHinhTai_fn(true);
     
     setTimeout(() => {
