@@ -179,7 +179,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  let hks_khoDuLieuTong_arr = [];
+let hks_khoDuLieuTong_arr = [];
+  let hks_tienTrinhTaiDuLieu_promise = null; // [BẢN NÂNG CẤP]: Cờ theo dõi tiến trình API chống gọi lặp
 
   async function hks_thucThiGiaoTiep_fn(hks_lenhDieuPhoi_str, hks_goiDuLieu_obj = {}) {
       hks_goiDuLieu_obj.hks_lenhKichHoat_str = hks_lenhDieuPhoi_str;
@@ -191,16 +192,27 @@
           });
           return await hks_phanHoiNhanCung_obj.json();
       } catch (hks_loiNgoaiLe_obj) {
-    console.error("Lỗi gốc:", hks_loiNgoaiLe_obj);
-    throw new Error("Lỗi kết nối Server!");
-    }
+          console.error("Lỗi gốc:", hks_loiNgoaiLe_obj);
+          throw new Error("Lỗi kết nối Server!");
+      }
   }
 
   async function hks_capNhatBoNhoDem_fn() {
-      try {
-          let res = await hks_thucThiGiaoTiep_fn('hks_taiToanBoThucThe_api', {hks_dinhTuyenNguon_str: hks_hoSoNguoiDungHienTai_obj.reqId});
-          if(res.success) hks_khoDuLieuTong_arr = res.data;
-      } catch(e) { console.error("Lỗi đệm:", e); }
+      // [BẢN NÂNG CẤP]: Thuật toán Singleton Promise - Nếu đang tải, trả về luôn Promise đang chạy để các lệnh khác await cùng, tuyệt đối không tạo thêm request mới.
+      if (hks_tienTrinhTaiDuLieu_promise) return hks_tienTrinhTaiDuLieu_promise;
+      
+      hks_tienTrinhTaiDuLieu_promise = hks_thucThiGiaoTiep_fn('hks_taiToanBoThucThe_api', {hks_dinhTuyenNguon_str: hks_hoSoNguoiDungHienTai_obj.reqId})
+          .then(res => {
+              if (res.success) hks_khoDuLieuTong_arr = res.data;
+              return res;
+          })
+          .catch(e => { 
+              console.error("Lỗi đệm:", e); 
+              hks_tienTrinhTaiDuLieu_promise = null; // Mở khóa nếu lỗi
+              throw e; 
+          });
+          
+      return hks_tienTrinhTaiDuLieu_promise;
   }
 
   let hks_tooltip_timer;
