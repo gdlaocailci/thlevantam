@@ -295,7 +295,11 @@ function gvTaiCanb() {
                 if (!s) return;
                 let qy = String(s.quyen || "").trim().toLowerCase();
                 if (qy === "" || qy === "x" || qy === "xx") {
-                    dlNguoi.appendChild(new Option(s.tenn, s.tenn));
+                    // NÂNG CẤP: Hiển thị 2 thông tin (Tên giáo viên và ID)
+                    let opt = document.createElement('option');
+                    opt.value = s.tenn;         // Giá trị chính được đẩy vào ô input khi chọn
+                    opt.text = "ID: " + s.ttrg; // Giá trị phụ (ID) hiển thị nhạt bên cạnh hoặc bên dưới tên
+                    dlNguoi.appendChild(opt);
                 }
             });
         }
@@ -597,7 +601,7 @@ function gvVeDong(dong = null) {
         setTimeout(() => gvAutoResizeAllTextareas(), 50);
     }
 
-// HÀM 1: LƯU TỪNG DÒNG (OnChange)
+// HÀM 1: LƯU TỪNG DÒNG (OnChange) - KIỂM SOÁT NHẬP DỮ LIỆU NGHIÊM NGẶT
     function gvDoiNgn(ptu) {
         if (!ptu) return;
         const dong = ptu.closest('tr');
@@ -616,19 +620,26 @@ function gvVeDong(dong = null) {
         const gth = gt_nhap.toUpperCase();
         const nm = document.getElementById('gvLocNam') ? document.getElementById('gvLocNam').value : "";
         
-        // NÂNG CẤP: Dò ngược từ Tên hiển thị sang Mã tài khoản
-        let ma_tai_khoan = gt_nhap;
-        let ten_hien_thi = gt_nhap;
+        // NÂNG CẤP: Kiểm tra tính hợp lệ của dữ liệu nhập vào
+        let ma_tai_khoan = "";
+        let ten_hien_thi = "";
         
         if (gth === 'ALL' || gth === '-TOÀN TRƯỜNG-') {
             ma_tai_khoan = 'ALL';
             ten_hien_thi = '-TOÀN TRƯỜNG-';
             ptu.value = 'ALL'; 
         } else {
-            let found = dsCanbgv.find(s => s.tenn === gt_nhap);
+            // Đối chiếu khớp với tên hiển thị hoặc mã ID
+            let found = dsCanbgv.find(s => (s.tenn && s.tenn.toLowerCase() === gt_nhap.toLowerCase()) || (s.ttrg && s.ttrg.toLowerCase() === gt_nhap.toLowerCase()));
             if (found) {
                 ma_tai_khoan = found.ttrg || found.tenn;
                 ten_hien_thi = found.tenn;
+                ptu.value = found.tenn; // Chuẩn hóa lại hiển thị cho đúng form
+            } else {
+                // CHỐT CHẶN: Nếu nhập bậy, xóa ngay và dừng lệnh tiếp theo
+                ptu.value = "";
+                gvTbaoNhanh('cbh', "Tên nhân sự không hợp lệ. Vui lòng chọn đúng dữ liệu có trong danh sách!");
+                return; // Dừng lại, không cho phép gói dữ liệu gọi server
             }
         }
         
@@ -641,7 +652,7 @@ function gvVeDong(dong = null) {
             tght: dong.querySelector('.oTGHoanThanh') ? dong.querySelector('.oTGHoanThanh').value : "",
             diemdg: dong.querySelector('.oDiemDgGv') ? dong.querySelector('.oDiemDgGv').value : "",
             gchu: dong.querySelector('.oGchuGv') ? dong.querySelector('.oGchuGv').value : "",
-            ngnhan: ma_tai_khoan, // Gửi mã định danh lên Server
+            ngnhan: ma_tai_khoan, 
             trangngnhan: ma_tai_khoan,
             tenngnhan: ten_hien_thi, 
             colJ: dong.querySelector('.oColJ') ? dong.querySelector('.oColJ').value : "",
@@ -656,7 +667,7 @@ function gvVeDong(dong = null) {
         gvGoiMayChu(nm, th_htai, newTask, ptu, gth);
     }
 
-// HÀM 2: LƯU ĐỒNG LOẠT TOÀN BỘ (Nút Cập nhật chung)
+// HÀM 2: LƯU ĐỒNG LOẠT TOÀN BỘ (Nút Cập nhật chung) - BỎ QUA DÒNG NHẬP LỖI
     function gvCapNhatNhiemVuChung() {
         const nm = document.getElementById('gvLocNam') ? document.getElementById('gvLocNam').value : ""; 
         const th_htai = document.getElementById('gvLocThang') ? document.getElementById('gvLocThang').value : "";
@@ -669,20 +680,24 @@ function gvVeDong(dong = null) {
             if (!ndgInput) return;
             const ndg = ndgInput.value.trim();
             if (ndg !== "") {
-                // NÂNG CẤP: Dò ngược từ Tên hiển thị sang Mã tài khoản
                 const ptu_ngnhan = dong.querySelector('.oNnghanGv');
                 let gt_nhap = ptu_ngnhan ? ptu_ngnhan.value.trim() : "";
-                let ma_tai_khoan = gt_nhap;
-                let ten_hien_thi = gt_nhap;
+                let ma_tai_khoan = "";
+                let ten_hien_thi = "";
 
                 if (gt_nhap.toUpperCase() === 'ALL' || gt_nhap.toUpperCase() === '-TOÀN TRƯỜNG-') {
                     ma_tai_khoan = 'ALL';
                     ten_hien_thi = '-TOÀN TRƯỜNG-';
                 } else if (gt_nhap !== "") {
-                    let found = dsCanbgv.find(s => s.tenn === gt_nhap);
+                    let found = dsCanbgv.find(s => (s.tenn && s.tenn.toLowerCase() === gt_nhap.toLowerCase()) || (s.ttrg && s.ttrg.toLowerCase() === gt_nhap.toLowerCase()));
                     if (found) {
                         ma_tai_khoan = found.ttrg || found.tenn;
                         ten_hien_thi = found.tenn;
+                        ptu_ngnhan.value = found.tenn;
+                    } else {
+                        // CHỐT CHẶN: Xóa trường nhập sai và bỏ qua dòng này, không đưa vào mảng cập nhật
+                        ptu_ngnhan.value = "";
+                        return; // return trong forEach tương đương với lệnh continue
                     }
                 }
 
@@ -708,7 +723,7 @@ function gvVeDong(dong = null) {
             }
         });
         if (dsNviec.length === 0) return;
-        gvDatTai(true, "⏳ Đang cập nhật toàn bộ nhiệm vụ...");
+        gvDatTai(true, "⏳ Đang cập nhật toàn bộ nhiệm vụ hợp lệ...");
         if (typeof khachApi === 'undefined' || !khachApi.gvXulyNviec) {
             gvTbaoNhanh('loi', "Lỗi: API không khả dụng.");
             gvDatTai(false);
