@@ -47,9 +47,9 @@
   <style>
     body { background-color: #fffbf0; font-family: 'Times New Roman', Times, serif; font-size: 15px; min-height: 100vh; position: relative; }
     body::before { content: ""; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85vh; height: 85vh; background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Trong_dong_Ngoc_Lu.jpg/1024px-Trong_dong_Ngoc_Lu.jpg'); background-size: contain; background-position: center; background-repeat: no-repeat; opacity: 0.4; z-index: -1; filter: sepia(100%) saturate(500%) contrast(120%) brightness(90%); pointer-events: none; }
-    .main-container { background: rgba(255, 255, 255, 0.9); border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: 10px auto; padding: 15px; max-width: 99%; border: 1px solid #d4af37; position: relative; }
-    h3, h4 { color: #b71c1c; font-weight: 900; text-transform: uppercase; text-shadow: 1px 1px 0px #fff; margin-bottom: 15px; border-bottom: 3px solid #b71c1c; display: inline-block; padding-bottom: 5px; }
-    .dev-badge { position: absolute; top: 8px; right: 15px; text-align: right; z-index: 1000; background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.8)); padding-left: 20px; pointer-events: none; font-family: 'Times New Roman', sans-serif; }
+    .main-container { background: rgba(255, 255, 255, 0.9); border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: 5px auto; padding: 4px 6px; max-width: 99%; border: 1px solid #d4af37; position: relative; }
+    h3, h4 { color: #b71c1c; font-weight: 900; text-transform: uppercase; text-shadow: 1px 1px 0px #fff; margin-bottom: 8px; border-bottom: 3px solid #b71c1c; display: inline-block; padding-bottom: 1px; }
+    .dev-badge { position: absolute; top: 1px; right: 10px; text-align: right; z-index: 1000; background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.8)); padding-left: 20px; pointer-events: none; font-family: 'Times New Roman', sans-serif; }
     .dev-name { font-family: 'Arial', sans-serif; font-weight: 900; color: #d63384; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 1px 1px 0 #fff; }
     .dev-role { font-size: 11px; color: #555; font-style: italic; font-weight: 600; margin-top: -2px; }
     .diamond-icon { font-size: 24px; color: #0dcaf0; margin-left: 8px; filter: drop-shadow(0 0 3px rgba(13, 202, 240, 0.6)); animation: sparkle 2s infinite ease-in-out; display: inline-block; vertical-align: middle; }
@@ -100,7 +100,8 @@
     .global-tooltip::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 5px; }
     .global-tooltip::-webkit-scrollbar-thumb { background: #b71c1c; border-radius: 5px; }
 
-    .filter-box { background: rgba(255,255,255,0.9); border: 1px solid #aaa; border-left: 5px solid #b71c1c; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    /* [BẢN NÂNG CẤP]: Siết khoảng đệm padding và lề dưới hộp lọc */
+    .filter-box { background: rgba(255,255,255,0.9); border: 1px solid #aaa; border-left: 5px solid #b71c1c; padding: 6px 10px; margin-bottom: 8px; border-radius: 4px; }
     label { font-weight: 700; color: #003366; font-size: 13px; margin-bottom: 2px; display: block;}
     .edit-mode-btn { display: none; }
     #gate-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0fdf4; z-index: 999999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: "Times New Roman", serif; }
@@ -143,7 +144,7 @@
 </div>
 
 <div id="main-app" style="display:none;">
-  <div class="d-flex justify-content-between align-items-center mb-2 px-3 py-2" style="background: rgba(255,255,255,0.9); border-radius: 4px; border: 1px solid #d4af37; max-width: 99%; margin: 10px auto 0 auto;">
+  <div class="d-flex justify-content-between align-items-center mb-1 px-3 py-1" style="background: rgba(255,255,255,0.9); border-radius: 4px; border: 1px solid #d4af37; max-width: 99%; margin: 5px auto 0 auto;">
     <div class="d-flex align-items-center">
       <img id="header-logo-img" src="" alt="Logo" onclick="chuyenHuongHeThong()" title="Trở về trang Hệ thống" style="width: 26px; height: 26px; object-fit: contain; margin-right: 10px; cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);" onmouseover="this.style.transform='scale(1.1) rotate(-3deg)'; this.style.filter='drop-shadow(0 4px 6px rgba(0,0,0,0.15))'" onmouseout="this.style.transform='scale(1) rotate(0deg)'; this.style.filter='none'">
        <span class="me-2 small fw-bold">Xin chào:</span> 
@@ -164,7 +165,7 @@
         <i class="bi bi-gem diamond-icon"></i>
     </div>
 
-<ul class="nav nav-tabs mb-3" id="bangDieuKhien" role="tablist">
+<ul class="nav nav-tabs mb-1" id="bangDieuKhien" role="tablist">
       <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab1" type="button" onclick="hks_khoiPhucTrangThaiGoc_fn(1)"><i class="bi bi-person-vcard"></i> 1. Thông tin học sinh</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab2" type="button" onclick="hks_khoiPhucTrangThaiGoc_fn(2)"><i class="bi bi-journal-check"></i> 2. Kết quả học tập & Thành tích</button></li>
       <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab3" type="button"><i class="bi bi-bar-chart-line-fill"></i> 3. Thống kê - Tổng hợp</button></li>
