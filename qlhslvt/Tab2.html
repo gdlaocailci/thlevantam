@@ -46,8 +46,16 @@
 </div>
 
 <script>
-  function hks_layDuLieuPhanHai_fn() {
-    hks_hienThiManHinhTai_fn(true);
+async function hks_layDuLieuPhanHai_fn() {
+    let hks_chuaCoDuLieu_bol = (!hks_khoDuLieuTong_arr || hks_khoDuLieuTong_arr.length === 0);
+    if (hks_chuaCoDuLieu_bol) {
+        hks_hienThiManHinhTai_fn(true);
+        if (typeof hks_capNhatBoNhoDem_fn === 'function') await hks_capNhatBoNhoDem_fn();
+        hks_hienThiManHinhTai_fn(false);
+    } else {
+        document.querySelector('#bang2 tbody').innerHTML = '<tr><td colspan="46" class="text-center py-3 text-primary"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang kết xuất dữ liệu nội bộ...</td></tr>';
+    }
+
     let hks_namChon_str = document.getElementById('t2_nam').value;
     let hks_lopChon_str = document.getElementById('t2_lop').value;
     let hks_cccd_str = document.getElementById('t2_cccd').value.trim().toLowerCase();
