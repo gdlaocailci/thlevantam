@@ -1,0 +1,194 @@
+<div class="tab-pane" id="tab4" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0"><i class="bi bi-shield-lock"></i> Cấu hình Hệ thống & Phân quyền</h4>
+        <button class="btn btn-primary btn-sm fw-bold" onclick="hks_luuCauHinhPhanBon_fn()"><i class="bi bi-save"></i> Ghi nhận thay đổi</button>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 mb-3" style="border-top: 3px solid #003366 !important; background: rgba(255,255,255,0.95);">
+                <div class="card-header bg-white fw-bold" style="color: #003366;">
+                    <i class="bi bi-list-task"></i> Từ điển Danh mục
+                </div>
+                <div class="card-body p-3">
+                    <p class="small text-muted mb-2">Các tham số phân tách bằng dấu phẩy (,)</p>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold mb-1" style="color:#003366;">Danh mục Dân tộc</label>
+                        <textarea class="form-control" id="t4_danToc" rows="3" style="font-family:'Times New Roman'; font-size:15px;" placeholder="Kinh, Phù Lá, Giáy..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold mb-1" style="color:#003366;">Xếp loại Học tập</label>
+                        <textarea class="form-control" id="t4_xepLoai" rows="3" style="font-family:'Times New Roman'; font-size:15px;" placeholder="HTXS, HTT, HT..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="fw-bold mb-1" style="color:#003366;">Cấp Thành tích</label>
+                        <textarea class="form-control" id="t4_capThanhTich" rows="3" style="font-family:'Times New Roman'; font-size:15px;" placeholder="Xã, Huyện, Tỉnh..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card shadow-sm border-0 mb-3" style="border-top: 3px solid #b71c1c !important; background: rgba(255,255,255,0.95);">
+                <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center" style="color: #b71c1c;">
+                    <span><i class="bi bi-person-lines-fill"></i> Phân công Cán bộ phụ trách & Năm học hiện tại</span>
+                    
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="form-check form-switch mb-0" title="Gạt để khóa/mở cột Năm học hiện tại">
+                            <input class="form-check-input" type="checkbox" id="t4_toggleKhoa" checked onchange="hks_xuLyKhoaCapNhat_fn(this)" style="cursor: pointer; border-color: #003366;">
+                            <label class="form-check-label text-dark small fw-bold" for="t4_toggleKhoa" id="t4_lblToggleKhoa" style="cursor: pointer;">Mở cập nhật</label>
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="hks_themDongPhanQuyen_fn()"><i class="bi bi-plus-circle"></i> Thêm hàng</button>
+                    </div>
+                </div>
+                <div class="card-body p-0 table-container" style="max-height: 52vh; overflow-y: auto;">
+                    <table class="table table-bordered table-hover w-100 mb-0" id="bangPhanQuyen">
+                        <thead style="position: sticky; top: 0; z-index: 2;">
+                            <tr>
+                                <th style="width: 15%;">Năm học</th>
+                                <th style="width: 12%;">Lớp</th>
+                                <th style="width: 15%;" title="Đánh dấu 'x' tại cột L">Năm học hiện tại</th>
+                                <th>Định danh cán bộ (Cách nhau bởi dấu phẩy)</th>
+                                <th style="width: 6%;">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyPhanQuyen">
+                            </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-light p-3" style="border-top: 1px solid #ddd;">
+                    <label class="fw-bold text-danger mb-1"><i class="bi bi-star-fill"></i> Định danh Toàn quyền hệ thống (Quản trị cấp cao)</label>
+                    <textarea class="form-control border-danger" id="t4_toanQuyen" rows="2" placeholder="Nhập các tài khoản định danh toàn quyền, cách nhau bởi dấu phẩy..." style="font-family:'Times New Roman'; font-size:15px;"></textarea>
+                    <div class="small text-muted mt-1">Các định danh trong mục này có quyền quản trị tối cao.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- MODULE: XỬ LÝ SỰ KIỆN KHÓA/MỞ NÚT GẠT (Đã bổ sung bộ nhớ lưu vết) ---
+    function hks_xuLyKhoaCapNhat_fn(hks_phanTuGat_el) {
+        let hks_nhanTrangThai_el = document.getElementById('t4_lblToggleKhoa');
+        let hks_danhSachRadio_node = document.querySelectorAll('.hks-kich-hoat');
+
+        if (hks_phanTuGat_el.checked) {
+            // Trường hợp: Mở cập nhật
+            hks_nhanTrangThai_el.innerText = "Mở cập nhật";
+            hks_nhanTrangThai_el.classList.remove('text-danger');
+            hks_nhanTrangThai_el.classList.add('text-dark');
+            hks_danhSachRadio_node.forEach(radio => radio.disabled = false);
+            // Ghi nhận trạng thái vào bộ nhớ cục bộ
+            localStorage.setItem('sys_toggle_khoa_t4', 'mo'); 
+        } else {
+            // Trường hợp: Khóa cập nhật
+            hks_nhanTrangThai_el.innerText = "Khóa cập nhật";
+            hks_nhanTrangThai_el.classList.remove('text-dark');
+            hks_nhanTrangThai_el.classList.add('text-danger');
+            hks_danhSachRadio_node.forEach(radio => {
+                radio.checked = false; 
+                radio.disabled = true; 
+            });
+            // Ghi nhận trạng thái vào bộ nhớ cục bộ
+            localStorage.setItem('sys_toggle_khoa_t4', 'khoa');
+        }
+    }
+
+    // --- MODULE: THÊM HÀNG (Khắc phục lỗi lấp khuất thanh cuộn) ---
+    function hks_themDongPhanQuyen_fn() {
+        let hks_khungChuaTbody_el = document.getElementById('tbodyPhanQuyen');
+        let hks_dongMoi_el = document.createElement('tr');
+        let hks_maDinhDanhRadio_str = 'radio_' + Date.now();
+        
+        // Kiểm tra trạng thái khóa hiện tại
+        let hks_trangThaiKhoa_bol = !document.getElementById('t4_toggleKhoa').checked;
+        let hks_thuocTinhDisabled_str = hks_trangThaiKhoa_bol ? 'disabled' : '';
+        
+        hks_dongMoi_el.innerHTML = `
+            <td><input type="text" class="cell-input text-center hks-nam-hoc" placeholder="VD: 2026-2027"></td>
+            <td><input type="text" class="cell-input text-center hks-lop" placeholder="VD: 1A"></td>
+            <td class="text-center align-middle">
+                <input class="form-check-input hks-kich-hoat" type="radio" name="namHienTaiRadio" id="${hks_maDinhDanhRadio_str}" ${hks_thuocTinhDisabled_str}>
+            </td>
+            <td><input type="text" class="cell-input hks-dinh-danh" placeholder="dinhdanh1@... , dinhdanh2@..."></td>
+            <td class="text-center align-middle">
+                <i class="bi bi-x-circle-fill text-danger hks-input-thanhtich" onclick="this.closest('tr').remove()" title="Thu hồi cấu hình"></i>
+            </td>
+        `;
+        hks_khungChuaTbody_el.appendChild(hks_dongMoi_el);
+
+        // XỬ LÝ LỖI CUỘN: Trỏ trực tiếp vào vùng chứa bảng và ép đẩy thanh cuộn xuống vị trí sâu nhất
+        let hks_khungCuon_el = hks_khungChuaTbody_el.closest('.table-container');
+        if (hks_khungCuon_el) {
+            hks_khungCuon_el.scrollTop = hks_khungCuon_el.scrollHeight;
+        }
+        
+        // Kích hoạt con trỏ
+        setTimeout(() => {
+            let hks_oNhapNamHoc_el = hks_dongMoi_el.querySelector('.hks-nam-hoc');
+            if (hks_oNhapNamHoc_el) hks_oNhapNamHoc_el.focus();
+        }, 100);
+    }
+
+ function hks_luuCauHinhPhanBon_fn() {
+        Swal.fire({
+            title: "Xác nhận lưu cấu hình?",
+            text: "Hệ thống sẽ tái cấu trúc ma trận phân quyền và thiết lập lại toàn bộ danh mục!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#003366",
+            cancelButtonColor: "#dc3545",
+            confirmButtonText: "Đồng ý ghi nhận",
+            cancelButtonText: "Hủy bỏ"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (typeof hks_hienThiManHinhTai_fn === 'function') hks_hienThiManHinhTai_fn(true);
+                
+                // 1. Thu thập ma trận phân quyền
+                let hks_mangPhanQuyen_arr = [];
+                document.querySelectorAll('#tbodyPhanQuyen tr').forEach(tr => {
+                    let namHoc = tr.querySelector('.hks-nam-hoc') ? tr.querySelector('.hks-nam-hoc').value.trim() : '';
+                    let lop = tr.querySelector('.hks-lop') ? tr.querySelector('.hks-lop').value.trim() : '';
+                    let kichHoat = tr.querySelector('.hks-kich-hoat') && tr.querySelector('.hks-kich-hoat').checked ? 'x' : '';
+                    let dinhDanh = tr.querySelector('.hks-dinh-danh') ? tr.querySelector('.hks-dinh-danh').value.trim() : '';
+                    
+                    if (namHoc || lop || dinhDanh) {
+                        hks_mangPhanQuyen_arr.push({ namHoc, lop, kichHoat, dinhDanh });
+                    }
+                });
+                
+                // 2. Đóng gói tham số cấu hình
+                let hks_goiCauHinh_obj = {
+                    hks_danToc_str: document.getElementById('t4_danToc') ? document.getElementById('t4_danToc').value.trim() : "",
+                    hks_xepLoai_str: document.getElementById('t4_xepLoai') ? document.getElementById('t4_xepLoai').value.trim() : "",
+                    hks_capThanhTich_str: document.getElementById('t4_capThanhTich') ? document.getElementById('t4_capThanhTich').value.trim() : "",
+                    hks_toanQuyen_str: document.getElementById('t4_toanQuyen') ? document.getElementById('t4_toanQuyen').value.trim() : "",
+                    hks_danhSachPhanQuyen_arr: hks_mangPhanQuyen_arr
+                };
+                
+                // 3. Truyền tải qua API chuẩn của hệ thống
+                hks_thucThiGiaoTiep_fn('hks_ghiNhanPhanHeBon_api', {
+                    hks_dinhTuyenNguon_str: hks_hoSoNguoiDungHienTai_obj.reqId,
+                    hks_goiCauHinh_obj: hks_goiCauHinh_obj
+                }).then(res => {
+                    if (typeof hks_hienThiManHinhTai_fn === 'function') hks_hienThiManHinhTai_fn(false);
+                    if (res.success) {
+                        Swal.fire("Thành công", res.message, "success").then(() => {
+                            sessionStorage.removeItem("sys_config_hs");
+                            location.reload(); // Tải lại để nạp cấu hình mới
+                        });
+                    } else {
+                        Swal.fire("Lỗi phân quyền", res.message, "error");
+                    }
+                }).catch(e => {
+                    if (typeof hks_hienThiManHinhTai_fn === 'function') hks_hienThiManHinhTai_fn(false);
+                    Swal.fire("Sự cố", "Lỗi kết nối Server! Vui lòng kiểm tra lại đường truyền.", "warning");
+                });
+            }
+        });
+    }
+</script>
+</script>

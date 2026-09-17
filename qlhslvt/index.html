@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <link id="favicon" rel="icon" href="">
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản lý Học sinh</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="ketnoi.js"></script>
+  <script>
+    // [Nâng cấp]: Cơ chế chống lưu đệm (cache) tự động cho file ketnoi.js
+    document.write('<script src="ketnoi.js?v=' + new Date().getTime() + '"><\/script>');
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById('favicon').href = HKS_CAU_HINH_LOGO_STR;
+        document.getElementById('gate-logo-img').src = HKS_CAU_HINH_LOGO_STR;
+        
+        // [Nâng cấp]: Cấp nguồn ảnh (src) cho logo trên thanh tiêu đề mới thêm
+        let hks_headerLogo_el = document.getElementById('header-logo-img');
+        if(hks_headerLogo_el) hks_headerLogo_el.src = HKS_CAU_HINH_LOGO_STR;
+        
+        document.getElementById('ten-truong-text').innerText = HKS_CAU_HINH_TEN_DINH_DANH_STR;
+        
+        // Khôi phục các phần lệnh phía sau bị khuyết
+        let tacGiaElements = document.querySelectorAll('.ten-tac-gia-text');
+        tacGiaElements.forEach(el => el.innerText = HKS_CAU_HINH_TAC_GIA_STR);
+
+        let gIdOnload = document.getElementById('g_id_onload');
+        if (gIdOnload) {
+            gIdOnload.setAttribute('data-client_id', HKS_CAU_HINH_CLIENT_ID_STR);
+        }
+        
+        let gsiScript = document.createElement('script');
+        gsiScript.src = "https://accounts.google.com/gsi/client";
+        gsiScript.async = true;
+        gsiScript.defer = true;
+        document.head.appendChild(gsiScript);
+    });
+  </script>
+
+  <style>
+    body { background-color: #fffbf0; font-family: 'Times New Roman', Times, serif; font-size: 15px; min-height: 100vh; position: relative; }
+    body::before { content: ""; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85vh; height: 85vh; background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Trong_dong_Ngoc_Lu.jpg/1024px-Trong_dong_Ngoc_Lu.jpg'); background-size: contain; background-position: center; background-repeat: no-repeat; opacity: 0.4; z-index: -1; filter: sepia(100%) saturate(500%) contrast(120%) brightness(90%); pointer-events: none; }
+    .main-container { background: rgba(255, 255, 255, 0.9); border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: 10px auto; padding: 15px; max-width: 99%; border: 1px solid #d4af37; position: relative; }
+    h3, h4 { color: #b71c1c; font-weight: 900; text-transform: uppercase; text-shadow: 1px 1px 0px #fff; margin-bottom: 15px; border-bottom: 3px solid #b71c1c; display: inline-block; padding-bottom: 5px; }
+    .dev-badge { position: absolute; top: 8px; right: 15px; text-align: right; z-index: 1000; background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.8)); padding-left: 20px; pointer-events: none; font-family: 'Times New Roman', sans-serif; }
+    .dev-name { font-family: 'Arial', sans-serif; font-weight: 900; color: #d63384; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 1px 1px 0 #fff; }
+    .dev-role { font-size: 11px; color: #555; font-style: italic; font-weight: 600; margin-top: -2px; }
+    .diamond-icon { font-size: 24px; color: #0dcaf0; margin-left: 8px; filter: drop-shadow(0 0 3px rgba(13, 202, 240, 0.6)); animation: sparkle 2s infinite ease-in-out; display: inline-block; vertical-align: middle; }
+    @keyframes sparkle { 0% { transform: scale(1) rotate(0deg); filter: brightness(100%); } 50% { transform: scale(1.2) rotate(10deg); filter: brightness(150%); } 100% { transform: scale(1) rotate(0deg); filter: brightness(100%); } }
+    .nav-tabs { border-bottom: 2px solid #003366; padding-right: 200px; }
+    .nav-tabs .nav-link { color: #444; font-weight: 700; background: rgba(255,255,255,0.8); margin-right: 2px; }
+    .nav-tabs .nav-link.active { background-color: #003366; color: #ffffff !important; border-color: #003366; }
+    .nav-pills .nav-link.active { background-color: #b71c1c; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .nav-pills .nav-link { color: #333; background: #eceff1; font-weight: 700; border: 1px solid #999; margin-right: 5px; }
+    .table-container { overflow-x: auto; max-height: 72vh; background: rgba(255,255,255,0.95); border: 1px solid #333; }
+    table { margin-bottom: 0 !important; border-collapse: collapse; border-spacing: 0; }
+    table thead th { background-color: #e0e0e0; color: #000000; text-shadow: none; text-align: center; vertical-align: middle; white-space: nowrap; border: 1px solid #999; position: sticky; top: 0; z-index: 10; font-weight: 700; font-size: 14px; padding: 6px 4px !important; }
+    #bang1 thead th:nth-child(-n+6), #bang1 thead th:nth-child(n+7):nth-child(-n+10), #bang1 thead th:nth-child(n+11):nth-child(-n+16), #bang1 thead th:nth-child(n+17) { background-color: #e0e0e0 !important; color: #000 !important; }
+    #bang3_1 thead th:not(.col-age), #bang3_1_thcs thead th:not(.col-age) { background-color: #e0e0e0 !important; color: #000 !important; }
+    #bang3_1 thead tr:nth-child(2) th, #bang3_1_thcs thead tr:nth-child(2) th { top: 34px; z-index: 10; background-color: #e0e0e0 !important; color: #000 !important; border: 1px solid #999; }
+    #bang2 thead th:first-child, #bang2 thead th:nth-child(2), #bang2 thead th:nth-child(3), #bang2 thead th:nth-child(4), #bang2 thead th:nth-child(5) { background-color: #e0e0e0 !important; color: #000 !important; }
+    .th-hk1 { background-color: #d1ecf1 !important; color: #000 !important; }
+    th.th-ket-qua, th.th-cap-xa, th.th-cap-huyen, th.th-cap-tinh, th.th-cap-qg, th.th-cap-qt { background-color: #e0e0e0 !important; color: #000 !important; }
+    th.th-cap-tinh { text-shadow: none !important; }
+    table:not(#bang3_1):not(#bang3_1_thcs) thead tr:nth-child(2) th { top: 34px; z-index: 10; background-color: #e0e0e0 !important; color: #000 !important; }
+    table:not(#bang3_1):not(#bang3_1_thcs) thead tr:nth-child(2) th:nth-child(n+13):nth-child(-n+16) { background-color: #e0e0e0 !important; color: #000 !important; }
+    td { white-space: nowrap; vertical-align: middle; padding: 0px !important; border: 1px solid #888 !important; font-size: 15px; height: 30px; color: #000; }
+    .table-striped > tbody > tr:nth-of-type(odd) > * { --bs-table-accent-bg: transparent; color: #000; }
+    .table-striped > tbody > tr:nth-of-type(even) > * { --bs-table-accent-bg: rgba(0, 0, 0, 0.04); color: #000; }
+    tbody tr:hover > * { background-color: #ffeb3b !important; color: #000000 !important; --bs-table-accent-bg: #ffeb3b !important; box-shadow: inset 0 0 0 9999px #ffeb3b !important; }
+    tbody tr:hover input, tbody tr:hover select { color: #000000 !important; -webkit-text-fill-color: #000000 !important; font-weight: bold !important; background-color: transparent !important; }
+    tbody tr:hover i.bi { color: #b71c1c !important; }
+    tbody tr:hover input[type="checkbox"] { border: 2px solid #000000 !important; }
+    tr.row-total > td { background-color: #cce5ff !important; color: #b71c1c !important; font-weight: 900 !important; }
+    tr.row-grade-total > td { background-color: #e6f7ff !important; color: #003366 !important; font-weight: 700 !important; font-style: italic; }
+    .col-compact { min-width: 35px; max-width: 45px; text-align: center; padding: 0px !important; }
+    .zero-val { opacity: 0; } .has-val { font-weight: 700; color: #000; }
+    input.cell-input, select.cell-input { border: none; width: 100%; height: 100%; padding: 4px 5px; background: transparent; font-family: 'Times New Roman'; font-size: 15px; outline: none; }
+    input.cell-input:focus { background: #fff; box-shadow: inset 0 0 0 2px #003366; }
+    input:disabled, select:disabled { color: #000 !important; background: transparent; cursor: default; opacity: 1 !important; -webkit-text-fill-color: #000; }
+    input[type="checkbox"]:disabled { opacity: 1 !important; filter: none !important; cursor: not-allowed; border: 2px solid #666 !important; background-color: #fff !important; width: 16px; height: 16px; appearance: none; -webkit-appearance: none; display: inline-block; position: relative; vertical-align: middle; border-radius: 3px; }
+    input[type="checkbox"]:checked:disabled { background-color: #003366 !important; border-color: #003366 !important; opacity: 1 !important; }
+    input[type="checkbox"]:checked:disabled::after { content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 10px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+    input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    
+    .note-corner { position: absolute; top: 0; right: 0; width: 0; height: 0; border-left: 10px solid transparent; border-top: 10px solid #dc3545; pointer-events: none; z-index: 5; }
+    .hks-input-thanhtich { cursor: pointer; }
+    .hks-input-thanhtich:disabled { cursor: not-allowed !important; }
+
+    .global-tooltip { display: none; position: fixed; z-index: 99999999; width: max-content; min-width: 350px; max-width: 550px; max-height: 350px; overflow-y: auto; background-color: #ffffff; color: #333; text-align: left; border-radius: 8px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); border: 2px solid #b71c1c; border-top: 5px solid #b71c1c; font-size: 15px; line-height: 1.6; white-space: normal; }
+    .global-tooltip::-webkit-scrollbar { width: 8px; }
+    .global-tooltip::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 5px; }
+    .global-tooltip::-webkit-scrollbar-thumb { background: #b71c1c; border-radius: 5px; }
+
+    .filter-box { background: rgba(255,255,255,0.9); border: 1px solid #aaa; border-left: 5px solid #b71c1c; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    label { font-weight: 700; color: #003366; font-size: 13px; margin-bottom: 2px; display: block;}
+    .edit-mode-btn { display: none; }
+    #gate-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0fdf4; z-index: 999999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: "Times New Roman", serif; }
+    .gate-box { background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; border-top: 5px solid #0d6efd; max-width: 550px; width: 90%; }
+    .gate-logo { width: 80px; height: 80px; margin-bottom: 10px; }
+    #main-app { opacity: 0; transition: opacity 0.5s ease; }
+    #instant-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 2147483647; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    .spinner-ring { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #dc3545; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 15px; }
+    .loader-text { font-family: 'Times New Roman', serif; font-weight: bold; color: #dc3545; letter-spacing: 1px; font-size: 14px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    .swal2-container { z-index: 2147483647 !important; }
+  </style>
+</head>
+<body>
+
+<div id="global-tooltip" class="global-tooltip" onmouseenter="hks_keepTooltip()" onmouseleave="hks_hideTooltip()"></div>
+
+<div id="instant-loader" style="display: none;">
+  <div class="spinner-ring"></div>
+  <div class="loader-text">ĐANG KẾT NỐI HỆ THỐNG...</div>
+</div>
+
+<div id="gate-overlay" style="display:none;">
+  <div class="gate-box">
+   <img id="gate-logo-img" src="" class="gate-logo" alt="Logo" onclick="chuyenHuongHeThong()" title="Trở về trang Hệ thống" style="cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);" onmouseover="this.style.transform='scale(1.08)'; this.style.opacity='0.9'" onmouseout="this.style.transform='scale(1)'; this.style.opacity='1'">
+    <h2 style="color: #b91c1c; margin-top: 0; font-family: 'Times New Roman', serif; font-size: 28px; text-transform: uppercase;">Quản Lý Học Sinh</h2>
+    <h3 id="ten-truong-text" style="color: #1e3a8a; margin-bottom: 25px; border-bottom: none; font-family: 'Times New Roman', serif; font-size: 24px; text-transform: none;"></h3>
+    
+    <div style="font-size: 16px; color:#b91c1c; font-weight: bold; margin-bottom: 15px;">Phiên bản: V2.6.2026</div>
+
+    <div id="g_id_onload" data-callback="hks_xuLyPhanHoiDangNhap_fn" data-auto_prompt="false"></div>
+
+    <div class="d-flex justify-content-center w-100 mt-2 mb-3">
+       <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
+    </div>
+    
+    <div style="margin-top: 30px; font-size: 15px; color: #888; font-weight: bold; text-align: center;">Phát triển bởi: <span class="ten-tac-gia-text text-uppercase"></span></div>
+  </div>
+</div>
+
+<div id="main-app" style="display:none;">
+  <div class="d-flex justify-content-between align-items-center mb-2 px-3 py-2" style="background: rgba(255,255,255,0.9); border-radius: 4px; border: 1px solid #d4af37; max-width: 99%; margin: 10px auto 0 auto;">
+    <div class="d-flex align-items-center">
+      <img id="header-logo-img" src="" alt="Logo" onclick="chuyenHuongHeThong()" title="Trở về trang Hệ thống" style="width: 26px; height: 26px; object-fit: contain; margin-right: 10px; cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);" onmouseover="this.style.transform='scale(1.1) rotate(-3deg)'; this.style.filter='drop-shadow(0 4px 6px rgba(0,0,0,0.15))'" onmouseout="this.style.transform='scale(1) rotate(0deg)'; this.style.filter='none'">
+       <span class="me-2 small fw-bold">Xin chào:</span> 
+       <span id="profile-display" class="fw-bold text-primary me-3 small"></span> 
+       <span id="role-badge" class="badge bg-danger" style="font-size: 0.75rem;"></span>
+    </div>
+    <div>
+      <button onclick="hks_dangXuatTaiKhoan_fn()" class="btn btn-sm btn-outline-danger" style="font-size: 0.75rem; padding: 2px 10px; font-weight: bold;">Đăng xuất</button>
+    </div>
+  </div>
+
+  <div class="container-fluid main-container">
+    <div class="dev-badge d-flex align-items-center">
+        <div class="me-1">
+            <div class="dev-name ten-tac-gia-text"></div>
+            <div class="dev-role">Thiết kế và phát triển</div>
+        </div>
+        <i class="bi bi-gem diamond-icon"></i>
+    </div>
+
+<ul class="nav nav-tabs mb-3" id="bangDieuKhien" role="tablist">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab1" type="button" onclick="hks_khoiPhucTrangThaiGoc_fn(1)"><i class="bi bi-person-vcard"></i> 1. Thông tin học sinh</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab2" type="button" onclick="hks_khoiPhucTrangThaiGoc_fn(2)"><i class="bi bi-journal-check"></i> 2. Kết quả học tập & Thành tích</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab3" type="button"><i class="bi bi-bar-chart-line-fill"></i> 3. Thống kê - Tổng hợp</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab5" type="button" onclick="setTimeout(() => { if(typeof hks_taiKhoDuLieuChuyen_fn === 'function') hks_taiKhoDuLieuChuyen_fn(); }, 150)"><i class="bi bi-person-dash"></i> 4. HS chuyển trường</button></li>
+    </ul>
+
+    <div class="tab-content" id="khung-chua-tab"></div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  let hks_khoDuLieuTong_arr = [];
+
+  async function hks_thucThiGiaoTiep_fn(hks_lenhDieuPhoi_str, hks_goiDuLieu_obj = {}) {
+      hks_goiDuLieu_obj.hks_lenhKichHoat_str = hks_lenhDieuPhoi_str;
+      try {
+          const hks_phanHoiNhanCung_obj = await fetch(HKS_CAU_HINH_WEBAPP_STR, {
+              method: 'POST',
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify(hks_goiDuLieu_obj)
+          });
+          return await hks_phanHoiNhanCung_obj.json();
+      } catch (hks_loiNgoaiLe_obj) {
+    console.error("Lỗi gốc:", hks_loiNgoaiLe_obj);
+    throw new Error("Lỗi kết nối Server!");
+    }
+  }
+
+  async function hks_capNhatBoNhoDem_fn() {
+      try {
+          let res = await hks_thucThiGiaoTiep_fn('hks_taiToanBoThucThe_api', {hks_dinhTuyenNguon_str: hks_hoSoNguoiDungHienTai_obj.reqId});
+          if(res.success) hks_khoDuLieuTong_arr = res.data;
+      } catch(e) { console.error("Lỗi đệm:", e); }
+  }
+
+  let hks_tooltip_timer;
+  function hks_showTooltip(el, encodedHtml) { 
+      clearTimeout(hks_tooltip_timer); let tooltip = document.getElementById('global-tooltip'); tooltip.innerHTML = decodeURIComponent(encodedHtml); tooltip.style.display = 'block';
+      let rect = el.getBoundingClientRect(); let tooltipRect = tooltip.getBoundingClientRect();
+      let topPos = rect.bottom + 5; let leftPos = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+      if (leftPos < 10) leftPos = 10; if (leftPos + tooltipRect.width > window.innerWidth - 10) leftPos = window.innerWidth - tooltipRect.width - 20;
+      if (topPos + tooltipRect.height > window.innerHeight - 10) topPos = rect.top - tooltipRect.height - 5;
+      tooltip.style.top = topPos + 'px'; tooltip.style.left = leftPos + 'px';
+  }
+  function hks_hideTooltip() { hks_tooltip_timer = setTimeout(() => { document.getElementById('global-tooltip').style.display = 'none'; }, 150); }
+  function hks_keepTooltip() { clearTimeout(hks_tooltip_timer); }
+
+  let hks_bienKhungHeThong_obj = {};
+  let hks_trangThaiSuaMot_bol = false;
+  let hks_trangThaiSuaHai_bol = false;
+  let hks_hoSoNguoiDungHienTai_obj = null;
+
+  function hks_hienThiManHinhTai_fn(hks_trangThai_bol) { document.getElementById('instant-loader').style.display = hks_trangThai_bol ? 'flex' : 'none'; }
+  
+  function hks_xuLyPhanHoiDangNhap_fn(hks_phanHoiGG_obj) {
+      hks_hienThiManHinhTai_fn(true);
+      const hks_chuoiGiaoTiep_str = hks_phanHoiGG_obj.credential;
+
+      hks_thucThiGiaoTiep_fn('hks_khoiDongChuongTrinh_api', {hks_chuoiDinhDanh_str: hks_chuoiGiaoTiep_str, hks_maXacThuc_str: ""}).then(hks_ketQuaAPI_obj => {
+          if(!hks_ketQuaAPI_obj.success) { 
+              hks_hienThiManHinhTai_fn(false); sessionStorage.removeItem("sys_data_hs");
+              Swal.fire({ title: "Từ chối truy cập", text: hks_ketQuaAPI_obj.message, icon: "error", confirmButtonText: "Quay lại trang chủ", allowOutsideClick: false }).then((res) => { if (res.isConfirmed) location.reload(); });
+              return; 
+          }
+          
+          hks_hoSoNguoiDungHienTai_obj = hks_ketQuaAPI_obj.data;
+          hks_bienKhungHeThong_obj = hks_ketQuaAPI_obj.config;
+          
+          sessionStorage.setItem("sys_data_hs", JSON.stringify(hks_hoSoNguoiDungHienTai_obj));
+          sessionStorage.setItem("sys_config_hs", JSON.stringify(hks_bienKhungHeThong_obj));
+
+          hks_doDuLieuVaoHopChon_fn();
+          hks_thietLapBoLoc_fn();
+          hks_kiemTraQuyenVaNapTabBon_fn(); 
+          
+          if (typeof hks_kiemTraQuyenXuatNhapExcel_fn === 'function') { hks_kiemTraQuyenXuatNhapExcel_fn(); }
+
+          document.getElementById('profile-display').innerText = hks_hoSoNguoiDungHienTai_obj.name; 
+          document.getElementById('role-badge').innerText = hks_hoSoNguoiDungHienTai_obj.role === 'admin' ? 'Super Admin' : 'Giáo viên';
+          document.getElementById('gate-overlay').style.display = 'none'; 
+          
+          let hks_ungDungChinh_el = document.getElementById('main-app');
+          hks_ungDungChinh_el.style.display = 'block'; 
+          setTimeout(() => { hks_ungDungChinh_el.style.opacity = '1'; }, 50);
+
+          hks_capNhatBoNhoDem_fn().then(() => {
+              hks_hienThiManHinhTai_fn(false);
+          });
+      }).catch(e => { Swal.fire("Sự cố hệ thống", e.message, "warning"); hks_hienThiManHinhTai_fn(false); });
+  }
+
+ $(document).ready(function() {
+    hks_hienThiManHinhTai_fn(true);
+        Promise.all([
+        $.get("Tab1.html"),
+        $.get("Tab2.html"),
+        $.get("Tab3.html"),
+        $.get("Tab5.html")
+    ]).then(function(hks_mangKetQua_arr) {
+        
+        // Gắn cấu trúc DOM đồng loạt sau khi tải xong
+        $("#khung-chua-tab").append(hks_mangKetQua_arr[0]);
+        $("#khung-chua-tab").append(hks_mangKetQua_arr[1]);
+        $("#khung-chua-tab").append(hks_mangKetQua_arr[2]);
+        $("#khung-chua-tab").append(hks_mangKetQua_arr[3]);
+        
+        let hks_duLieuLuuTru_str = sessionStorage.getItem("sys_data_hs");
+        let hks_cauHinhLuuTru_str = sessionStorage.getItem("sys_config_hs");
+        
+        if(hks_duLieuLuuTru_str) {
+            hks_hoSoNguoiDungHienTai_obj = JSON.parse(hks_duLieuLuuTru_str);
+            document.getElementById('gate-overlay').style.display = 'none';
+            document.getElementById('profile-display').innerText = hks_hoSoNguoiDungHienTai_obj.name;
+            document.getElementById('role-badge').innerText = hks_hoSoNguoiDungHienTai_obj.role === 'admin' ? 'Super Admin' : 'Giáo viên';
+            hks_thietLapBoLoc_fn(); 
+            
+            if(hks_cauHinhLuuTru_str) {
+                hks_bienKhungHeThong_obj = JSON.parse(hks_cauHinhLuuTru_str);
+                hks_doDuLieuVaoHopChon_fn();
+                hks_kiemTraQuyenVaNapTabBon_fn();
+                
+                if (typeof hks_kiemTraQuyenXuatNhapExcel_fn === 'function') { hks_kiemTraQuyenXuatNhapExcel_fn(); }
+                
+                let hks_ungDungChinh_el = document.getElementById('main-app');
+                hks_ungDungChinh_el.style.display = 'block'; 
+                setTimeout(() => { hks_ungDungChinh_el.style.opacity = '1'; }, 50);
+
+                hks_capNhatBoNhoDem_fn().then(() => {
+                    hks_hienThiManHinhTai_fn(false);
+                });
+            } else {
+                hks_thucThiGiaoTiep_fn('hks_taiCauTrucKhung_api', {hks_dinhTuyenNguon_str: hks_hoSoNguoiDungHienTai_obj.reqId}).then(hks_duLieuTaiVe_obj => {
+                    if(hks_duLieuTaiVe_obj.success === false) { 
+                        hks_hienThiManHinhTai_fn(false); 
+                        sessionStorage.removeItem("sys_data_hs"); 
+                        Swal.fire({ title: "Từ chối", text: hks_duLieuTaiVe_obj.message, icon: "error" }).then(() => location.reload());
+                        return; 
+                    }
+                    hks_bienKhungHeThong_obj = hks_duLieuTaiVe_obj;
+                    sessionStorage.setItem("sys_config_hs", JSON.stringify(hks_bienKhungHeThong_obj));
+                    hks_doDuLieuVaoHopChon_fn(); 
+                    hks_kiemTraQuyenVaNapTabBon_fn();
+                    
+                    if (typeof hks_kiemTraQuyenXuatNhapExcel_fn === 'function') { hks_kiemTraQuyenXuatNhapExcel_fn(); }
+                    
+                    let hks_ungDungChinh_el = document.getElementById('main-app');
+                    hks_ungDungChinh_el.style.display = 'block'; 
+                    setTimeout(() => { hks_ungDungChinh_el.style.opacity = '1'; }, 50);
+
+                    hks_capNhatBoNhoDem_fn().then(() => {
+                        hks_hienThiManHinhTai_fn(false);
+                    });
+                }).catch(e => { Swal.fire('Sự cố', e.message, 'warning'); hks_hienThiManHinhTai_fn(false); });
+            }
+        } else { 
+            hks_hienThiManHinhTai_fn(false); 
+            document.getElementById('gate-overlay').style.display = 'flex'; 
+        }
+    }).catch(function(err) {
+        Swal.fire("Lỗi hệ thống", "Không thể nạp luồng giao diện html. Vui lòng thử tải lại trang!", "error");
+        hks_hienThiManHinhTai_fn(false);
+    });
+  });
+
+  function hks_dangXuatTaiKhoan_fn() { 
+      hks_hoSoNguoiDungHienTai_obj = null; 
+      hks_bienKhungHeThong_obj = {}; 
+      sessionStorage.removeItem("sys_data_hs");
+      sessionStorage.removeItem("sys_config_hs");
+      location.reload(); 
+  }
+
+  function hks_doDuLieuVaoHopChon_fn() {
+    ['t1_nam','t1_lop','t2_nam','t2_lop','t3_nam', 't3_tunam', 't3_dennam', 't5_nam', 't5_lop'].forEach(id => {
+      let hks_phanTuUI_el = document.getElementById(id);
+      if (hks_phanTuUI_el) { 
+          hks_phanTuUI_el.innerHTML = '<option value="">--</option>';
+          let hks_loaiTruong_str = id.includes('nam') ? 'hks_chuKyHoatDong_arr' : 'hks_phomPhanLoai_arr';
+          let tapDuLieu = hks_bienKhungHeThong_obj[hks_loaiTruong_str] || [];
+          tapDuLieu.forEach(val => { let hks_tuyChonUI_el = document.createElement('option'); hks_tuyChonUI_el.value = val; hks_tuyChonUI_el.text = val; hks_phanTuUI_el.add(hks_tuyChonUI_el); });
+      }
+    });
+  }
+
+  function hks_thietLapBoLoc_fn() {
+    ['t1_nam', 't1_lop', 't1_cccd', 't1_hodem', 't1_ten'].forEach(id => { 
+        let e = document.getElementById(id); 
+        if (e) { 
+            e.addEventListener('input', () => hks_lamSachBangHienThi_fn(1)); 
+            e.addEventListener('change', () => hks_lamSachBangHienThi_fn(1)); 
+            if(e.tagName === 'INPUT') { e.addEventListener('keydown', (ev) => { if(ev.key === 'Enter') hks_layDuLieuPhanMot_fn(); }); } 
+        } 
+    });
+    
+    ['t2_nam', 't2_lop', 't2_cccd', 't2_hodem', 't2_ten'].forEach(id => { 
+        let e = document.getElementById(id); 
+        if (e) { 
+            e.addEventListener('input', () => hks_lamSachBangHienThi_fn(2)); 
+            e.addEventListener('change', () => hks_lamSachBangHienThi_fn(2)); 
+            if(e.tagName === 'INPUT') { e.addEventListener('keydown', (ev) => { if(ev.key === 'Enter') { if(typeof hks_layDuLieuPhanHai_fn === 'function') hks_layDuLieuPhanHai_fn(); } }); } 
+        } 
+    });
+    
+    ['t5_nam', 't5_lop', 't5_cccd', 't5_hodem', 't5_ten'].forEach(id => { 
+        let e = document.getElementById(id); 
+        if (e) { 
+            e.addEventListener('input', () => hks_lamSachBangHienThi_fn(5)); 
+            e.addEventListener('change', () => hks_lamSachBangHienThi_fn(5)); 
+            if(e.tagName === 'INPUT') { e.addEventListener('keydown', (ev) => { if(ev.key === 'Enter') { if(typeof hks_layDuLieuPhanNam_fn === 'function') hks_layDuLieuPhanNam_fn(); } }); } 
+        } 
+    });
+  }
+
+  function hks_lamSachBangHienThi_fn(hks_chiSoThe_num) {
+      let b = document.querySelector(`#bang${hks_chiSoThe_num} tbody`); if(b) b.innerHTML = '';
+      let btnE = document.getElementById(`btnEdit${hks_chiSoThe_num}`); if(btnE) btnE.style.display = 'none';
+      let grp = document.getElementById(`groupEdit${hks_chiSoThe_num}`); if(grp) grp.style.display = 'none';
+      if(hks_chiSoThe_num === 1) hks_trangThaiSuaMot_bol = false;
+      if(hks_chiSoThe_num === 2) hks_trangThaiSuaHai_bol = false;
+  }
+
+  function hks_kichHoatChinhSua_fn(hks_chiSoThe_num) {
+    if(hks_chiSoThe_num === 1) {
+       hks_trangThaiSuaMot_bol = true; document.getElementById('btnEdit1').style.display = 'none'; document.getElementById('groupEdit1').style.display = 'inline-block';
+       let tapQuyen = hks_bienKhungHeThong_obj.hks_tapQuyenSuDung_arr || [];
+       let hks_laQuanTriCapCao_bol = tapQuyen.includes('ALL');
+       document.getElementById('btnChuyenLop').style.display = hks_laQuanTriCapCao_bol ? 'inline-block' : 'none'; hks_dieuKhienOVuong_fn('#bang1', false);
+    } else {
+       hks_trangThaiSuaHai_bol = true; document.getElementById('btnEdit2').style.display = 'none'; document.getElementById('groupEdit2').style.display = 'inline-block'; hks_dieuKhienOVuong_fn('#bang2', false);
+    }
+  }
+
+function hks_khoiPhucTrangThaiGoc_fn(hks_chiSoThe_num) {
+    let namEl = document.getElementById(`t${hks_chiSoThe_num}_nam`); 
+    let lopEl = document.getElementById(`t${hks_chiSoThe_num}_lop`);
+    if(!namEl || !lopEl) return;
+    
+    let hks_khoaChon_str = `${namEl.value}_${lopEl.value}`;
+    let tapQuyen = hks_bienKhungHeThong_obj.hks_tapQuyenSuDung_arr || [];
+    let hks_laQuanTriCapCao_bol = tapQuyen.includes('ALL');
+    let hks_coQuyenSua_bol = hks_laQuanTriCapCao_bol || tapQuyen.includes(hks_khoaChon_str);
+    let hks_nutSuaUI_el = document.getElementById(`btnEdit${hks_chiSoThe_num}`);
+    
+    if(hks_chiSoThe_num === 1) { 
+        if (hks_nutSuaUI_el) hks_nutSuaUI_el.style.display = hks_coQuyenSua_bol ? 'inline-block' : 'none';
+        
+        // TỐI ƯU: Chỉ chạy lệnh quét DOM (khôi phục ô vuông) nếu đang ở trạng thái Sửa
+        if (hks_trangThaiSuaMot_bol) {
+            hks_trangThaiSuaMot_bol = false; 
+            let groupEdit = document.getElementById('groupEdit1');
+            if (groupEdit) groupEdit.style.display = 'none'; 
+            
+            // Đẩy lệnh điều khiển vào luồng ngầm định, tránh giật lag khi chuyển Tab
+            setTimeout(() => { hks_dieuKhienOVuong_fn('#bang1', true); }, 100);
+        } 
+    } 
+    else if(hks_chiSoThe_num === 2) { 
+        if (hks_nutSuaUI_el) hks_nutSuaUI_el.style.display = hks_coQuyenSua_bol ? 'inline-block' : 'none';
+        
+        if (hks_trangThaiSuaHai_bol) {
+            hks_trangThaiSuaHai_bol = false; 
+            let groupEdit = document.getElementById('groupEdit2');
+            if (groupEdit) groupEdit.style.display = 'none'; 
+            
+            setTimeout(() => { hks_dieuKhienOVuong_fn('#bang2', true); }, 100);
+        }
+    }
+  }
+
+ function hks_dieuKhienOVuong_fn(hks_danhDauBang_str, hks_voHieuHoa_bol) {
+    const b = document.querySelector(hks_danhDauBang_str); if(!b) return;
+    let hks_laQuanTriCapCao_bol = (hks_bienKhungHeThong_obj && hks_bienKhungHeThong_obj.hks_quyenTuyetDoi_bol === true);
+    b.querySelectorAll('input, select').forEach(el => {
+       if (hks_voHieuHoa_bol) { el.disabled = true; } else {
+           if (hks_laQuanTriCapCao_bol) { el.disabled = false; } else {
+               if (hks_danhDauBang_str === '#bang1') { el.disabled = false; } else {
+                   let n = el.name || "";
+                   if (n.startsWith('tt_')) { el.disabled = false; } 
+                   else if (n.startsWith('kq_')) { try { let hs = b.querySelectorAll(`input[name="${n}"]`); el.disabled = Boolean(Array.from(hs).some(e => e.checked)); } catch(e) { el.disabled = Boolean(el.checked); } } 
+                   else { el.disabled = Boolean(el.type === 'checkbox' ? el.checked : el.value && String(el.value).trim() !== ""); }
+               }
+           }
+       }
+    });
+    b.querySelectorAll('.bi-x-circle-fill, .btn-xoa-nguon').forEach(btn => { let ok = !hks_voHieuHoa_bol; if (!hks_laQuanTriCapCao_bol && hks_danhDauBang_str !== '#bang1') ok = false; btn.style.display = ok ? 'inline-block' : 'none'; });
+    if (hks_laQuanTriCapCao_bol && hks_danhDauBang_str === '#bang1') { b.querySelectorAll('.stt-label').forEach(lbl => { lbl.style.display = hks_voHieuHoa_bol ? 'inline-block' : 'none'; }); }
+  }
+
+  function hks_kiemTraQuyenVaNapTabBon_fn() {
+    $('#nav-li-tab4').remove();
+    $('#tab4').remove();
+    
+    if (hks_hoSoNguoiDungHienTai_obj && hks_hoSoNguoiDungHienTai_obj.role === 'admin') {
+      $('#bangDieuKhien').append(`
+        <li class="nav-item" id="nav-li-tab4">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab4" type="button" onclick="hks_taiDuLieuPhanBon_fn()">
+            <i class="bi bi-shield-lock"></i> 5. Phân quyền hệ thống
+          </button>
+        </li>
+      `);
+      $.get("Tab4.html", function(hks_giaoDienTab4_str) {
+        $("#khung-chua-tab").append(hks_giaoDienTab4_str);
+      });
+    }
+  }
+
+  function hks_taiDuLieuPhanBon_fn() {
+    if (!hks_bienKhungHeThong_obj) {
+        Swal.fire("Thông báo", "Dữ liệu cấu hình chưa sẵn sàng, vui lòng tải lại trang!", "info");
+        return;
+    }
+
+    Swal.fire({
+        title: 'Đang tải cấu hình...',
+        text: 'Vui lòng chờ trong giây lát',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    setTimeout(() => {
+        document.getElementById('t4_danToc').value = (hks_bienKhungHeThong_obj.hks_rawDanToc_arr || []).join(', ');
+        document.getElementById('t4_xepLoai').value = (hks_bienKhungHeThong_obj.hks_rawXepLoai_arr || []).join(', ');
+        document.getElementById('t4_capThanhTich').value = (hks_bienKhungHeThong_obj.hks_rawCapThanhTich_arr || []).join(', ');
+        document.getElementById('t4_toanQuyen').value = (hks_bienKhungHeThong_obj.hks_rawToanQuyen_arr || []).join(', ');
+
+        let tbody = document.getElementById('tbodyPhanQuyen');
+        if (tbody) {
+            tbody.innerHTML = '';
+            (hks_bienKhungHeThong_obj.hks_rawPhanQuyen_arr || []).forEach(item => {
+                let tr = document.createElement('tr');
+                let radioName = 'radio_' + Math.random().toString(36).substr(2, 6);
+                tr.innerHTML = `
+                    <td><input type="text" class="cell-input text-center hks-nam-hoc" value="${item.namHoc || ''}" placeholder="VD: 2026-2027"></td>
+                    <td><input type="text" class="cell-input text-center hks-lop" value="${item.lop || ''}" placeholder="VD: 1A"></td>
+                    <td class="text-center align-middle">
+                        <input class="form-check-input hks-kich-hoat" type="radio" name="${radioName}" ${item.kichHoat === 'x' ? 'checked' : ''}>
+                    </td>
+                    <td><input type="text" class="cell-input hks-dinh-danh" value="${item.dinhDanh || ''}" placeholder="Cán bộ phụ trách..."></td>
+                    <td class="text-center align-middle">
+                        <i class="bi bi-x-circle-fill text-danger hks-input-thanhtich" onclick="this.closest('tr').remove()" title="Thu hồi cấu hình"></i>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        let hks_trangThaiLuu_str = localStorage.getItem('sys_toggle_khoa_t4');
+        let hks_nutGatUI_el = document.getElementById('t4_toggleKhoa');
+        if (hks_nutGatUI_el) {
+            if (hks_trangThaiLuu_str === 'khoa') {
+                hks_nutGatUI_el.checked = false;
+                if(typeof hks_xuLyKhoaCapNhat_fn === 'function') hks_xuLyKhoaCapNhat_fn(hks_nutGatUI_el);
+            } else {
+                hks_nutGatUI_el.checked = true;
+                if(typeof hks_xuLyKhoaCapNhat_fn === 'function') hks_xuLyKhoaCapNhat_fn(hks_nutGatUI_el);
+            }
+        }
+        Swal.close();
+    }, 200);
+  }
+
+  function hks_themDongPhanQuyen_fn() {
+      let tbody = document.getElementById('tbodyPhanQuyen');
+      if (!tbody) return;
+      let tr = document.createElement('tr');
+      let radioName = 'radio_' + Math.random().toString(36).substr(2, 6);
+      
+      let hks_trangThaiKhoa_bol = !document.getElementById('t4_toggleKhoa').checked;
+      let hks_thuocTinhDisabled_str = hks_trangThaiKhoa_bol ? 'disabled' : '';
+
+      tr.innerHTML = `
+          <td><input type="text" class="cell-input text-center hks-nam-hoc" placeholder="VD: 2026-2027"></td>
+          <td><input type="text" class="cell-input text-center hks-lop" placeholder="VD: 1A"></td>
+          <td class="text-center align-middle">
+              <input class="form-check-input hks-kich-hoat" type="radio" name="${radioName}" ${hks_thuocTinhDisabled_str}>
+          </td>
+          <td><input type="text" class="cell-input hks-dinh-danh" placeholder="Cán bộ phụ trách..."></td>
+          <td class="text-center align-middle">
+              <i class="bi bi-x-circle-fill text-danger hks-input-thanhtich" onclick="this.closest('tr').remove()" title="Thu hồi cấu hình"></i>
+          </td>
+      `;
+      tbody.appendChild(tr);
+
+      let hks_khungCuon_el = tbody.closest('.table-container');
+      if (hks_khungCuon_el) hks_khungCuon_el.scrollTop = hks_khungCuon_el.scrollHeight;
+      
+      setTimeout(() => {
+          let hks_oNhapNamHoc_el = tr.querySelector('.hks-nam-hoc');
+          if (hks_oNhapNamHoc_el) hks_oNhapNamHoc_el.focus();
+      }, 100);
+  }
+
+  function hks_luuCauHinhPhanBon_fn() {
+    Swal.fire({
+        title: "Xác nhận lưu cấu hình?",
+        text: "Hệ thống sẽ tái cấu trúc ma trận phân quyền và thiết lập lại toàn bộ danh mục!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#003366",
+        cancelButtonColor: "#dc3545",
+        confirmButtonText: "Đồng ý ghi nhận",
+        cancelButtonText: "Hủy bỏ"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            hks_hienThiManHinhTai_fn(true);
+            
+            let hks_mangPhanQuyen_arr = [];
+            document.querySelectorAll('#tbodyPhanQuyen tr').forEach(tr => {
+                let namHoc = tr.querySelector('.hks-nam-hoc').value.trim();
+                let lop = tr.querySelector('.hks-lop').value.trim();
+                let kichHoat = tr.querySelector('.hks-kich-hoat').checked ? 'x' : '';
+                let dinhDanh = tr.querySelector('.hks-dinh-danh').value.trim();
+                
+                if (namHoc || lop) {
+                    hks_mangPhanQuyen_arr.push({ namHoc, lop, kichHoat, dinhDanh });
+                }
+            });
+            
+            let hks_goiCauHinh_obj = {
+                hks_danToc_str: document.getElementById('t4_danToc').value.trim(),
+                hks_xepLoai_str: document.getElementById('t4_xepLoai').value.trim(),
+                hks_capThanhTich_str: document.getElementById('t4_capThanhTich').value.trim(),
+                hks_toanQuyen_str: document.getElementById('t4_toanQuyen').value.trim(),
+                hks_danhSachPhanQuyen_arr: hks_mangPhanQuyen_arr
+            };
+            
+            hks_thucThiGiaoTiep_fn('hks_ghiNhanPhanHeBon_api', {
+                hks_dinhTuyenNguon_str: hks_hoSoNguoiDungHienTai_obj.reqId,
+                hks_goiCauHinh_obj: hks_goiCauHinh_obj
+            }).then(res => {
+                hks_hienThiManHinhTai_fn(false);
+                if (res.success) {
+                    Swal.fire("Thành công", res.message, "success").then(() => {
+                        sessionStorage.removeItem("sys_config_hs");
+                        location.reload(); 
+                    });
+                } else {
+                    Swal.fire("Lỗi phân quyền", res.message, "error");
+                }
+            }).catch(e => {
+                hks_hienThiManHinhTai_fn(false);
+                Swal.fire("Lỗi kết nối", e.message, "error");
+            });
+        }
+    });
+  }
+
+  function chuyenHuongHeThong() {
+      var urlDich = (typeof HKS_LINK_TRANG_CHU !== 'undefined' && HKS_LINK_TRANG_CHU.trim() !== '') 
+                    ? HKS_LINK_TRANG_CHU 
+                    : 'https://gdlaocailci.github.io/taphoi/';
+                    
+      window.open(urlDich, '_top');
+  }
+  
+  function khoaTruyCapMaNguon() {
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || e.keyCode === 123) { e.preventDefault(); }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) { e.preventDefault(); }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) { e.preventDefault(); }
+            if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) { e.preventDefault(); }
+            if (e.ctrlKey && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) { e.preventDefault(); }
+        });
+    }
+    khoaTruyCapMaNguon();
+</script>
+</body>
+</html>

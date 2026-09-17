@@ -1,0 +1,193 @@
+<div class="tab-pane" id="tab5">
+  <div class="text-center"><h4>DANH SÁCH HỌC SINH CHUYỂN TRƯỜNG</h4></div>
+  <div class="filter-box">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2"><label>Năm học cũ</label><select id="t5_nam" class="form-select form-select-sm fw-bold text-primary"></select></div>
+      <div class="col-md-2"><label>Lớp cũ</label><select id="t5_lop" class="form-select form-select-sm fw-bold text-primary"></select></div>
+      <div class="col-md-2"><label>CCCD</label><input id="t5_cccd" class="form-control form-control-sm" placeholder="Nhập mã CCCD..."></div>
+      <div class="col-md-2"><label>Họ đệm</label><input id="t5_hodem" class="form-control form-control-sm"></div>
+      <div class="col-md-2"><label>Tên</label><input id="t5_ten" class="form-control form-control-sm"></div>
+      
+      <!-- Nút Lọc và nút Tải Excel -->
+      <div class="col-md-2 d-flex justify-content-end gap-2">
+        <button class="btn btn-sm btn-primary px-3 fw-bold w-100" onclick="hks_layDuLieuPhanNam_fn()"><i class="bi bi-search"></i> Lọc</button>
+        <button class="btn btn-sm btn-success px-3 fw-bold w-100" onclick="hks_xuatDuLieuExcelTab5_fn()"><i class="bi bi-download"></i> Tải Excel</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="table-container">
+    <table class="table table-bordered table-striped table-hover table-sm mb-0" id="bang5">
+      <thead>
+        <tr>
+          <th style="min-width:50px; width:50px;">STT</th>
+          <th style="min-width:100px">Năm học cũ</th><th style="min-width:60px">Lớp cũ</th><th style="min-width:110px">CCCD</th>
+          <th style="min-width:110px">Họ đệm</th><th style="min-width:60px">Tên</th>
+          <th style="min-width:100px">Ngày sinh</th><th style="min-width:60px">Nam/nữ</th><th style="min-width:95px">Nơi ở (Thôn)</th><th style="min-width:200px">Thường trú (Xã/tỉnh)</th>
+          <th style="min-width:80px">Dân tộc</th><th style="min-width:80px">Tôn giáo</th><th style="min-width:80px">C.Sách</th><th style="min-width:80px">K.Tật</th><th style="min-width:60px">Nghèo</th><th style="min-width:60px">Cận N</th><th style="min-width:60px">BHYT</th>
+          <th style="min-width:130px">Tên Bố</th><th style="min-width:130px">Tên Mẹ</th><th style="min-width:100px">SĐT</th><th style="min-width:50px">Khẩu nơi khác</th>
+          <th class="bg-warning text-dark" style="min-width:250px">Thông tin chuyển (Ngày - Nơi đến)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // ====================================================================
+  // --- MODULE: XỬ LÝ DỮ LIỆU BẢNG 5 (HỌC SINH CHUYỂN TRƯỜNG) ---
+  // ====================================================================
+  
+  // Khai báo var để có tính toàn cục (Cho phép Tab 1 can thiệp làm sạch)
+  var hks_khoDuLieuChuyen_arr = [];
+
+  async function hks_taiKhoDuLieuChuyen_fn() {
+      // Nếu dữ liệu đã có trong đệm, bỏ qua việc gọi API và tiến hành vẽ bảng ngay
+      if (hks_khoDuLieuChuyen_arr && hks_khoDuLieuChuyen_arr.length > 0) { 
+          hks_layDuLieuPhanNam_fn(); 
+          return; 
+      }
+      
+      hks_hienThiManHinhTai_fn(true);
+      try {
+          let hks_res_obj = await hks_thucThiGiaoTiep_fn('hks_taiDuLieuChuyen_api', {hks_dinhTuyenNguon_str: hks_hoSoNguoiDungHienTai_obj.reqId});
+          hks_hienThiManHinhTai_fn(false);
+          if (hks_res_obj && hks_res_obj.success) {
+              hks_khoDuLieuChuyen_arr = hks_res_obj.data || [];
+              hks_layDuLieuPhanNam_fn();
+          } else {
+              Swal.fire('Lỗi', hks_res_obj.message || "Không thể tải dữ liệu", 'error');
+          }
+      } catch (e) {
+          hks_hienThiManHinhTai_fn(false);
+          console.error("Lỗi lấy dữ liệu chuyển trường: ", e);
+      }
+  }
+
+  function hks_layDuLieuPhanNam_fn() {
+      let n = document.getElementById('t5_nam').value || "";
+      let l = document.getElementById('t5_lop').value || "";
+      let c = document.getElementById('t5_cccd').value || "";
+      let h = document.getElementById('t5_hodem').value || "";
+      let t = document.getElementById('t5_ten').value || "";
+
+      n = String(n).trim().toLowerCase();
+      l = String(l).trim().toLowerCase();
+      c = String(c).trim().toLowerCase();
+      h = String(h).trim().toLowerCase();
+      t = String(t).trim().toLowerCase();
+
+      let kq = (hks_khoDuLieuChuyen_arr || []).filter(function(r) {
+          if (!r) return false;
+          let valN = r[0] ? String(r[0]).trim().toLowerCase() : "";
+          let valL = r[1] ? String(r[1]).trim().toLowerCase() : "";
+          let valC = r[2] ? String(r[2]).trim().toLowerCase() : "";
+          let valH = r[3] ? String(r[3]).trim().toLowerCase() : "";
+          let valT = r[4] ? String(r[4]).trim().toLowerCase() : "";
+
+          let matchNam = (n === "") ? true : (valN === n);
+          let matchLop = (l === "") ? true : (valL === l);
+          let matchC = (c === "") ? true : valC.includes(c);
+          let matchH = (h === "") ? true : valH.includes(h);
+          let matchT = (t === "") ? true : valT.includes(t);
+          
+          return matchNam && matchLop && matchC && matchH && matchT;
+      });
+      
+      hks_veBangPhanNam_fn(kq);
+  }
+
+  function hks_veBangPhanNam_fn(hks_duLieuBang_arr) {
+      const hks_thanBang_el = document.querySelector('#bang5 tbody'); 
+      hks_thanBang_el.innerHTML = '';
+      
+      if (!hks_duLieuBang_arr || hks_duLieuBang_arr.length === 0) {
+          // [BẢN NÂNG CẤP]: Đổi colspan thành 22 do có thêm Tôn giáo
+          hks_thanBang_el.innerHTML = '<tr><td colspan="22" class="text-center text-muted fw-bold py-3">Không có dữ liệu học sinh chuyển trường khớp với bộ lọc.</td></tr>';
+          return;
+      }
+      
+      // [BẢN NÂNG CẤP]: Sử dụng ma trận nội suy để gọi đúng chỉ số 49 (Tôn giáo)
+      const hks_thuTuCotDB_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 49, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+
+      hks_duLieuBang_arr.forEach((hks_dongDuLieu_arr, index) => {
+          const hks_theDong_el = document.createElement('tr');
+          
+          let hks_chuoiHtml_str = `<td class="text-center text-muted fw-bold">${index + 1}</td>`;
+          
+          // Nạp 20 cột thông tin cơ bản
+          for (let i = 0; i < hks_thuTuCotDB_arr.length; i++) {
+              let hks_chiSoMang_num = hks_thuTuCotDB_arr[i];
+              let hks_giaTri_str = hks_dongDuLieu_arr[hks_chiSoMang_num] !== undefined && hks_dongDuLieu_arr[hks_chiSoMang_num] !== null ? hks_dongDuLieu_arr[hks_chiSoMang_num] : "";
+              hks_chuoiHtml_str += `<td><div class="px-2 py-1">${hks_giaTri_str}</div></td>`;
+          }
+          
+          // Nạp cột 48 (AW) chứa thông tin luân chuyển
+          let hks_thongTinChuyen_str = hks_dongDuLieu_arr[48] ? hks_dongDuLieu_arr[48] : "<i class='text-danger'>Trống dữ liệu</i>";
+          hks_chuoiHtml_str += `<td class="fw-bold text-primary"><div class="px-2 py-1">${hks_thongTinChuyen_str}</div></td>`;
+          
+          hks_theDong_el.innerHTML = hks_chuoiHtml_str;
+          hks_thanBang_el.appendChild(hks_theDong_el);
+      });
+  }
+
+  // ====================================================================
+  // --- MODULE: XUẤT EXCEL TAB 5 (LỊCH SỬ CHUYỂN TRƯỜNG) ---
+  // ====================================================================
+  function hks_xuatDuLieuExcelTab5_fn() {
+      const hks_thanBang_el = document.querySelector('#bang5 tbody');
+      
+      // Kiểm tra nếu bảng trống hoặc chỉ chứa thẻ báo "Không có dữ liệu..."
+      // [BẢN NÂNG CẤP]: Cập nhật kiểm tra colspan 22 và bổ sung Tôn giáo vào mảng tiêu đề xuất Excel
+      if (!hks_thanBang_el || hks_thanBang_el.rows.length === 0 || hks_thanBang_el.querySelector('.text-muted.fw-bold[colspan="22"]')) {
+          Swal.fire("Thông báo", "Không có dữ liệu trên giao diện để tải xuống!", "info");
+          return;
+      }
+      
+      let hks_duLieuXuat_arr = [
+          ["STT", "Năm học cũ", "Lớp cũ", "CCCD", "Họ đệm", "Tên", "Ngày sinh", "Nam/nữ", "Nơi ở (Thôn)", "Thường trú (Xã/tỉnh)", "Dân tộc", "Tôn giáo", "Chính sách", "Khuyết tật", "Nghèo", "Cận nghèo", "BHYT", "Tên bố", "Tên mẹ", "SĐT", "Khẩu nơi khác", "Thông tin chuyển (Ngày - Nơi đến)"]
+      ];
+      
+      for (let hks_theDong_el of hks_thanBang_el.rows) {
+          let hks_dongMoi_arr = [];
+          for (let i = 0; i < hks_theDong_el.cells.length; i++) {
+              let cellText = hks_theDong_el.cells[i].innerText || hks_theDong_el.cells[i].textContent || "";
+              hks_dongMoi_arr.push(String(cellText).trim());
+          }
+          hks_duLieuXuat_arr.push(hks_dongMoi_arr);
+      }
+
+      let hks_tepXuat_obj = XLSX.utils.book_new();
+      let hks_trangXuat_obj = XLSX.utils.aoa_to_sheet(hks_duLieuXuat_arr);
+      
+      let hks_tongSoCot_num = hks_duLieuXuat_arr[0].length; 
+      let hks_tongSoDong_num = hks_duLieuXuat_arr.length; 
+
+      hks_trangXuat_obj['!ref'] = XLSX.utils.encode_range({s: {c: 0, r: 0}, e: {c: hks_tongSoCot_num - 1, r: hks_tongSoDong_num - 1}});
+
+      // Ép kiểu Text toàn bộ các ô để giữ lại số 0 của CCCD / SĐT
+      for (let r = 0; r < hks_tongSoDong_num; r++) {
+          for (let c = 0; c < hks_tongSoCot_num; c++) {
+              let hks_diaChiO_str = XLSX.utils.encode_cell({c: c, r: r});
+              if (!hks_trangXuat_obj[hks_diaChiO_str]) {
+                  hks_trangXuat_obj[hks_diaChiO_str] = { t: 's', v: '', z: '@' };
+              } else {
+                  hks_trangXuat_obj[hks_diaChiO_str].t = 's';
+                  hks_trangXuat_obj[hks_diaChiO_str].z = '@';
+                  if (hks_trangXuat_obj[hks_diaChiO_str].v !== undefined) {
+                      hks_trangXuat_obj[hks_diaChiO_str].v = String(hks_trangXuat_obj[hks_diaChiO_str].v);
+                  }
+              }
+          }
+      }
+
+      XLSX.utils.book_append_sheet(hks_tepXuat_obj, hks_trangXuat_obj, "HocSinhChuyenTruong");
+      
+      let hks_tenNam_str = document.getElementById('t5_nam').value || "All";
+      let hks_tenLop_str = document.getElementById('t5_lop').value || "All";
+      let hks_tenFile_str = "HocSinhChuyenTruong_" + hks_tenNam_str + "_" + hks_tenLop_str + "_" + new Date().getTime() + ".xlsx";
+      
+      XLSX.writeFile(hks_tepXuat_obj, hks_tenFile_str);
+  }
+</script>
