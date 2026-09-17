@@ -61,12 +61,20 @@
       <label class="mb-1">Chọn năm học:</label>
       <select id="t3_nam" class="form-select form-select-sm fw-bold text-danger"></select>
     </div>
+    
+    <!-- BẮT ĐẦU: Bổ sung ô lọc theo ký tự đại diện -->
+    <div style="width: 200px">
+      <label class="mb-1">Lọc lớp (Ký tự đại diện *):</label>
+      <input type="text" id="t3_locLop" class="form-control form-control-sm fw-bold text-primary" placeholder="VD: 1*, *A, 5A..." onkeyup="if(event.keyCode === 13) hks_layDuLieuPhanBa_fn()">
+    </div>
+    <!-- KẾT THÚC: Bổ sung ô lọc -->
     <div>
       <button class="btn btn-sm btn-warning fw-bold text-dark shadow-sm" onclick="hks_layDuLieuPhanBa_fn()">📊 XEM BÁO CÁO DỮ LIỆU</button>
     </div>
   </div>
 
-  <ul class="nav nav-pills mb-2" id="tabThongKe">
+  <!-- Phần UL nav-pills phía dưới giữ nguyên không đổi -->
+    <ul class="nav nav-pills mb-2" id="tabThongKe">
     <li class="nav-item"><button class="nav-link active btn-sm" data-bs-toggle="pill" data-bs-target="#tk_soluong_th">1. Số lượng cấp tiểu học</button></li>
     <li class="nav-item"><button class="nav-link btn-sm ms-2" data-bs-toggle="pill" data-bs-target="#tk_soluong_thcs">2. Số lượng học sinh THCS</button></li>
     <li class="nav-item"><button class="nav-link btn-sm ms-2" data-bs-toggle="pill" data-bs-target="#tk_chatluong">3. Chất lượng và thành tích</button></li>
@@ -83,7 +91,7 @@
             <tr>
               <th rowspan="2" style="width:40px">STT</th><th rowspan="2" style="min-width:80px">Lớp</th>
               <th rowspan="2" class="col-compact">TS</th>
-              <th rowspan="2" class="col-compact">DT</th><th rowspan="2" class="col-compact">Nữ</th>
+              <th rowspan="2" class="col-compact">DT</th><th rowspan="2" class="col-compact">Tôn<br>giáo</th><th rowspan="2" class="col-compact">Nữ</th>
               <th rowspan="2" class="col-compact">Nữ<br>DT</th><th rowspan="2" class="col-compact">K.<br>Tật</th><th rowspan="2" class="col-compact">Nữ<br>KT</th>
               <th rowspan="2" class="col-compact">Hộ<br>Nghèo</th><th rowspan="2" class="col-compact">Cận<br>Nghèo</th><th rowspan="2" class="col-compact">Chính<br>Sách</th><th rowspan="2" class="col-compact" style="white-space: normal; font-size: 12px; line-height: 1.2;">HS<br>ngoại<br>tuyến</th><th rowspan="2" class="col-compact">BH<br>YT</th>
               <th colspan="2" class="col-age">6 tuổi</th><th colspan="2" class="col-age">7 tuổi</th><th colspan="2" class="col-age">8 tuổi</th>
@@ -116,7 +124,7 @@
             <tr>
               <th rowspan="2" style="width:40px">STT</th><th rowspan="2" style="min-width:80px">Lớp</th>
               <th rowspan="2" class="col-compact">TS</th>
-              <th rowspan="2" class="col-compact">DT</th><th rowspan="2" class="col-compact">Nữ</th>
+              <th rowspan="2" class="col-compact">DT</th><th rowspan="2" class="col-compact">Tôn<br>giáo</th><th rowspan="2" class="col-compact">Nữ</th>
               <th rowspan="2" class="col-compact">Nữ DT</th><th rowspan="2" class="col-compact">K.Tật</th><th rowspan="2" class="col-compact">Nữ KT</th>
               <th rowspan="2" class="col-compact">Nghèo</th><th rowspan="2" class="col-compact">Cận N</th><th rowspan="2" class="col-compact">C.Sách</th><th rowspan="2" class="col-compact" style="white-space: normal; font-size: 12px; line-height: 1.2;">HS ngoại<br>tuyến</th><th rowspan="2" class="col-compact">BHYT</th>
               <th colspan="2" class="col-age">11 tuổi</th><th colspan="2" class="col-age">12 tuổi</th><th colspan="2" class="col-age">13 tuổi</th>
@@ -200,10 +208,39 @@
 </div>
   <script>
   
-  function hks_xuLyThongKeBoNhoDem_fn(hks_chuKyHoatDong_str) {
+function hks_xuLyThongKeBoNhoDem_fn(hks_chuKyHoatDong_str, hks_tuKhoaLop_str = '') {
       const hks_chuKy_str = String(hks_chuKyHoatDong_str);
-      const hks_duLieuDaLoc_arr = hks_khoDuLieuTong_arr.filter(r => String(r[0]) === hks_chuKy_str);
+      const hks_tuKhoa_str = String(hks_tuKhoaLop_str).trim().toLowerCase();
 
+      // KHỐI LỌC DỮ LIỆU ĐẦU VÀO
+      let hks_bieuThucChinhQuy_rx = null;
+      if (hks_tuKhoa_str !== '') {
+          // Thoát các ký tự đặc biệt trong Regex ngoại trừ dấu *
+          let hks_mau_str = hks_tuKhoa_str.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&');
+          
+          if (hks_tuKhoa_str.includes('*')) {
+              // Chuyển dấu * thành .* đại diện cho chuỗi ký tự bất kỳ
+              hks_mau_str = hks_mau_str.replace(/\*/g, '.*');
+          } else {
+              // Nếu người dùng không nhập *, mặc định tìm kiếm tương đối (chứa từ khóa)
+              hks_mau_str = '.*' + hks_mau_str + '.*';
+          }
+          
+          // NÂNG CẤP: Bổ sung neo ^ (đầu chuỗi) và $ (cuối chuỗi) để ép khớp chính xác vị trí
+          hks_bieuThucChinhQuy_rx = new RegExp('^' + hks_mau_str + '$', 'i');
+      }
+
+      const hks_duLieuDaLoc_arr = hks_khoDuLieuTong_arr.filter(r => {
+          if (String(r[0]) !== hks_chuKy_str) return false;
+          
+          if (hks_bieuThucChinhQuy_rx) {
+              let hks_tenLop_str = String(r[1]).trim().toLowerCase();
+              return hks_bieuThucChinhQuy_rx.test(hks_tenLop_str);
+          }
+          return true;
+      });
+
+      // KHỐI KHỞI TẠO BIẾN THỐNG KÊ
       let hks_namGoc_num = 0;
       if(hks_chuKyHoatDong_str) {
          let hks_phanTach_arr = hks_chuKy_str.split(/[-–_]/);
@@ -216,7 +253,7 @@
       let hks_namHienTai_str = String(new Date().getFullYear()); 
 
       let hks_thongKe_obj = {};
-      let hks_tongBangMot_obj = { tongSo: 0, danToc: 0, nu: 0, nuDanToc: 0, khuyetTat: 0, nuKhuyetTat: 0, ngheo: 0, canNgheo: 0, chinhSach: 0, hsNgoaiTuyen: 0, bhyt: 0, tuoi: {} };
+      let hks_tongBangMot_obj = { tongSo: 0, danToc: 0, tonGiao: 0, nu: 0, nuDanToc: 0, khuyetTat: 0, nuKhuyetTat: 0, ngheo: 0, canNgheo: 0, chinhSach: 0, hsNgoaiTuyen: 0, bhyt: 0, tuoi: {} };
       for(let i=6; i<=19; i++) hks_tongBangMot_obj.tuoi[i] = {ts: 0, nu: 0};
       
       let hks_tongBangHai_obj = { 
@@ -225,12 +262,13 @@
           tinh: hks_khoiTaoMauThanhTich_fn(), qg: hks_khoiTaoMauThanhTich_fn(), qt: hks_khoiTaoMauThanhTich_fn() 
       };
 
+      // KHỐI DUYỆT VÀ CỘNG DỒN DỮ LIỆU
       hks_duLieuDaLoc_arr.forEach(r => {
         let hks_phomHienTai_str = String(r[1]).trim();
         if (!hks_thongKe_obj[hks_phomHienTai_str]) {
           let hks_doiTuongTuoi_obj = {}; for(let i=6; i<=19; i++) hks_doiTuongTuoi_obj[i] = {ts: 0, nu: 0};
           hks_thongKe_obj[hks_phomHienTai_str] = {
-            lop: hks_phomHienTai_str, tongSo: 0, danToc: 0, nu: 0, nuDanToc: 0, khuyetTat: 0, nuKhuyetTat: 0, ngheo: 0, canNgheo: 0, chinhSach: 0, hsNgoaiTuyen: 0, bhyt: 0, tuoi: hks_doiTuongTuoi_obj, 
+            lop: hks_phomHienTai_str, tongSo: 0, danToc: 0, tonGiao: 0, nu: 0, nuDanToc: 0, khuyetTat: 0, nuKhuyetTat: 0, ngheo: 0, canNgheo: 0, chinhSach: 0, hsNgoaiTuyen: 0, bhyt: 0, tuoi: hks_doiTuongTuoi_obj,
             htxs: 0, htt: 0, ht: 0, cht: 0,
             thanhTich: { xa: hks_khoiTaoMauThanhTich_fn(), huyen: hks_khoiTaoMauThanhTich_fn(), tinh: hks_khoiTaoMauThanhTich_fn(), qg: hks_khoiTaoMauThanhTich_fn(), qt: hks_khoiTaoMauThanhTich_fn() }
           };
@@ -248,6 +286,11 @@
         let hks_laNu_bol = (hks_nhomHinhThai_str === 'nữ');
         
         if (hks_laDanToc_bol) { objTKLop.danToc++; hks_tongBangMot_obj.danToc++; }
+        
+        let hks_tonGiao_str = String(r[49] || "").trim(); // Chỉ số mảng nội suy 49
+        if (hks_tonGiao_str !== "" && hks_tonGiao_str.toLowerCase() !== "không" && hks_tonGiao_str.toLowerCase() !== "khong") { 
+            objTKLop.tonGiao++; hks_tongBangMot_obj.tonGiao++; 
+        }
         
         if (hks_laNu_bol) { 
             objTKLop.nu++; hks_tongBangMot_obj.nu++; 
@@ -326,10 +369,11 @@
       });
       
       let hks_ketQuaCuoi_arr = Object.values(hks_thongKe_obj).sort((a,b) => a.lop.localeCompare(b.lop));
+      
       if (hks_ketQuaCuoi_arr.length > 0) {
           let hks_dongTongCong_obj = {
             lop: "TỔNG", 
-            tongSo: hks_tongBangMot_obj.tongSo, danToc: hks_tongBangMot_obj.danToc, nu: hks_tongBangMot_obj.nu, nuDanToc: hks_tongBangMot_obj.nuDanToc, khuyetTat: hks_tongBangMot_obj.khuyetTat, nuKhuyetTat: hks_tongBangMot_obj.nuKhuyetTat, 
+            tongSo: hks_tongBangMot_obj.tongSo, danToc: hks_tongBangMot_obj.danToc, tonGiao: hks_tongBangMot_obj.tonGiao, nu: hks_tongBangMot_obj.nu, nuDanToc: hks_tongBangMot_obj.nuDanToc, khuyetTat: hks_tongBangMot_obj.khuyetTat, nuKhuyetTat: hks_tongBangMot_obj.nuKhuyetTat,
             ngheo: hks_tongBangMot_obj.ngheo, canNgheo: hks_tongBangMot_obj.canNgheo, chinhSach: hks_tongBangMot_obj.chinhSach, hsNgoaiTuyen: hks_tongBangMot_obj.hsNgoaiTuyen, bhyt: hks_tongBangMot_obj.bhyt, tuoi: hks_tongBangMot_obj.tuoi, 
             htxs: hks_tongBangHai_obj.htxs, htt: hks_tongBangHai_obj.htt, ht: hks_tongBangHai_obj.ht, cht: hks_tongBangHai_obj.cht,
             thanhTich: { xa: hks_tongBangHai_obj.xa, huyen: hks_tongBangHai_obj.huyen, tinh: hks_tongBangHai_obj.tinh, qg: hks_tongBangHai_obj.qg, qt: hks_tongBangHai_obj.qt }
@@ -341,11 +385,16 @@
 
  function hks_layDuLieuPhanBa_fn() {
     let hks_namChon_str = document.getElementById('t3_nam').value;
+    let hks_locLop_el = document.getElementById('t3_locLop');
+    // Đảm bảo lấy được từ khóa lọc nếu phần tử tồn tại
+    let hks_tuKhoaLop_str = hks_locLop_el ? hks_locLop_el.value.trim() : '';
+
     if(!hks_namChon_str) { Swal.fire("Cảnh báo!", "Giá trị trục gốc bằng null!", "warning"); return; }
     hks_hienThiManHinhTai_fn(true);
     
     setTimeout(() => {
-        let hks_ketQuaThongKe_arr = hks_xuLyThongKeBoNhoDem_fn(hks_namChon_str);
+        // Truyền cả năm học và từ khóa lọc vào hàm lõi
+        let hks_ketQuaThongKe_arr = hks_xuLyThongKeBoNhoDem_fn(hks_namChon_str, hks_tuKhoaLop_str);
         hks_veBangPhanBa_fn(hks_ketQuaThongKe_arr);
     }, 10); 
   }
@@ -355,7 +404,7 @@
 
   function hks_khoiTaoDoiTuong_fn(tenLop) {
       let obj = {
-          lop: tenLop, tongSo: 0, danToc: 0, nu: 0, nuDanToc: 0, khuyetTat: 0, nuKhuyetTat: 0,
+          lop: tenLop, tongSo: 0, danToc: 0, tonGiao: 0, nu: 0, nuDanToc: 0, khuyetTat: 0, nuKhuyetTat: 0,
           ngheo: 0, canNgheo: 0, chinhSach: 0, hsNgoaiTuyen: 0, bhyt: 0, htxs: 0, htt: 0, ht: 0, cht: 0,
           tuoi: {}, thanhTich: { xa: hks_khoiTaoMauThanhTich_fn(), huyen: hks_khoiTaoMauThanhTich_fn(), tinh: hks_khoiTaoMauThanhTich_fn(), qg: hks_khoiTaoMauThanhTich_fn(), qt: hks_khoiTaoMauThanhTich_fn() }
       };
@@ -364,7 +413,7 @@
   }
 
   function hks_tinhTongGop_fn(goc, them) {
-      goc.tongSo += them.tongSo || 0; goc.danToc += them.danToc || 0; goc.nu += them.nu || 0; goc.nuDanToc += them.nuDanToc || 0;
+      goc.tongSo += them.tongSo || 0; goc.danToc += them.danToc || 0; goc.tonGiao += them.tonGiao || 0; goc.nu += them.nu || 0; goc.nuDanToc += them.nuDanToc || 0;
       goc.khuyetTat += them.khuyetTat || 0; goc.nuKhuyetTat += them.nuKhuyetTat || 0; goc.ngheo += them.ngheo || 0; goc.canNgheo += them.canNgheo || 0;
       goc.chinhSach += them.chinhSach || 0; goc.hsNgoaiTuyen += them.hsNgoaiTuyen || 0; goc.bhyt += them.bhyt || 0;
       goc.htxs += them.htxs || 0; goc.htt += them.htt || 0; goc.ht += them.ht || 0; goc.cht += them.cht || 0;
@@ -393,7 +442,7 @@
       
       return `<tr class="${cssClass}">
         <td>${stt}</td><td class="text-start px-2">${hks_lopHienThi_str}</td>
-        <td class="col-compact">${hks_dinhDangOChua_fn(item.tongSo)}</td><td class="col-compact">${hks_dinhDangOChua_fn(item.danToc)}</td>
+        <td class="col-compact">${hks_dinhDangOChua_fn(item.tongSo)}</td><td class="col-compact">${hks_dinhDangOChua_fn(item.danToc)}</td><td class="col-compact">${hks_dinhDangOChua_fn(item.tonGiao)}</td>
         <td class="col-compact">${hks_dinhDangOChua_fn(item.nu)}</td><td class="col-compact">${hks_dinhDangOChua_fn(item.nuDanToc)}</td>
         <td class="col-compact">${hks_dinhDangOChua_fn(item.khuyetTat)}</td><td class="col-compact">${hks_dinhDangOChua_fn(item.nuKhuyetTat)}</td>
         <td class="col-compact">${hks_dinhDangOChua_fn(item.ngheo)}</td><td class="col-compact">${hks_dinhDangOChua_fn(item.canNgheo)}</td> 
@@ -511,12 +560,16 @@
 
     hks_hienThiManHinhTai_fn(false);
   }
- // ==========================================
+// ==========================================
 // KHỐI 4: KẾT XUẤT BIỂU ĐỒ BÁO CÁO HOÀN CHỈNH
 // ==========================================
 function hks_xuatBieuDo_fn() {
     let hks_tuNam_str = document.getElementById('t3_tunam').value;
     let hks_denNam_str = document.getElementById('t3_dennam').value;
+    
+    // [VÁ LỖI]: Chuyển khai báo biến lọc lớp lên vị trí toàn cục của hàm
+    let hks_locLop_el = document.getElementById('t3_locLop');
+    let hks_tuKhoaLop_str = hks_locLop_el ? hks_locLop_el.value.trim() : '';
     
     if (!hks_tuNam_str || !hks_denNam_str) {
         Swal.fire("Thông báo", "Đồng chí vui lòng chọn đầy đủ khoảng thời gian!", "warning");
@@ -567,7 +620,7 @@ function hks_xuatBieuDo_fn() {
         let hks_bangMau_arr = ['#dc3545', '#0d6efd', '#198754', '#ffc107', '#6f42c1', '#fd7e14']; 
 
         hks_danhSachNam_arr.forEach((nam, idx) => {
-            let hks_thongKeNam_arr = hks_xuLyThongKeBoNhoDem_fn(nam);
+            let hks_thongKeNam_arr = hks_xuLyThongKeBoNhoDem_fn(nam, hks_tuKhoaLop_str);
             let hks_tongNam_obj = hks_thongKeNam_arr.find(item => item.lop === 'TỔNG');
             
             if (hks_tongNam_obj) {
@@ -689,7 +742,8 @@ function hks_xuatBieuDo_fn() {
             hks_theCard_el.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
         });
 
-        let hks_duLieuThongKe_arr = hks_xuLyThongKeBoNhoDem_fn(hks_chuKy_str);
+        // Lúc này biến hks_tuKhoaLop_str đã hợp lệ và luôn sẵn sàng để nội suy
+        let hks_duLieuThongKe_arr = hks_xuLyThongKeBoNhoDem_fn(hks_chuKy_str, hks_tuKhoaLop_str);
         let hks_dongTong_obj = hks_duLieuThongKe_arr.find(item => item.lop === 'TỔNG');
 
         if (hks_dongTong_obj) {
@@ -714,7 +768,6 @@ function hks_xuatBieuDo_fn() {
             
             let hks_tongSoGiai_num = sumGiai('xa') + sumGiai('huyen') + sumGiai('tinh') + sumGiai('qg') + sumGiai('qt');
 
-            // NHÃN TRỤC X ĐÃ ĐƯỢC CHUẨN HÓA: MŨI NHỌN ĐỨNG TRƯỚC
             let hks_nhanTrucX_arr = [
                 ['M.Nhọn: Quốc gia', 'Đ.Trà: XS'], 
                 ['M.Nhọn: Tỉnh', 'Đ.Trà: HTT'], 
