@@ -11,7 +11,7 @@
   
   <script>
     window.khachApi = {
-        yeucauApi: function(hdong, tdtai, khiTcong, khiLoi) {
+yeucauApi: function(hdong, tdtai, khiTcong, khiLoi) {
             if (typeof ddungApi === 'undefined' || !ddungApi) {
                 if (khiLoi) khiLoi(new Error("Liên kết API hệ thống chưa sẵn sàng. Vui lòng tải lại trang."));
                 return;
@@ -22,9 +22,15 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
                 body: JSON.stringify(dlieu),
-                redirect: 'follow'
+                redirect: 'follow',
+                // [NÂNG CẤP]: Cấm trình duyệt gửi Cookie, giải quyết triệt để lỗi trên điện thoại
+                credentials: 'omit'
             })
             .then(function(ph) { 
+                // Bắt mạch lỗi Redirect sang trang đăng nhập do sai cấu hình URL
+                if (ph.redirected && ph.url.includes('ServiceLogin')) {
+                    throw new Error("Lỗi máy chủ: API đang ở chế độ /dev hoặc chưa cấp quyền truy cập public.");
+                }
                 if (!ph.ok) throw new Error("Máy chủ từ chối kết nối (Mã lỗi: " + ph.status + ")");
                 return ph.text(); 
             })
@@ -43,6 +49,8 @@
             })
             .catch(function(loie) { if (khiLoi) khiLoi(loie); });
         },
+
+      
         layDlCanb: function(ttrang, taik, khiTcong, khiLoi) { this.yeucauApi("laydlcanb", { ttrang: ttrang, tkcanb: taik }, khiTcong, khiLoi); },
         luuTam: function(dldeu, khiTcong, khiLoi) { this.yeucauApi("luutam", { dldeu: dldeu }, khiTcong, khiLoi); },
         nopBcao: function(dl, khiTcong, khiLoi) { this.yeucauApi("nopbcao", { dldeu: dl }, khiTcong, khiLoi); },
