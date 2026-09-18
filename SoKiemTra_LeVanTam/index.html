@@ -55,14 +55,15 @@ _call: function(hdong, tso) {
                     return;
                 }
 
-                // NÂNG CẤP: Đồng bộ cơ chế cấm Cookie cho nút dọn dẹp hệ thống
-                 fetch(duongDanHeThong, {
-                     method: "POST",
-                     headers: { "Content-Type": "text/plain;charset=utf-8" },
-                     body: JSON.stringify(duLieuDongGoi),
-                     redirect: 'follow',
-                     credentials: 'omit'
-                 })
+                // Gửi dữ liệu bằng phương thức POST chuẩn - ĐÃ NÂNG CẤP CHẶN COOKIE
+                fetch(duongDanHeThong, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify(duLieuDongGoi),
+                    redirect: 'follow',
+                    // Thêm dòng này để cắt đứt liên kết Cookie, chống chặn trên điện thoại
+                    credentials: 'omit'
+                })
                 // --- BẮT ĐẦU VỊ TRÍ NÂNG CẤP BẮT LỖI UNEXPECTED TOKEN '<' ---
                 .then(res => {
                     const kieuDuLieu = res.headers.get("content-type");
