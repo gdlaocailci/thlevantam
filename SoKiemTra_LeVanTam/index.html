@@ -55,12 +55,14 @@ _call: function(hdong, tso) {
                     return;
                 }
 
-                // Chèn thêm ma_don_vi vào gói tin gửi đi
-                fetch(endpoint, {
-                    method: 'POST',
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ hdong: hdong, tso: tso, taik: sysId, ma_don_vi: maDonVi })
-                })
+                // NÂNG CẤP: Đồng bộ cơ chế cấm Cookie cho nút dọn dẹp hệ thống
+                 fetch(duongDanHeThong, {
+                     method: "POST",
+                     headers: { "Content-Type": "text/plain;charset=utf-8" },
+                     body: JSON.stringify(duLieuDongGoi),
+                     redirect: 'follow',
+                     credentials: 'omit'
+                 })
                 // --- BẮT ĐẦU VỊ TRÍ NÂNG CẤP BẮT LỖI UNEXPECTED TOKEN '<' ---
                 .then(res => {
                     const kieuDuLieu = res.headers.get("content-type");
