@@ -19,7 +19,7 @@ const MA_TRAN_UI_CLIENT = {
   "TRUONG_1": {
     TEN_TRUONG: "TRƯỜNG TIỂU HỌC LÊ VĂN TÁM",
     TEN_TRUONG_UP: "TRƯỜNG TIỂU HỌC LÊ VĂN TÁM",
-    LOGO_URL: "https://i.postimg.cc/xjzpvXCm/Logo-HL.png"
+    LOGO_URL: "https://i.postimg.cc/jjhbBSRt/logo-levan-tam-moi-removebg-preview.png"
   },
   "TRUONG_2": {
     TEN_TRUONG: "",
