@@ -1,7 +1,7 @@
 var ddungApi = "https://script.google.com/macros/s/AKfycbwKD8bN03tvoY77r00aYmwsE26MFxMNjTRcI7C8CnhgcxcaknKX04sRbbj1BC-IK3NZ/exec"; 
 
 // --- CÁC BIẾN CẤU HÌNH ĐỊNH DANH HỆ THỐNG ---
-var PGV_LINK_LOGO = "https://i.postimg.cc/xjzpvXCm/Logo-HL.png"; 
+var PGV_LINK_LOGO = "https://i.postimg.cc/jjhbBSRt/logo-levan-tam-moi-removebg-preview.png"; 
 var PGV_TEN_TRUONG = "Trường Tiểu học Lê Văn Tám";
 var PGV_TEN_TRUONG_UP = "TRƯỜNG TIỂU HỌC LÊ VĂN TÁM";
 var PGV_TEN_PM = "Quản lý Nhiệm vụ";
