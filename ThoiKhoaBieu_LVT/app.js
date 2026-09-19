@@ -1104,6 +1104,7 @@ function khoiDongDangNhap() {
         clientDangNhapG = google.accounts.oauth2.initTokenClient({
             client_id: SKT_GOOGLE_CLIENT_ID,
             scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+            use_fedcm_for_prompt: true,
             callback: (phanHoiToken) => {
                 dangXuLyDangNhap = false; // Mở khóa luồng
                 if (phanHoiToken && phanHoiToken.access_token) {
