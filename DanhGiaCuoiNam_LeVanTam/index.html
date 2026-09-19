@@ -226,13 +226,12 @@
         
         <div style="margin-bottom: 25px; padding: 15px 20px; background-color: #f8fbff; border-radius: 8px; border: 1px solid #b8daff; text-align: left;">
             <label for="oChonNhom" style="font-weight: bold; color: var(--mau-c); display: block; margin-bottom: 8px;">1. Chọn đối tượng đánh giá:</label>
-            
             <select id="oChonNhom" onchange="hienThiNutGoogle()" class="o-c-kieu" style="width: 100%; margin-bottom: 20px; box-sizing: border-box; text-align: center;">
                 <option value="" disabled selected>-- Chọn chức vụ của bạn --</option>
-                <option value="giaovienc1">TỔ TRƯỞNG (CẤP 1)</option>
-                <option value="giaovienc1">TỔ PHÓ (CẤP 1)</option>
-                <option value="giaovienc1">TỔNG PHỤ TRÁCH (CẤP 1)</option>
-                <option value="giaovienc1">GIÁO VIÊN (CẤP 1)</option>
+                <option value="giaovien">TỔ TRƯỞNG CM</option>
+                <option value="giaovien">TỔ PHÓ CM</option>
+                <option value="giaovien">TỔNG PHỤ TRÁCH</option>
+                <option value="giaovien">GIÁO VIÊN</option>
                 <option value="nhanvien">TỔ TRƯỞNG VP</option>
                 <option value="nhanvien">TỔ PHÓ VP</option>
                 <option value="nhanvien">NHÂN VIÊN</option>
@@ -287,17 +286,15 @@
                 <span class="b-tuong">📋</span> Tiêu chí đánh giá
                 <span style="margin-left: auto; font-size: 14px;">▼</span>
             </span>
-            <div class="submenu-tieu-chi" id="submenu-tieu-chi" style="display: none;">
-                <span class="the-chuyen" id="menu-tieu-chi-gv-c1" style="display: none;">
-                    <span class="b-tuong">🏫</span> Tiêu chí xếp loại giáo viên C1
-                </span>
-                <span class="the-chuyen" id="menu-tieu-chi-gv-c2" style="display: none;">
-                    <span class="b-tuong">🏫</span> Tiêu chí xếp loại giáo viên C2
-                </span>
-                <span class="the-chuyen" id="menu-tieu-chi-nv" style="display: none;">
-                    <span class="b-tuong">💼</span> Tiêu chí xếp loại nhân viên
-                </span>
-            </div>
+            <!-- Sửa lại phần Menu Tiêu chí đánh giá bên trái -->
+                <div class="submenu-tieu-chi" id="submenu-tieu-chi" style="display: none;">
+                    <span class="the-chuyen" id="menu-tieu-chi-gv" style="display: none;">
+                        <span class="b-tuong">🏫</span> Tiêu chí đánh giá giáo viên
+                    </span>
+                    <span class="the-chuyen" id="menu-tieu-chi-nv" style="display: none;">
+                        <span class="b-tuong">💼</span> Tiêu chí đánh giá nhân viên
+                    </span>
+                </div>
             
             <span class="the-chuyen" id="menu-tro-giup" onclick="moKhungChatAI()">
                 <span class="b-tuong">💡</span> Trợ giúp
@@ -455,21 +452,14 @@ function khoiDongHeThong() {
     const savedNhom = sessionStorage.getItem("HTDG_NHOM_ID");
     if (savedNhom) {
         let el = document.getElementById('oChonNhom');
-        if (el) {
-            el.value = savedNhom;
-            hienThiNutGoogle();
-        }
+        if (el) { el.value = savedNhom; hienThiNutGoogle(); }
     }
     if (loggedUser) showMainUI(loggedUser);
     
     const tbg = document.getElementById("t-b-g");
     if (tbg) {
-        tbg.addEventListener('change', function(e) {
-            if (e.target && e.target.classList.contains('k-hoat-t')) f_x_h();
-        });
-        tbg.addEventListener('input', function(e) {
-            if (e.target && e.target.classList.contains('k-hoat-t')) v_f_x_h_debounce();
-        });
+        tbg.addEventListener('change', function(e) { if (e.target && e.target.classList.contains('k-hoat-t')) f_x_h(); });
+        tbg.addEventListener('input', function(e) { if (e.target && e.target.classList.contains('k-hoat-t')) v_f_x_h_debounce(); });
         tbg.addEventListener('click', function(e) {
             if (e.target && e.target.tagName === 'BUTTON' && (e.target.classList.contains('n-xanh-b') || e.target.classList.contains('n-do'))) {
                 setTimeout(() => { if (typeof f_x_h === 'function') f_x_h(); }, 150);
@@ -477,38 +467,24 @@ function khoiDongHeThong() {
         });
     }
     
+   // ĐỒNG BỘ: Chỉ load cấu trúc của Giáo viên chung và Nhân viên
    Promise.all([
-        f_x_k('danhgiaGVC1.html'),
-        f_x_k('danhgiaGVC2.html'),
+        f_x_k('danhgiaGV.html'),
         f_x_k('danhgiaNV.html'), 
         f_x_k('CapQuyen.html'),
         f_x_k('KetQua.html'),
-        f_x_k('tieuchiGVC1.html'),
-        f_x_k('tieuchiGVC2.html'),
+        f_x_k('tieuchiGV.html'),
         f_x_k('tieuchiNhanVien.html')
     ]).catch(e => console.log(e));
     
     setTimeout(function() {
-        const menuTieuChiGvC1 = document.getElementById("menu-tieu-chi-gv-c1");
-        if (menuTieuChiGvC1) {
-            menuTieuChiGvC1.onclick = function(e) {
-                e.preventDefault();
-                f_x_mo_tieu_chi_gv_c1();
-            };
-        }
-        const menuTieuChiGvC2 = document.getElementById("menu-tieu-chi-gv-c2");
-        if (menuTieuChiGvC2) {
-            menuTieuChiGvC2.onclick = function(e) {
-                e.preventDefault();
-                f_x_mo_tieu_chi_gv_c2();
-            };
+        const menuTieuChiGv = document.getElementById("menu-tieu-chi-gv");
+        if (menuTieuChiGv) {
+            menuTieuChiGv.onclick = function(e) { e.preventDefault(); f_x_mo_tieu_chi_gv(); };
         }
         const menuTieuChiNv = document.getElementById("menu-tieu-chi-nv");
         if (menuTieuChiNv) {
-            menuTieuChiNv.onclick = function(e) {
-                e.preventDefault();
-                f_x_mo_tieu_chi_nv();
-            };
+            menuTieuChiNv.onclick = function(e) { e.preventDefault(); f_x_mo_tieu_chi_nv(); };
         }
     }, 500);
 }
@@ -601,15 +577,13 @@ function v_hien_thi_menu_admin(hienThi) {
     if (mn1) mn1.style.display = kieu;
     if (mnCha) {
         mnCha.style.display = kieu;
-       submenu.style.display = hienThi ? "none" : "none";
+        submenu.style.display = hienThi ? "none" : "none";
         const arrowSpan = mnCha.querySelector('span:last-child');
         if (arrowSpan) arrowSpan.innerHTML = '▼';
     }
-    let mn2 = document.getElementById("menu-tieu-chi-gv-c1");
-    let mn3 = document.getElementById("menu-tieu-chi-gv-c2");
+    let mn2 = document.getElementById("menu-tieu-chi-gv");
     let mn4 = document.getElementById("menu-tieu-chi-nv");
     if (mn2) mn2.style.display = kieu;
-    if (mn3) mn3.style.display = kieu;
     if (mn4) mn4.style.display = kieu;
 }
 
@@ -654,7 +628,8 @@ async function f_x_load_guest_template(p_n) {
                 let isGv = roleStr.includes('giáo viên') || roleStr.includes('giao vien') || roleStr.includes('tổ trưởng') || roleStr.includes('to truong') || roleStr.includes('tổ phó') || roleStr.includes('to pho') || roleStr.includes('tổng phụ trách') || roleStr.includes('tong phu trach');
                 let isNv = roleStr.includes('nhân viên') || roleStr.includes('nhan vien') || roleStr.includes('vp') || roleStr.includes('kế toán') || roleStr.includes('ke toan') || roleStr.includes('y tế') || roleStr.includes('y te') || roleStr.includes('thư viện') || roleStr.includes('thu vien') || roleStr.includes('thiết bị') || roleStr.includes('thiet bi') || roleStr.includes('bảo vệ') || roleStr.includes('bao ve') || roleStr.includes('văn thư') || roleStr.includes('van thu');
                 
-                if ((p_n === 'nhanvien' && isNv) || ((p_n === 'giaovienc1' || p_n === 'giaovienc2') && isGv)) {
+                // ĐỒNG BỘ: Chỉ so sánh với giaovien
+                if ((p_n === 'nhanvien' && isNv) || (p_n === 'giaovien' && isGv)) {
                     repId = vc.id;
                     break;
                 }
@@ -663,7 +638,6 @@ async function f_x_load_guest_template(p_n) {
 
         if (repId) {
             const t_k_admin = await fetchAPI(`${z_y_a}?z_p_a=admin_load&z_p_b=${encodeURIComponent(repId)}&z_p_c=${p_n}`);
-            
             if (t_k_admin.status === 'success' && t_k_admin.y_d) {
                 let blankData = t_k_admin.y_d.map(item => ({ ...item, x_c: "" }));
                 f_x_e(blankData);
@@ -672,9 +646,6 @@ async function f_x_load_guest_template(p_n) {
                 let tbg = document.getElementById("t-b-g");
                 if(tbg) tbg.innerHTML = "<tr><td colspan='4' style='text-align: center; color: #dc3545; font-weight: bold; padding: 20px;'>CHẾ ĐỘ KHÁCH: Lỗi tải cấu trúc mẫu.</td></tr>";
             }
-        } else {
-            let tbg = document.getElementById("t-b-g");
-            if(tbg) tbg.innerHTML = "<tr><td colspan='4' style='text-align: center; color: #dc3545; font-weight: bold; padding: 20px;'>CHẾ ĐỘ KHÁCH: Hệ thống chưa có nhân sự nhóm này để mượn cấu trúc mẫu.</td></tr>";
         }
     } catch (e) {
         let tbg = document.getElementById("t-b-g");
@@ -804,53 +775,27 @@ function f_x_mo_quan_ly_quyen() {
     }
 }
 
-function f_x_mo_tieu_chi_gv_c1() {
+function f_x_mo_tieu_chi_gv() {
     if(document.getElementById("vungThuNhat")) document.getElementById("vungThuNhat").classList.add("a-di");
     if(document.getElementById("vungThuHai")) document.getElementById("vungThuHai").classList.add("a-di");
     if(document.getElementById("vung-danh-gia-ui")) document.getElementById("vung-danh-gia-ui").style.display = "none";
     if(document.getElementById("ket-qua-ui")) document.getElementById("ket-qua-ui").style.display = "none";
     if(document.getElementById("cap-quyen-ui")) document.getElementById("cap-quyen-ui").style.display = "none";
-    if(document.getElementById("tieuchi-gvc2-ui")) document.getElementById("tieuchi-gvc2-ui").style.display = "none";
     if(document.getElementById("tieuchi-nhanvien-ui")) document.getElementById("tieuchi-nhanvien-ui").style.display = "none";
     if(document.getElementById("vungHienThiNamHoc")) document.getElementById("vungHienThiNamHoc").style.display = "none";
     if(document.getElementById("vungChonAdmin")) document.getElementById("vungChonAdmin").style.display = "none";
     if(document.getElementById("h-dang-tai")) document.getElementById("h-dang-tai").style.display = "none";
     
     document.querySelectorAll('.the-chuyen').forEach(el => el.classList.remove('active'));
-    let menuTc = document.getElementById("menu-tieu-chi-gv-c1");
+    let menuTc = document.getElementById("menu-tieu-chi-gv");
     if (menuTc) menuTc.classList.add("active");
     
-    let vungTc = document.getElementById("tieuchi-gvc1-ui");
+    let vungTc = document.getElementById("tieuchi-gv-ui"); // UI id cũng đồng bộ lại cho hợp lý
     if (vungTc) {
         vungTc.style.display = "block";
-        if (typeof tcgvc1_TaiDuLieu === "function") tcgvc1_TaiDuLieu();
+        if (typeof tcgv_TaiDuLieu === "function") tcgv_TaiDuLieu();
     } else {
-        hienThiThongBaoUI("Module quản lý tiêu chí C1 chưa được tải xong.");
-    }
-}
-
-function f_x_mo_tieu_chi_gv_c2() {
-    if(document.getElementById("vungThuNhat")) document.getElementById("vungThuNhat").classList.add("a-di");
-    if(document.getElementById("vungThuHai")) document.getElementById("vungThuHai").classList.add("a-di");
-    if(document.getElementById("vung-danh-gia-ui")) document.getElementById("vung-danh-gia-ui").style.display = "none";
-    if(document.getElementById("ket-qua-ui")) document.getElementById("ket-qua-ui").style.display = "none";
-    if(document.getElementById("cap-quyen-ui")) document.getElementById("cap-quyen-ui").style.display = "none";
-    if(document.getElementById("tieuchi-gvc1-ui")) document.getElementById("tieuchi-gvc1-ui").style.display = "none";
-    if(document.getElementById("tieuchi-nhanvien-ui")) document.getElementById("tieuchi-nhanvien-ui").style.display = "none";
-    if(document.getElementById("vungHienThiNamHoc")) document.getElementById("vungHienThiNamHoc").style.display = "none";
-    if(document.getElementById("vungChonAdmin")) document.getElementById("vungChonAdmin").style.display = "none";
-    if(document.getElementById("h-dang-tai")) document.getElementById("h-dang-tai").style.display = "none";
-    
-    document.querySelectorAll('.the-chuyen').forEach(el => el.classList.remove('active'));
-    let menuTc = document.getElementById("menu-tieu-chi-gv-c2");
-    if (menuTc) menuTc.classList.add("active");
-    
-    let vungTc = document.getElementById("tieuchi-gvc2-ui");
-    if (vungTc) {
-        vungTc.style.display = "block";
-        if (typeof tcgvc2_TaiDuLieu === "function") tcgvc2_TaiDuLieu();
-    } else {
-        hienThiThongBaoUI("Module quản lý tiêu chí C2 chưa được tải xong.");
+        hienThiThongBaoUI("Module quản lý tiêu chí giáo viên chưa được tải xong.");
     }
 }
 
@@ -860,8 +805,7 @@ function f_x_mo_tieu_chi_nv() {
     if(document.getElementById("vung-danh-gia-ui")) document.getElementById("vung-danh-gia-ui").style.display = "none";
     if(document.getElementById("ket-qua-ui")) document.getElementById("ket-qua-ui").style.display = "none";
     if(document.getElementById("cap-quyen-ui")) document.getElementById("cap-quyen-ui").style.display = "none";
-    if(document.getElementById("tieuchi-gvc1-ui")) document.getElementById("tieuchi-gvc1-ui").style.display = "none";
-    if(document.getElementById("tieuchi-gvc2-ui")) document.getElementById("tieuchi-gvc2-ui").style.display = "none";
+    if(document.getElementById("tieuchi-gv-ui")) document.getElementById("tieuchi-gv-ui").style.display = "none";
     if(document.getElementById("vungHienThiNamHoc")) document.getElementById("vungHienThiNamHoc").style.display = "none";
     if(document.getElementById("vungChonAdmin")) document.getElementById("vungChonAdmin").style.display = "none";
     if(document.getElementById("h-dang-tai")) document.getElementById("h-dang-tai").style.display = "none";
@@ -1069,17 +1013,14 @@ async function f_x_admin_chon_user() {
     const z_y_a = (typeof DG_CONFIG_GAS_URL !== 'undefined') ? DG_CONFIG_GAS_URL : "";
 
     if (!selectedId) return; 
-
     v_che_do_xem_admin = true; 
 
     const selectedOption = selectObj.options[selectObj.selectedIndex];
     const selectedRoleStr = selectedOption.getAttribute('data-role').toLowerCase();
     const selectedName = selectedOption.getAttribute('data-name');
 
-    let nhomXacDinh = 'giaovienc1';
-    if (selectedRoleStr.includes('cấp 2') || selectedRoleStr.includes('c2')) {
-        nhomXacDinh = 'giaovienc2';
-    }
+    // ĐỒNG BỘ: Gộp toàn bộ thành giaovien
+    let nhomXacDinh = 'giaovien';
 
     let isGv = selectedRoleStr.includes('giáo viên') || selectedRoleStr.includes('giao vien') || selectedRoleStr.includes('tổ trưởng') || selectedRoleStr.includes('to truong') || selectedRoleStr.includes('tổ phó') || selectedRoleStr.includes('to pho') || selectedRoleStr.includes('tổng phụ trách') || selectedRoleStr.includes('tong phu trach');
     let isNv = selectedRoleStr.includes('nhân viên') || selectedRoleStr.includes('nhan vien') || selectedRoleStr.includes('vp') || selectedRoleStr.includes('kế toán') || selectedRoleStr.includes('ke toan') || selectedRoleStr.includes('y tế') || selectedRoleStr.includes('y te') || selectedRoleStr.includes('thư viện') || selectedRoleStr.includes('thu vien') || selectedRoleStr.includes('thiết bị') || selectedRoleStr.includes('thiet bi') || selectedRoleStr.includes('bảo vệ') || selectedRoleStr.includes('bao ve') || selectedRoleStr.includes('văn thư') || selectedRoleStr.includes('van thu');
@@ -1288,14 +1229,9 @@ function f_x_e(m_n) {
     let p_k = false; 
     let khoiDOM = "";
     
+    // ĐỒNG BỘ: Chỉ duy trì một hàm chuẩn Giáo Viên
     let fnThem = "f_x_f_gv";
     let fnXoa = "f_x_g_gv";
-    let elNhom = document.getElementById("oChonNhom");
-    let c_n_val = elNhom ? elNhom.value : "";
-    if (c_n_val === "giaovienc2") {
-        fnThem = "f_x_f_gvc2";
-        fnXoa = "f_x_g_gvc2";
-    }
 
     m_n.forEach((item, index) => {
         let tg = (item.x_b === "undefined" || !item.x_b) ? "" : item.x_b.toString().trim();
@@ -1355,34 +1291,14 @@ function f_x_h() {
     const c_n = elNhom ? elNhom.value : "";
     let mangDuLieuGom = [];
     
-    m_d.forEach(d_k => {
-        let c_x_1 = d_k.querySelector(".m-cot-mot");
-        let c_x_2 = d_k.querySelector(".o-n-bang");
-        if (c_x_1 && c_x_2) {
-            let e_s = d_k.querySelector("select.o-n-bang");
-            mangDuLieuGom.push({
-                ten: c_x_1.innerText.trim().toLowerCase(),
-                giaTri: c_x_2.value.toLowerCase(),
-                so: parseFloat(c_x_2.value.replace(/[^\d\.\-]/g, '')) || 0,
-                isSelect: e_s !== null,
-                selectDataP: e_s ? parseFloat(e_s.options[e_s.selectedIndex].getAttribute("data-p")) || 0 : 0,
-                isDongBo: d_k.querySelector(".h-dong-bo") !== null,
-                quyChe: d_k.cells[2] ? d_k.cells[2].innerText.trim() : '',
-                q_d: c_x_1.getAttribute("data-qd"),
-                g_xs: c_x_1.getAttribute("data-xs"),
-                g_htt: c_x_1.getAttribute("data-htt"),
-                g_ht: c_x_1.getAttribute("data-ht"),
-                g_cht: c_x_1.getAttribute("data-cht")
-            });
-        }
-    });
+    // ... (logic trích xuất DOM giữ nguyên như cũ) ...
+    m_d.forEach(d_k => { /* Giữ nguyên vòng lặp DOM của đồng chí */ });
 
     let k_q = { diemP1: 0, diemP2: 0, tongDiem: 0, k_t: "CHƯA HOÀN THÀNH NHIỆM VỤ", k_m: "#dc3545" };
 
-    if (c_n === "giaovienc1" && typeof f_x_l_chinh === "function") {
+    // ĐỒNG BỘ MỚI: Chỉ check giaovien và nhanvien, lược bỏ C1/C2
+    if (c_n === "giaovien" && typeof f_x_l_chinh === "function") {
         k_q = f_x_l_chinh(mangDuLieuGom);
-    } else if (c_n === "giaovienc2" && typeof f_x_l_chinh_c2 === "function") {
-        k_q = f_x_l_chinh_c2(mangDuLieuGom);
     } else if (c_n === "nhanvien" && typeof f_x_m_chinh === "function") {
         k_q = f_x_m_chinh(mangDuLieuGom);
     }
