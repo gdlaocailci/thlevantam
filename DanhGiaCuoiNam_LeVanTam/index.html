@@ -215,17 +215,55 @@
                     drop-shadow(2px 2px 0px #450a0a) 
                     drop-shadow(0 0 10px rgba(255, 235, 59, 0.9)); /* Hào quang vàng */
         }
+
+        /* Bổ sung position: relative; vào class .hop-xac-thuc hiện tại */
+        .hop-xac-thuc { position: relative; text-align: center; padding: 35px; background: white; border-radius: 12px; border: 1px solid #ddd; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        /* Class mới cho nút Xóa bộ nhớ đệm */
+        .btn-clear-cache {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #fff;
+            color: #dc3545;
+            border: 2px solid #dc3545;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            padding: 0;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        .btn-clear-cache:hover {
+            background: #dc3545;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
 <div id="khung-xac-thuc">
     <div class="hop-xac-thuc">
+        <!-- NÚT XÓA BỘ NHỚ ĐỆM (ICON ! TRÒN) -->
+        <button onclick="xoaBoNhoDem()" class="btn-clear-cache btn-reactbits-shiny" title="Xóa bộ nhớ đệm và tải lại trang gốc">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+        </button>
+
         <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="app-logo" width="80" alt="Logo" style="margin-bottom: 15px;">
         <h2 class="app-title-name-up" style="color: #b91c1c; margin: 0; text-transform: uppercase; font-size: 20px;">ĐANG TẢI...</h2>
         <h3 class="app-school-name" style="color: #0056b3; margin: 10px 0 25px 0;">ĐANG TẢI...</h3>
         
         <div style="margin-bottom: 25px; padding: 15px 20px; background-color: #f8fbff; border-radius: 8px; border: 1px solid #b8daff; text-align: left;">
             <label for="oChonNhom" style="font-weight: bold; color: var(--mau-c); display: block; margin-bottom: 8px;">1. Chọn đối tượng đánh giá:</label>
+            
             <select id="oChonNhom" onchange="hienThiNutGoogle()" class="o-c-kieu" style="width: 100%; margin-bottom: 20px; box-sizing: border-box; text-align: center;">
                 <option value="" disabled selected>-- Chọn chức vụ của bạn --</option>
                 <option value="giaovien">TỔ TRƯỞNG CM</option>
@@ -1562,6 +1600,17 @@ function f_x_auto_resize_textarea(containerId) {
     }
   
     khoaTruyCapMaNguon();
+
+    // ================= HÀM XÓA BỘ NHỚ ĐỆM TRÌNH DUYỆT =================
+function xoaBoNhoDem() {
+    if (confirm("Đồng chí có chắc chắn muốn dọn dẹp bộ nhớ đệm và tải lại dữ liệu hệ thống mới nhất không?")) {
+        // Làm sạch toàn bộ Storage của phiên làm việc hiện tại
+        sessionStorage.clear();
+        localStorage.clear();
+        // Buộc trình duyệt tải lại trang (true: bỏ qua cache tĩnh)
+        window.location.reload(true);
+    }
+}
 </script>
 </body>
 </html>
