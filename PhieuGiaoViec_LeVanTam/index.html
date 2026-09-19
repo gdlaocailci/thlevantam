@@ -509,10 +509,16 @@ function xulyPhienDn(phanho) {
       $('#chuAccount').text(window.PGV_ID_TC || "Chưa xác định");
       if (!$('#bo-cuc-he-thong').is(':visible')) $('#bo-cuc-he-thong').css('display', 'flex');
 
+      // [NÂNG CẤP]: Xử lý khi email ngoài danh sách đăng nhập
       if (kq.koxd) {
-        $('#chuTenGv').text("Không có quyền truy cập"); $('#ungDungChinh .tab-content').addClass('ndKhoa');
-        $('#ungDungChinh').find('input, select, textarea, button').not('button[onclick="thoatTaik()"]').prop('disabled', true);
-        hienThongb('loi', "⛔ BẠN KHÔNG CÓ QUYỀN TRUY CẬP\n\nHãy liên hệ quản lý."); return;
+        // Hiển thị UI thông báo lỗi
+        hienThongb('loi', "⛔ TÀI KHOẢN CHƯA ĐƯỢC PHÂN QUYỀN\n\nEmail đăng nhập của bạn không có trong danh sách hệ thống. Vui lòng liên hệ Quản trị viên để được cấp quyền.");
+        
+        // Bắt sự kiện khi modal thông báo đóng lại để đưa về UI đăng nhập
+        $('#hopThoaiTb').one('hidden.bs.modal', function () {
+            thoatTaik();
+        });
+        return;
       }
 
       if(kq.canb && kq.canb.ttrg) cacheCanb[kq.canb.ttrg] = kq;
