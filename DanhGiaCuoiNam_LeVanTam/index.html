@@ -617,13 +617,29 @@ function v_hien_thi_menu_admin(hienThi) {
     if (mn4) mn4.style.display = kieu;
 }
 
-async function fetchAPI(url) {
-    const response = await fetch(url);
-    const text = await response.text();
-    try {
-        return JSON.parse(text);
-    } catch (e) {
-        throw new Error("LỖI 500: URL Máy chủ Google Apps Script bị sai, HOẶC đồng chí chưa Triển khai phiên bản mới (New Version) đúng chuẩn.");
+async function fetchAPI(url, soLanThu = 2) {
+    for (let i = 0; i <= soLanThu; i++) {
+        try {
+            // Chống lưu đệm (no-store) để trình duyệt không dùng dữ liệu cũ khi tab vừa thức dậy
+            const response = await fetch(url, { cache: 'no-store' });
+            const text = await response.text();
+            
+            try {
+                // Cố gắng biên dịch dữ liệu JSON
+                return JSON.parse(text);
+            } catch (e) {
+                // Nếu Google trả về trang HTML (thường do yêu cầu đăng nhập lại hoặc hết phiên)
+                if (i === soLanThu) {
+                    throw new Error("Phiên kết nối dữ liệu Google đã hết hạn. Đồng chí vui lòng F5 (Tải lại trang) để làm mới.");
+                }
+            }
+        } catch (err) {
+            // Nếu rớt mạng hoặc trình duyệt chưa kịp khôi phục kết nối wifi, chờ 1 giây rồi tự động gọi lại
+            if (i === soLanThu) {
+                throw new Error("Mạng Internet bị gián đoạn hoặc máy chủ Google không phản hồi.");
+            }
+            await new Promise(res => setTimeout(res, 1000));
+        }
     }
 }
 
