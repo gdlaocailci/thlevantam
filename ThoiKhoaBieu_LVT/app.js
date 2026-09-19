@@ -960,6 +960,8 @@ async function luuDuLieu(event, loaiLuu) {
                 alert("Đã lưu dữ liệu thời khóa biểu thành công!");
                 // Cập nhật lại bộ nhớ đệm nội bộ để đảm bảo đồng bộ mới nhất sau khi lưu
                 duLieuTkbHienTai = dsTietLuoi;
+                const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
+                localStorage.setItem('SmartTKB_DuLieuTuan_' + MA_DA, JSON.stringify(dsTietLuoi));
             }
         }
     } catch (loi) { 
