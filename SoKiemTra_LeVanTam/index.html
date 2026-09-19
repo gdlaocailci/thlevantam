@@ -845,16 +845,40 @@ function kiemtqvata(tk_chuyen_den = null) {
         if (dlu.cquy === false) {
             xoaluutrant("SKT_DINHDANH_TAIK");
             window.skttktoanc = null;
-            document.getElementById('MenuContainer').style.display = 'none';
-            document.getElementById('so_wrapper').style.display = 'none';
-            document.getElementById('MinhChungContainer').style.display = 'none';
-            document.getElementById('access_denied_msg').style.display = 'block';
-            document.getElementById('denied_reason').innerText = dlu.tbao || "Tài khoản không được cấp quyền.";
-            
+
             const lder = document.getElementById('instant-loader');
             if (lder) lder.style.display = 'none';
-            document.getElementById('main-wrapper').style.display = 'flex';
-            setTimeout(() => { document.getElementById('main-wrapper').style.opacity = '1'; }, 50);
+
+            // BẢO ĐẢM KHÔNG LOAD VÀO BẤT CỨ ĐÂU - QUAY LẠI MÀN HÌNH ĐĂNG NHẬP
+            document.getElementById('main-wrapper').style.display = 'none';
+            document.getElementById('login-overlay').style.display = 'flex';
+
+            // HIỂN THỊ THÔNG BÁO VÀ ĐỔI NÚT THÀNH "ĐĂNG NHẬP LẠI"
+            hienThongBaoUI("⛔ TỪ CHỐI TRUY CẬP", dlu.tbao || "Tài khoản của bạn chưa được cấp quyền truy cập.", "error");
+
+            setTimeout(() => {
+                const btnDong = document.querySelector('.custom-alert-btn');
+                if (btnDong) {
+                    const onClickGoc = btnDong.getAttribute('onclick');
+                    btnDong.innerText = "ĐĂNG NHẬP LẠI";
+                    btnDong.onclick = function() {
+                        dangxg(); // Gọi hàm reset hệ thống
+                    };
+
+                    // Lắng nghe sự kiện để trả nút về nguyên bản khi đóng (tránh ảnh hưởng thông báo khác)
+                    const overlay = document.getElementById('custom-alert-overlay');
+                    const observer = new MutationObserver((mutations) => {
+                        if (overlay.style.display === 'none') {
+                            btnDong.innerText = "ĐÓNG";
+                            btnDong.setAttribute('onclick', onClickGoc);
+                            btnDong.onclick = null;
+                            observer.disconnect();
+                        }
+                    });
+                    observer.observe(overlay, { attributes: true, attributeFilter: ['style'] });
+                }
+            }, 50);
+
             return;
         }
 
