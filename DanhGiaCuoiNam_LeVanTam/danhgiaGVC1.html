@@ -136,24 +136,32 @@ function f_x_l_chinh(dataRows) {
         }
     };
 
-    const evalCondition = (cond, valNum, valStr, row) => {
+   const evalCondition = (cond, valNum, valStr, row) => {
         cond = cond.trim().toLowerCase();
         if (cond === "" || cond === "any") return true;
 
         const prizeResult = evalPrizeCondition(cond, valStr, row);
         if (prizeResult !== null) return prizeResult;
 
-        let isNumericCond = cond.match(/^[><=]+[\d\.]+$/);
-        if (isNumericCond) {
-            if (cond.startsWith(">=")) return valNum >= parseFloat(cond.replace(">=", ""));
-            if (cond.startsWith("<=")) return valNum <= parseFloat(cond.replace("<=", ""));
-            if (cond.startsWith(">")) return valNum > parseFloat(cond.replace(">", ""));
-            if (cond.startsWith("<")) return valNum < parseFloat(cond.replace("<", ""));
-            if (cond.startsWith("==")) return valNum === parseFloat(cond.replace("==", ""));
-        }
-        if (cond.match(/^[\d\.]+$/)) return valNum === parseFloat(cond);
+        // Bóc tách toán tử chuẩn xác (>=, <=, >, <, ==)
+        let opMatch = cond.match(/^(>=|<=|>|<|==)\s*/);
+        let op = opMatch ? opMatch[1] : "";
+        let targetText = opMatch ? cond.substring(opMatch[0].length).trim() : cond;
 
-        if (cond.startsWith(">=") && isNaN(cond.replace(">=", ""))) {
+        // 1. So sánh dạng số
+        let isNumericCond = targetText.match(/^[\d\.]+$/);
+        if (isNumericCond) {
+            let targetNum = parseFloat(targetText);
+            if (op === ">=") return valNum >= targetNum;
+            if (op === "<=") return valNum <= targetNum;
+            if (op === ">") return valNum > targetNum;
+            if (op === "<") return valNum < targetNum;
+            if (op === "==") return valNum === targetNum;
+            return valNum === targetNum; // Default fallback
+        }
+
+        // 2. Nội suy cấp bậc văn bản thông minh (Hỗ trợ mọi toán tử)
+        if (isNaN(targetText) && op !== "") {
             let hierarchy = [
                 ["yếu", "kém", "chưa đạt", "không có", "chưa hoàn thành"],
                 ["trung bình", "cấp trường", "hoàn thành"],
@@ -161,13 +169,20 @@ function f_x_l_chinh(dataRows) {
                 ["tốt", "giỏi", "cấp tỉnh", "cấp huyện", "xuất sắc"],
                 ["cấp quốc gia"]
             ];
-            let targetText = cond.replace(">=", "").trim();
             let targetLevel = -1, currentLevel = -1;
             hierarchy.forEach((arr, idx) => { if(arr.some(w => targetText.includes(w))) targetLevel = idx; });
             hierarchy.forEach((arr, idx) => { if(arr.some(w => valStr.includes(w))) currentLevel = idx; });
-            if (targetLevel !== -1 && currentLevel !== -1) return currentLevel >= targetLevel;
+            
+            if (targetLevel !== -1 && currentLevel !== -1) {
+                if (op === ">=") return currentLevel >= targetLevel;
+                if (op === ">") return currentLevel > targetLevel;
+                if (op === "<=") return currentLevel <= targetLevel;
+                if (op === "<") return currentLevel < targetLevel;
+                if (op === "==") return currentLevel === targetLevel;
+            }
         }
 
+        // 3. Logic thành tích phong trào
         if (row.ten.includes("thành tích") || row.quyChe.includes("Quy chế")) {
             let lines = valStr.split('\n');
             let bestScore = 0, countTinh = 0;
@@ -196,6 +211,7 @@ function f_x_l_chinh(dataRows) {
             return bestScore === targetScore;
         }
 
+        if (op === "==") return valStr === targetText;
         return valStr.includes(cond);
     };
 
