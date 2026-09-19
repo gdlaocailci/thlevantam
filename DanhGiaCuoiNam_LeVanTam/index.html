@@ -924,14 +924,12 @@ async function f_x_d() {
     
     f_x_j(true);
     try {
-        /* BƯỚC TỐI ƯU THUẬT TOÁN: Chỉ gọi API chính xác theo nhóm đã chọn, tránh gửi song song thừa thãi */
         const urlChinh = `${z_y_a}?z_p_a=m_k_o&z_p_b=${encodeURIComponent(p_c)}&z_p_c=${p_n}&z_p_d=${encodeURIComponent(p_chuc_vu_chon)}`;
         let t_k = await fetchAPI(urlChinh);
         let t_k_khac = { status: '' };
 
-        // Nếu hệ thống báo chọn sai vai trò (wrong_role), mới tiến hành gọi API nhóm thứ 2 để đối soát
         if (t_k.status === 'wrong_role') {
-            const p_n_khac = (p_n.includes('giaovien')) ? 'nhanvien' : 'giaovienc1';
+            const p_n_khac = (p_n.includes('giaovien')) ? 'nhanvien' : 'giaovien';
             const urlKhac = `${z_y_a}?z_p_a=m_k_o&z_p_b=${encodeURIComponent(p_c)}&z_p_c=${p_n_khac}&z_p_d=${encodeURIComponent(p_chuc_vu_chon)}`;
             t_k_khac = await fetchAPI(urlKhac);
         }
@@ -939,7 +937,6 @@ async function f_x_d() {
         if (t_k.status === 'success') {
             v_che_do_khach = false; 
             v_l_a = p_c; v_l_b = t_k.y_a; v_l_c = t_k.y_e || {}; v_l_d = t_k.y_c || ""; 
-            
             v_nam_hoc_hien_tai = t_k.y_namhoc || "";
 
             let roleStr = t_k.y_role ? t_k.y_role.toLowerCase() : "";
@@ -979,31 +976,27 @@ async function f_x_d() {
             
         } else if (t_k.status === 'wrong_role' || t_k_khac.status === 'wrong_role') {
             let chucVuDung = t_k.y_role || t_k_khac.y_role || "";
-            hienThiThongBaoUI("<b>ĐĂNG NHẬP THẤT BẠI</b><br><br>Đồng chí đã chọn sai chức vụ!<br>Chức vụ của đồng chí là: <b>" + chucVuDung.toUpperCase() + "</b>.<br>Vui lòng ấn Đóng để chọn đúng chức vụ của mình.", f_x_logout);
+            hienThiThongBaoUI("<b>ĐĂNG NHẬP THẤT BẠI</b><br><br>Đồng chí đã chọn sai chức vụ!<br>Chức vụ của đồng chí là: <b>" + chucVuDung.toUpperCase() + "</b>.<br>Vui lòng ấn Đóng để hệ thống quay lại UI đăng nhập.", f_x_logout);
             f_x_j(false);
             return;
             
         } else if (t_k_khac.status === 'success') {
             let chucVuDung = t_k_khac.y_role ? t_k_khac.y_role : ((p_n_khac.includes('giaovien')) ? "GIÁO VIÊN" : "NHÂN VIÊN");
-            hienThiThongBaoUI("<b>ĐĂNG NHẬP THẤT BẠI</b><br><br>Đồng chí đã chọn sai đối tượng đánh giá!<br>Chức vụ của đồng chí trên hệ thống là: <b>" + chucVuDung.toUpperCase() + "</b>.<br>Vui lòng ấn Đóng để hệ thống quay lại giao diện xác thực.", f_x_logout);
+            hienThiThongBaoUI("<b>ĐĂNG NHẬP THẤT BẠI</b><br><br>Đồng chí đã chọn sai đối tượng đánh giá!<br>Chức vụ của đồng chí trên hệ thống là: <b>" + chucVuDung.toUpperCase() + "</b>.<br>Vui lòng ấn Đóng để hệ thống quay lại UI đăng nhập.", f_x_logout);
             f_x_j(false);
             return;
+            
+        } else if (t_k.status === 'error' && t_k.message && t_k.message.includes('chưa được phân quyền')) {
+            // ĐIỂM BỔ SUNG YÊU CẦU: Hiển thị UI thông báo và dọn dẹp, tải lại UI đăng nhập bằng hàm f_x_logout
+            hienThiThongBaoUI("<b>ĐĂNG NHẬP THẤT BẠI</b><br><br>Tài khoản Email của đồng chí chưa có trong danh sách phân quyền của hệ thống.<br>Vui lòng liên hệ Quản trị viên và ấn Đóng để quay lại màn hình đăng nhập.", f_x_logout);
+            f_x_j(false);
+            return;
+            
         } else { 
-            v_che_do_khach = true;
-            if (document.getElementById("vungThongTinUser")) document.getElementById("vungThongTinUser").style.display = "block";
-            if (document.getElementById("ui-ten-hien-thi")) document.getElementById("ui-ten-hien-thi").innerText = "TÀI KHOẢN KHÔNG HỢP LỆ";
-            if (document.getElementById("ui-phan-loai")) document.getElementById("ui-phan-loai").innerText = "--";
-            if (document.getElementById("ui-nam-hoc")) document.getElementById("ui-nam-hoc").innerText = "--";
-            
-            if (document.getElementById("vungThuNhat")) document.getElementById("vungThuNhat").classList.add("a-di");
-            if (document.getElementById("vungThuHai")) document.getElementById("vungThuHai").classList.remove("a-di");
-            let nutLuu = document.getElementById("vungNutBam");
-            if (nutLuu) nutLuu.style.display = "none";
-
-            v_hien_thi_menu_admin(false);
-            
-            await f_x_load_guest_template(p_n);
-            hienThiThongBaoUI(t_k.message + "<br><br><b>Hệ thống tự động chuyển sang chế độ Khách (Chỉ xem). Các chức năng tương tác đã bị khóa.</b>");
+            // Bắt và xử lý các lỗi gián đoạn CSDL khác (ngăn không cho vào hệ thống)
+            hienThiThongBaoUI(`<b>LỖI HỆ THỐNG</b><br><br>${t_k.message}<br>Vui lòng ấn Đóng để quay lại UI đăng nhập.`, f_x_logout);
+            f_x_j(false);
+            return;
         }
     } catch (err) { 
         hienThiThongBaoUI(`<b>Kết nối máy chủ bị lỗi gián đoạn!</b><br><br><span style="font-size:14px;color:#666">Lỗi gốc: ${err.message}</span>`, f_x_logout); 
