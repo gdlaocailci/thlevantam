@@ -98,7 +98,7 @@ function cq_HienThiBang() {
 }
 
 function cq_TaoDHTMLDong(index, id_sheet, email, ho_ten, quyen) {
-    let opts = ["--Chọn quyền--", "Giáo viên cấp 1","Giáo viên cấp 2", "Tổ phó cấp 1", "Tổ phó cấp 2","Tổ trưởng cấp 1", "Tổ trưởng cấp 2", "Tổ trưởng VP", "Tổ phó VP", "Nhân viên", "Tổng phụ trách cấp 1", "Tổng phụ trách cấp 2", "Admin", "Admin VIP"];
+   let opts = ["--Chọn quyền--", "Giáo viên", "Tổ trưởng", "Tổ phó", "Tổ trưởng VP", "Tổ phó VP", "Nhân viên", "Tổng phụ trách", "Admin", "Admin VIP"];
     let selHTML = `<select class="cq-quyen">`;
     let found = false;
     let quyenChuan = quyen ? quyen.toString().trim() : ""; 
