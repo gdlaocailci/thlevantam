@@ -284,6 +284,72 @@ _call: function(hdong, tso) {
     border-color: #ff4d4f;
     box-shadow: 0 0 8px rgba(255, 77, 79, 0.6); /* Tỏa sáng nhẹ */
 }
+
+   /* ========================================================== */
+    /* NÂNG CẤP: THUẬT TOÁN RESPONSIVE MENU OFF-CANVAS CHO MOBILE */
+    /* ========================================================== */
+    
+    /* Nút gọi menu trên điện thoại (Mặc định ẩn) */
+    .btn-toggle-menu {
+        display: none; 
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        align-self: flex-start;
+    }
+    
+    /* Lớp phủ tối màu khi mở menu */
+    #overlay-menu-mobile {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.5);
+        z-index: 999; /* Nằm dưới menu nhưng trên nội dung */
+    }
+
+    /* Kích hoạt thiết kế di động khi màn hình nhỏ hơn 768px */
+    @media screen and (max-width: 768px) {
+        .btn-toggle-menu {
+            display: inline-flex; /* Hiện nút trên điện thoại */
+            align-items: center;
+            gap: 5px;
+        }
+        
+        #MenuContainer {
+            position: fixed;
+            top: 0;
+            left: -280px; /* Ẩn menu ra ngoài lề trái */
+            width: 260px;
+            height: 100vh;
+            z-index: 1000;
+            transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Hiệu ứng trượt mượt mà */
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        }
+        
+        #MenuContainer.mo-menu {
+            left: 0; /* Đưa menu vào màn hình khi có class này */
+        }
+        
+        #ContentContainer {
+            padding: 10px; /* Giảm lề để tối ưu diện tích điện thoại */
+        }
+        
+        /* Chỉnh lại phần bộ lọc tìm kiếm xếp dọc trên điện thoại */
+        .filter-section {
+            grid-template-columns: 1fr; 
+        }
+        .f-item:nth-child(5) { 
+            grid-column: 1; 
+            justify-self: stretch; 
+        }
+        .f-item:nth-child(5) .f-input { width: 100%; }
+    }
   </style>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
@@ -379,6 +445,11 @@ _call: function(hdong, tso) {
     <div id="MenuContainer"></div>
 
     <div id="ContentContainer">
+     <button id="btnToggleMobile" class="btn-toggle-menu" onclick="dongMoMenuMobile()">
+            <i class="bi bi-list"></i> MENU TÍNH NĂNG
+        </button>
+        <div id="overlay-menu-mobile" onclick="dongMoMenuMobile()"></div>
+     
         <div id="so_wrapper">
           <div class="tab-container">
             <button class="tab-button active" onclick="chuyentth('TabNhapLieu', this)">📝 GHI SỔ</button>
@@ -1190,7 +1261,43 @@ function yeuCauDonDepHeThong() {
     }
 
     khoaTruyCapMaNguon();
-  </script>
 
+   /* ========================================================== */
+/* KHỐI XỬ LÝ ĐÓNG/MỞ MENU TRÊN THIẾT BỊ DI ĐỘNG              */
+/* ========================================================== */
+function dongMoMenuMobile() {
+    var menu = document.getElementById('MenuContainer');
+    var lopPhu = document.getElementById('overlay-menu-mobile');
+    
+    // Kiểm tra trạng thái hiện tại
+    var dangMo = menu.classList.contains('mo-menu');
+    
+    if (dangMo) {
+        // Đang mở -> Thực hiện đóng
+        menu.classList.remove('mo-menu');
+        lopPhu.style.display = 'none';
+    } else {
+        // Đang đóng -> Thực hiện mở
+        menu.classList.add('mo-menu');
+        lopPhu.style.display = 'block';
+    }
+}
+
+// Bổ sung luồng: Tự động đóng menu khi nhấp vào một liên kết menu (nếu đang ở giao diện điện thoại)
+document.addEventListener("DOMContentLoaded", function() {
+    var menuContainer = document.getElementById('MenuContainer');
+    if(menuContainer) {
+        menuContainer.addEventListener('click', function(e) {
+            // Nếu click trúng thẻ button hoặc thẻ a trong menu
+            if(e.target.closest('button') || e.target.closest('a')) {
+                if(window.innerWidth <= 768) {
+                    dongMoMenuMobile();
+                }
+            }
+        });
+    }
+});
+   
+  </script>
 </body>
 </html>
