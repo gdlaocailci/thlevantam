@@ -52,7 +52,7 @@
                 <img id="logoMenuDoc" src="" alt="Logo" class="w-20 h-20 rounded-full object-cover">
             </div>
             <h2 id="tenDonViMenu" class="text-center text-white font-bold text-base uppercase tracking-wide leading-relaxed">
-                Trường Tiểu học<br>Lê Văn Tám
+                Trường TH&THCS Tả Phời<br>Cấp tiểu học
             </h2>
         </div>
         <div class="px-6 my-2 flex-none"><hr class="border-dashed border-blue-300 opacity-40"></div>
@@ -168,13 +168,33 @@
             <div id="thanhCongCuTKB" class="bg-slate-50 border border-gray-400 p-2 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 flex-wrap reactbits-fade-in delay-200">
                 
                 <div class="flex flex-col md:flex-row flex-wrap items-center gap-4 w-full xl:w-auto font-sans">
-                    <!-- BỘ CHUYỂN TUẦN -->
+                   <!-- KHỐI BỘ CHUYỂN TUẦN TRONG INDEX.HTML -->
                     <div class="flex items-center bg-white border border-gray-400 rounded shadow-sm px-2 py-1 gap-2 flex-none">
-                        <button id="btnTuanTruoc" onclick="chuyenTuan(-1)" class="p-1 hover:bg-gray-200 rounded text-slate-600 font-bold text-lg leading-none" title="Tuần trước">◀</button>
-                        <span id="hienThiTuanHienTai" class="px-2 font-extrabold text-blue-900 whitespace-nowrap text-base">Tuần --</span>
-                        <button id="btnTuanTiep" onclick="chuyenTuan(1)" class="p-1 hover:bg-gray-200 rounded text-slate-600 font-bold text-lg leading-none" title="Tuần tiếp">▶</button>
+                        <button id="btnTuanTruoc" onclick="chuyenTuan(-1)" class="bg-blue-500 hover:bg-blue-600 text-white rounded p-1 shadow-sm transition-colors cursor-pointer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        
+                        <!-- ĐÃ NÂNG CẤP: Thêm class relative và span chứa biểu tượng SVG -->
+                        <div class="flex items-center justify-center font-extrabold text-blue-800 text-lg mx-3 relative">
+                            <span class="mr-1">Tuần</span>
+                            <input type="number" id="hienThiTuanHienTai" class="w-10 text-center bg-transparent outline-none font-extrabold text-blue-700 pr-1" min="1" max="52" value="1" title="Nhập số tuần và ấn mũi tên để tải dữ liệu" />
+                            
+                            <!-- Biểu tượng quay quay tải ngầm (Mặc định ẩn) -->
+                            <span id="spinnerTaiTuan" class="absolute -right-4 hidden">
+                                <svg class="w-4 h-4 text-blue-500 animate-spin opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg>
+                            </span>
+                        </div>
+                        
+                        <button id="btnTuanTiep" onclick="chuyenTuan(1)" class="bg-blue-500 hover:bg-blue-600 text-white rounded p-1 shadow-sm transition-colors cursor-pointer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
                     </div>
 
+                <!-- BỘ CHỌN NGÀY -->
+                <div class="flex items-center bg-white border border-gray-400 rounded shadow-sm px-2 py-1 gap-2 flex-none" title="Cài đặt mốc ngày cho Thứ 2 của tuần này">
+                    <span class="text-sm font-bold text-slate-600 whitespace-nowrap">Từ ngày:</span>
+                    <input type="date" id="chonNgayDauTuan" onchange="capNhatNgayDauTuan()" class="text-sm font-bold text-blue-900 outline-none cursor-pointer bg-transparent">
+                </div>
                     <!-- BỘ CHỌN NGÀY -->
                     <div class="flex items-center bg-white border border-gray-400 rounded shadow-sm px-2 py-1 gap-2 flex-none" title="Cài đặt mốc ngày cho Thứ 2 của tuần này">
                         <span class="text-sm font-bold text-slate-600 whitespace-nowrap">Từ ngày:</span>
@@ -183,6 +203,7 @@
                     
                     <!-- BỘ LỌC VÀ NÚT EXCEL -->
                     <div class="flex items-center gap-2 w-full md:w-auto flex-1 md:flex-none">
+                        
                         <div class="relative w-full min-w-[200px]">
                             <input type="text" id="locGiaoVien" list="danhSachGvList" 
                                onchange="locTheoGiaoVien()" 
@@ -193,6 +214,17 @@
                             <img src="https://www.svgrepo.com/show/521826/search.svg" class="w-4 h-4 absolute left-2.5 top-2 opacity-40" alt="Lọc">
                             <datalist id="danhSachGvList"></datalist>
                         </div>
+                        
+                        <!-- [CHÈN VÀO ĐÂY]: Ô LỌC LỚP BẰNG KÝ TỰ ĐẠI DIỆN (*) -->
+                        <div class="relative w-full min-w-[150px]">
+                            <input type="text" id="locLopHoc" 
+                               oninput="locTheoLop()" 
+                               placeholder="Lọc lớp (VD: 1*, *A1)..." 
+                               class="w-full pl-8 pr-3 py-1.5 border border-purple-400 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm font-bold text-purple-900 bg-white placeholder-purple-500 transition-all cursor-text"
+                               title="Gõ ký tự đại diện * để lọc. VD: 1* (Khối 1), *A* (Giữa có A), *1 (Đuôi 1)">
+                            <svg class="w-4 h-4 absolute left-2.5 top-2 text-purple-500 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                        </div>
+                        <!-- KẾT THÚC CHÈN -->
                         
                         <!-- NÚT GỌI UI: SỐ TIẾT DẠY TRONG TUẦN -->
                         <button onclick="hienThiThongKeSoTietGiaoVien()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded flex whitespace-nowrap flex-none group">
