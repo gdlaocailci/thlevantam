@@ -216,6 +216,55 @@ function xulyPhienDn(phanho) {
         window.PGV_TOKEN = null;
         location.reload(); 
     }
+
+    /* ========================================================== */
+    /* NÂNG CẤP: THUẬT TOÁN RESPONSIVE MENU OFF-CANVAS CHO MOBILE */
+    /* ========================================================== */
+    .btn-toggle-menu {
+        display: none; 
+        background: #0d6efd;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        align-self: flex-start;
+    }
+    
+    #overlay-menu-mobile {
+        display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.5); 
+        z-index: 10000; /* Đã nâng lên mức rất cao */
+        backdrop-filter: blur(2px);
+    }
+
+    /* Kích hoạt khi xem trên điện thoại hoặc máy tính bảng nhỏ */
+    @media screen and (max-width: 768px) {
+        .btn-toggle-menu { display: inline-flex; align-items: center; gap: 5px; }
+        
+        #bo-cuc-he-thong { position: relative; display: block; }
+        
+        #khuVucMenu {
+            position: fixed; top: 0; left: -320px;
+            width: 280px; height: 100vh; 
+            z-index: 10001; /* Đã nâng lên mức cao nhất, đè lên mọi giao diện */
+            background: white; 
+            transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 2px 0 15px rgba(0,0,0,0.3);
+            overflow-y: auto;
+        }
+        
+        #khuVucMenu.mo-menu { left: 0; }
+        
+        .k-ngoai { width: 100%; padding: 10px; } 
+        
+        /* Tối ưu hiển thị bảng trên điện thoại */
+        .table-responsive { max-height: calc(100vh - 180px) !important; }
+    }
   </script>
 
   <style>
@@ -299,6 +348,11 @@ function xulyPhienDn(phanho) {
   <div id="bo-cuc-he-thong" class="bo-cuc-tong" style="display:none;">
     <div id="khuVucMenu"></div> 
     <div class="k-ngoai" id="ungDungChinh">
+      <button id="btnToggleMobile" class="btn-toggle-menu" onclick="dongMoMenuMobile()">
+            <i class="bi bi-list"></i> MENU TÍNH NĂNG
+        </button>
+        <div id="overlay-menu-mobile" onclick="dongMoMenuMobile()"></div>
+      
         <div class="tab-content border-0">
           <div class="tab-pane fade show active p-3" id="khuNhiemVu"></div>
           <div class="tab-pane fade p-3" id="khuGiaoViecChinh"></div>
@@ -1042,6 +1096,37 @@ function taiTepDangXem() {
         });
     }
     khoaTruyCapMaNguon();
+
+    /* ========================================================== */
+  /* KHỐI XỬ LÝ ĐÓNG/MỞ MENU TRÊN THIẾT BỊ DI ĐỘNG              */
+  /* ========================================================== */
+  function dongMoMenuMobile() {
+      var menu = document.getElementById('khuVucMenu');
+      var lopPhu = document.getElementById('overlay-menu-mobile');
+      
+      if (menu.classList.contains('mo-menu')) {
+          menu.classList.remove('mo-menu');
+          lopPhu.style.display = 'none';
+      } else {
+          menu.classList.add('mo-menu');
+          lopPhu.style.display = 'block';
+      }
+  }
+
+  // Thuật toán: Tự động đóng menu khi Thầy/Cô bấm chọn một Tab bất kỳ trên điện thoại
+  // (Sử dụng Event Delegation vì menu được fetch động từ Menu_Doc.html)
+  document.addEventListener("DOMContentLoaded", function() {
+      var menuContainer = document.getElementById('khuVucMenu');
+      if(menuContainer) {
+          menuContainer.addEventListener('click', function(e) {
+              if(e.target.closest('a') || e.target.closest('button') || e.target.closest('li')) {
+                  if(window.innerWidth <= 768) {
+                      dongMoMenuMobile();
+                  }
+              }
+          });
+      }
+  });
   </script>
 
 <!-- =========================================================================================
