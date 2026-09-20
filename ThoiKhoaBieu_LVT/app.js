@@ -11,9 +11,9 @@ document.addEventListener('DOMContentLoaded', () => { khoiTaoGiaoDien(); });
 // KHỐI KẾT NỐI MẠNG CỐT LÕI (NÂNG CẤP CHỐNG TREO BĂNG THÔNG)
 // Thay thế toàn bộ hàm fetchVoiCoCheThuLai trong file app.js
 // =========================================================================
-async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3, thoiGianCho = 15000) {
+async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3, thoiGianCho = 45000) {
     for (let i = 0; i < soLanThu; i++) {
-        // [LÕI NÂNG CẤP]: Bổ sung bộ điều khiển ngắt kết nối (AbortController) để chống treo mạng
+        // Bổ sung bộ điều khiển ngắt kết nối (AbortController) để chống treo mạng
         const boDieuKhien = new AbortController();
         const idHenGio = setTimeout(() => boDieuKhien.abort(), thoiGianCho);
         
