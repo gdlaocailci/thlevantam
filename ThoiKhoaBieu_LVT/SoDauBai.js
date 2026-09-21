@@ -546,12 +546,12 @@ function ketXuatSoDauBaiLenLuoi() {
                         theChuyenCan = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400" placeholder="..." value="${chuyenCan}">`;
                         theNhanXet = `<textarea rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px';" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-normal text-slate-800 placeholder-slate-400 px-1 resize-none overflow-hidden align-middle" placeholder="Nhận xét...">${nhanXet}</textarea>`;
                         
-                        let datalistId = `list_ppct_${thu.replace(/\s/g,'')}_${buoiObj.id}_${tiet}`;
+                       let datalistId = `list_ppct_${thu.replace(/\s/g,'')}_${buoiObj.id}_${tiet}`;
                         let optionsHtml = "";
                         let tietDuKien = parseInt(tietPPCT) || (boDemTietPPCT[monPPCT] || 1);
-                        
-                        // [NÂNG CẤP]: Mở rộng khoảng gợi ý lên +15 tiết tới và định dạng nội dung hiển thị rõ "Tiết + Tên bài"
-                        for(let i = Math.max(1, tietDuKien - 2); i <= tietDuKien + 15; i++) {
+                                                
+                        let maxTietGoiY = tietDuKien + 20;
+                        for(let i = 1; i <= maxTietGoiY; i++) {
                             let baiDay = tuDienPPCTToanCuc[`${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_${i}`] || tuDienPPCTToanCuc[`${khoiChon}_${monPPCT}_${i}`] || '';
                             if (baiDay) {
                                 optionsHtml += `<option value="${i}">Tiết ${i}: ${baiDay}</option>`;
@@ -561,11 +561,9 @@ function ketXuatSoDauBaiLenLuoi() {
                         }
                         
                         let theDatalistPPCT = `<datalist id="${datalistId}">${optionsHtml}</datalist>`;
+                                              
+                        let onchangeLogic = `let val = this.value.trim(); if(val === ''){ this.value = ''; return; } let vMatch=val.match(/\\d+/); if(vMatch){ let v=vMatch[0]; this.value=v; let ten=tuDienPPCTToanCuc['${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_'+v] || tuDienPPCTToanCuc['${khoiChon}_${monPPCT}_'+v] || ''; let tr=this.closest('tr'); if(tr){ let ta=tr.querySelector('td[data-loai=\\'tenBai\\'] textarea'); if(ta){ ta.value=ten; ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; } } }`;
                         
-                        // [NÂNG CẤP]: Xử lý Regex thông minh bóc tách số tiết nếu trình duyệt điền cả chuỗi, tự set lại giá trị số vào ô input
-                        let onchangeLogic = `let vMatch=this.value.trim().match(/\\d+/); if(vMatch){ let v=vMatch[0]; this.value=v; let ten=tuDienPPCTToanCuc['${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_'+v] || tuDienPPCTToanCuc['${khoiChon}_${monPPCT}_'+v] || ''; let tr=this.closest('tr'); if(tr){ let ta=tr.querySelector('td[data-loai=\\'tenBai\\'] textarea'); if(ta && ten){ ta.value=ten; ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; } } }`;
-                        
-                        // [NÂNG CẤP]: Thêm onclick="this.select()" để khi bấm chuột vào ô, văn bản tự bôi đen và kích hoạt menu thả xuống
                         theTietPPCT = `<input type="text" list="${datalistId}" onclick="this.select()" onchange="${onchangeLogic}" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-extrabold text-blue-700 placeholder-blue-300 transition-all cursor-pointer hover:bg-blue-50" placeholder="..." value="${tietPPCT}">` + theDatalistPPCT;
                        
                         let optTot = (xepLoai === 'Tốt') ? 'selected' : '';
@@ -779,6 +777,33 @@ function xuatWordSoDauBai() {
     let tuanChon = document.getElementById('chonTuanSo').value;
     let lopChon = document.getElementById('chonLopSo').value;
 
+    // =========================================================================
+    // [NÂNG CẤP]: THUẬT TOÁN BẢO MẬT - TỰ ĐỘNG KIỂM TRA QUYỀN TẢI XUỐNG
+    // =========================================================================
+    let theChotQuyen = document.getElementById('theChotQuyenSDB');
+    let madinhdanhGV = maGvDangNhapHeThong || (theChotQuyen ? theChotQuyen.getAttribute('data-madinhdanh') || '' : '');
+    let quyenQuanTri = coToanQuyenSDB || (theChotQuyen ? (theChotQuyen.getAttribute('data-quantri') === 'true' || theChotQuyen.getAttribute('data-quantri') === true) : false);
+    
+    let coQuyenTaiXuong = quyenQuanTri;
+    if (!coQuyenTaiXuong && madinhdanhGV) {
+        let maGvDangNhapLC = madinhdanhGV.trim().toLowerCase().normalize('NFC');
+        let tkbTuanNay = duLieuTKBGopDaMap.filter(d => String(d['Tuần']).trim() === tuanChon && String(d['Mã Lớp']).trim().toUpperCase() === lopChon.toUpperCase());
+        
+        coQuyenTaiXuong = tkbTuanNay.some(dong => {
+            let monHoc = String(dong['Môn Học']).trim();
+            if (monHoc === '') return false;
+            let gvTkb = String(dong['Mã GV']).trim().toLowerCase().normalize('NFC');
+            let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
+            // Kiểm tra bao hàm linh hoạt để phòng trường hợp viết tắt
+            return tapHopGvTkb.includes(maGvDangNhapLC) || tapHopGvTkb.some(g => maGvDangNhapLC.includes(g) && g.length > 2);
+        });
+    }
+
+    if (!coQuyenTaiXuong) {
+        return alert("Từ chối truy cập: Đồng chí không có tiết dạy tại lớp này nên không được cấp quyền xuất Sổ đầu bài!");
+    }
+    // =========================================================================
+
     let preHtml = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head><meta charset='utf-8'><title>Sổ Đầu Bài</title>
@@ -816,6 +841,38 @@ function xuatWordSoDauBai() {
 }
 
 async function xuatExcelSoDauBai() {
+    let vungHienThi = document.getElementById('vungHienThiSoDauBai');
+    if (!vungHienThi || vungHienThi.innerText.includes('Vui lòng chọn')) return alert("Không có dữ liệu để xuất!");
+
+    let tuanChon = document.getElementById('chonTuanSo').value;
+    let lopChon = document.getElementById('chonLopSo').value;
+
+    // =========================================================================
+    // [NÂNG CẤP]: THUẬT TOÁN BẢO MẬT - TỰ ĐỘNG KIỂM TRA QUYỀN TẢI XUỐNG
+    // =========================================================================
+    let theChotQuyen = document.getElementById('theChotQuyenSDB');
+    let madinhdanhGV = maGvDangNhapHeThong || (theChotQuyen ? theChotQuyen.getAttribute('data-madinhdanh') || '' : '');
+    let quyenQuanTri = coToanQuyenSDB || (theChotQuyen ? (theChotQuyen.getAttribute('data-quantri') === 'true' || theChotQuyen.getAttribute('data-quantri') === true) : false);
+    
+    let coQuyenTaiXuong = quyenQuanTri;
+    if (!coQuyenTaiXuong && madinhdanhGV) {
+        let maGvDangNhapLC = madinhdanhGV.trim().toLowerCase().normalize('NFC');
+        let tkbTuanNay = duLieuTKBGopDaMap.filter(d => String(d['Tuần']).trim() === tuanChon && String(d['Mã Lớp']).trim().toUpperCase() === lopChon.toUpperCase());
+        
+        coQuyenTaiXuong = tkbTuanNay.some(dong => {
+            let monHoc = String(dong['Môn Học']).trim();
+            if (monHoc === '') return false;
+            let gvTkb = String(dong['Mã GV']).trim().toLowerCase().normalize('NFC');
+            let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
+            return tapHopGvTkb.includes(maGvDangNhapLC) || tapHopGvTkb.some(g => maGvDangNhapLC.includes(g) && g.length > 2);
+        });
+    }
+
+    if (!coQuyenTaiXuong) {
+        return alert("Từ chối truy cập: Đồng chí không có tiết dạy tại lớp này nên không được cấp quyền xuất Sổ đầu bài!");
+    }
+    // =========================================================================
+
     try {
         if (typeof ExcelJS === 'undefined') {
             await new Promise((resolve, reject) => {
@@ -830,8 +887,6 @@ async function xuatExcelSoDauBai() {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('SO_DAU_BAI');
         
-        let tuanChon = document.getElementById('chonTuanSo').value;
-        let lopChon = document.getElementById('chonLopSo').value;
         const cacBang = document.querySelectorAll('#vungHienThiSoDauBai .bang-so-dau-bai-container');
         
         if(cacBang.length === 0) return alert("Không có dữ liệu để xuất!");
