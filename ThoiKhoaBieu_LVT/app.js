@@ -8,16 +8,28 @@ let ngayDauTuanUI = '';
 document.addEventListener('DOMContentLoaded', () => { khoiTaoGiaoDien(); });
 
 // =========================================================================
-// KHỐI KẾT NỐI MẠNG CỐT LÕI (NÂNG CẤP CHỐNG TREO BĂNG THÔNG)
+// KHỐI KẾT NỐI MẠNG CỐT LÕI (NÂNG CẤP CHỐNG TREO & CHỐNG CACHE AN TOÀN CORS)
 // =========================================================================
 async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3, thoiGianCho = 45000) {
     for (let i = 0; i < soLanThu; i++) {
         const boDieuKhien = new AbortController();
         const idHenGio = setTimeout(() => boDieuKhien.abort(), thoiGianCho);
-        const tuyChonMoi = { ...tuyChon, signal: boDieuKhien.signal };
+        
+        // [ĐỘNG CƠ CHỐNG CACHE AN TOÀN VỚI GOOGLE APPS SCRIPT]
+        // Bơm mốc thời gian mili-giây vào URL GET để URL luôn mới, lừa trình duyệt bỏ qua cache
+        let urlChongCache = url;
+        if ((!tuyChon.method || tuyChon.method === 'GET') && !url.includes('_t=')) {
+            urlChongCache += (url.includes('?') ? '&' : '?') + '_t=' + new Date().getTime();
+        }
+
+        // Bỏ các header tùy chỉnh để tránh bị Google chặn CORS (gây lỗi Failed to fetch)
+        const tuyChonMoi = { 
+            ...tuyChon, 
+            signal: boDieuKhien.signal
+        };
 
         try {
-            const phanHoi = await fetch(url, tuyChonMoi);
+            const phanHoi = await fetch(urlChongCache, tuyChonMoi);
             clearTimeout(idHenGio); 
             
             if (!phanHoi.ok) {
