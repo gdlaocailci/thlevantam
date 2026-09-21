@@ -546,26 +546,33 @@ function ketXuatSoDauBaiLenLuoi() {
                         theChuyenCan = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400" placeholder="..." value="${chuyenCan}">`;
                         theNhanXet = `<textarea rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px';" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-normal text-slate-800 placeholder-slate-400 px-1 resize-none overflow-hidden align-middle" placeholder="Nhận xét...">${nhanXet}</textarea>`;
                         
-                       let datalistId = `list_ppct_${thu.replace(/\s/g,'')}_${buoiObj.id}_${tiet}`;
+                      let datalistId = `list_ppct_${thu.replace(/\s/g,'')}_${buoiObj.id}_${tiet}`;
                         let optionsHtml = "";
                         let tietDuKien = parseInt(tietPPCT) || (boDemTietPPCT[monPPCT] || 1);
                                                 
                         let maxTietGoiY = tietDuKien + 20;
                         for(let i = 1; i <= maxTietGoiY; i++) {
                             let baiDay = tuDienPPCTToanCuc[`${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_${i}`] || tuDienPPCTToanCuc[`${khoiChon}_${monPPCT}_${i}`] || '';
-                            if (baiDay) {
-                                optionsHtml += `<option value="${i}">Tiết ${i}: ${baiDay}</option>`;
+                            let baiDayAnToan = baiDay.replace(/"/g, '&quot;'); // Chống lỗi thẻ HTML khi tên bài có dấu ngoặc kép
+                            
+                            if (baiDayAnToan) {
+                                // Gắn thẳng tên bài vào value để ép mọi trình duyệt phải hiển thị đầy đủ khi xổ danh sách
+                                optionsHtml += `<option value="Tiết ${i}: ${baiDayAnToan}"></option>`;
                             } else {
-                                optionsHtml += `<option value="${i}">Tiết ${i}</option>`;
+                                optionsHtml += `<option value="Tiết ${i}"></option>`;
                             }
                         }
                         
                         let theDatalistPPCT = `<datalist id="${datalistId}">${optionsHtml}</datalist>`;
-                                              
-                        let onchangeLogic = `let val = this.value.trim(); if(val === ''){ this.value = ''; return; } let vMatch=val.match(/\\d+/); if(vMatch){ let v=vMatch[0]; this.value=v; let ten=tuDienPPCTToanCuc['${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_'+v] || tuDienPPCTToanCuc['${khoiChon}_${monPPCT}_'+v] || ''; let tr=this.closest('tr'); if(tr){ let ta=tr.querySelector('td[data-loai=\\'tenBai\\'] textarea'); if(ta){ ta.value=ten; ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; } } }`;
                         
-                        theTietPPCT = `<input type="text" list="${datalistId}" onclick="this.select()" onchange="${onchangeLogic}" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-extrabold text-blue-700 placeholder-blue-300 transition-all cursor-pointer hover:bg-blue-50" placeholder="..." value="${tietPPCT}">` + theDatalistPPCT;
-                       
+                        // [BẢN VÁ LỖI]: Tự động điền bù tên bài nếu ô tên bài đang trống ngay khi nhấp chuột/nhận tiêu điểm
+                        let autoFillLogic = `let vMatch=this.value.match(/\\d+/); if(vMatch){ let v=vMatch[0]; let ten=tuDienPPCTToanCuc['${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_'+v] || tuDienPPCTToanCuc['${khoiChon}_${monPPCT}_'+v] || ''; if(ten !== ''){ let tr=this.closest('tr'); if(tr){ let ta=tr.querySelector('td[data-loai=\\'tenBai\\'] textarea'); if(ta && ta.value.trim() === ''){ ta.value=ten; ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; } } } }`;
+                        
+                        // [BẢN VÁ LỖI]: Khi chọn từ danh sách (VD: "Tiết 5: Bài học"), tự động tách lấy số 5 trả lại ô PPCT và cập nhật ô Tên bài
+                        let onchangeLogic = `let val = this.value.trim(); if(val === ''){ return; } let vMatch=val.match(/\\d+/); if(vMatch){ let v=vMatch[0]; this.value=v; let ten=tuDienPPCTToanCuc['${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_'+v] || tuDienPPCTToanCuc['${khoiChon}_${monPPCT}_'+v] || ''; let tr=this.closest('tr'); if(tr){ let ta=tr.querySelector('td[data-loai=\\'tenBai\\'] textarea'); if(ta && ten !== ''){ ta.value=ten; ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; } } }`;
+                        
+                        theTietPPCT = `<input type="text" list="${datalistId}" onclick="if(this.showPicker) this.showPicker(); ${autoFillLogic}" onfocus="if(this.showPicker) this.showPicker(); ${autoFillLogic}" onchange="${onchangeLogic}" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-extrabold text-blue-700 placeholder-blue-300 transition-all cursor-pointer hover:bg-blue-50" placeholder="..." value="${tietPPCT}">` + theDatalistPPCT;
+                        
                         let optTot = (xepLoai === 'Tốt') ? 'selected' : '';
                         let optKha = (xepLoai === 'Khá') ? 'selected' : '';
                         let optTB = (xepLoai === 'TB') ? 'selected' : '';
