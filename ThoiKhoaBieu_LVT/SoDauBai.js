@@ -550,16 +550,23 @@ function ketXuatSoDauBaiLenLuoi() {
                         let optionsHtml = "";
                         let tietDuKien = parseInt(tietPPCT) || (boDemTietPPCT[monPPCT] || 1);
                         
-                        for(let i = Math.max(1, tietDuKien - 2); i <= tietDuKien + 5; i++) {
+                        // [NÂNG CẤP]: Mở rộng khoảng gợi ý lên +15 tiết tới và định dạng nội dung hiển thị rõ "Tiết + Tên bài"
+                        for(let i = Math.max(1, tietDuKien - 2); i <= tietDuKien + 15; i++) {
                             let baiDay = tuDienPPCTToanCuc[`${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_${i}`] || tuDienPPCTToanCuc[`${khoiChon}_${monPPCT}_${i}`] || '';
-                            if (baiDay) optionsHtml += `<option value="${i}">Bài: ${baiDay}</option>`;
-                            else optionsHtml += `<option value="${i}"></option>`;
+                            if (baiDay) {
+                                optionsHtml += `<option value="${i}">Tiết ${i}: ${baiDay}</option>`;
+                            } else {
+                                optionsHtml += `<option value="${i}">Tiết ${i}</option>`;
+                            }
                         }
                         
                         let theDatalistPPCT = `<datalist id="${datalistId}">${optionsHtml}</datalist>`;
-                        let onchangeLogic = `let v=this.value.trim(); let ten=tuDienPPCTToanCuc['${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_'+v] || tuDienPPCTToanCuc['${khoiChon}_${monPPCT}_'+v] || ''; let tr=this.closest('tr'); if(tr){ let ta=tr.querySelector('td[data-loai=\\'tenBai\\'] textarea'); if(ta && ten){ ta.value=ten; ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; } }`;
                         
-                        theTietPPCT = `<input type="text" list="${datalistId}" onchange="${onchangeLogic}" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-extrabold text-blue-700 placeholder-blue-300" placeholder="..." value="${tietPPCT}">` + theDatalistPPCT;
+                        // [NÂNG CẤP]: Xử lý Regex thông minh bóc tách số tiết nếu trình duyệt điền cả chuỗi, tự set lại giá trị số vào ô input
+                        let onchangeLogic = `let vMatch=this.value.trim().match(/\\d+/); if(vMatch){ let v=vMatch[0]; this.value=v; let ten=tuDienPPCTToanCuc['${khoiChon}_${monHoc.toLowerCase().replace(/\s+/g, ' ')}_'+v] || tuDienPPCTToanCuc['${khoiChon}_${monPPCT}_'+v] || ''; let tr=this.closest('tr'); if(tr){ let ta=tr.querySelector('td[data-loai=\\'tenBai\\'] textarea'); if(ta && ten){ ta.value=ten; ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; } } }`;
+                        
+                        // [NÂNG CẤP]: Thêm onclick="this.select()" để khi bấm chuột vào ô, văn bản tự bôi đen và kích hoạt menu thả xuống
+                        theTietPPCT = `<input type="text" list="${datalistId}" onclick="this.select()" onchange="${onchangeLogic}" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-extrabold text-blue-700 placeholder-blue-300 transition-all cursor-pointer hover:bg-blue-50" placeholder="..." value="${tietPPCT}">` + theDatalistPPCT;
                        
                         let optTot = (xepLoai === 'Tốt') ? 'selected' : '';
                         let optKha = (xepLoai === 'Khá') ? 'selected' : '';
