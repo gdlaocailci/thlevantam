@@ -11,7 +11,7 @@
   
   <script>
     window.khachApi = {
-yeucauApi: function(hdong, tdtai, khiTcong, khiLoi) {
+          yeucauApi: function(hdong, tdtai, khiTcong, khiLoi) {
             if (typeof ddungApi === 'undefined' || !ddungApi) {
                 if (khiLoi) khiLoi(new Error("Liên kết API hệ thống chưa sẵn sàng. Vui lòng tải lại trang."));
                 return;
@@ -128,7 +128,7 @@ yeucauApi: function(hdong, tdtai, khiTcong, khiLoi) {
         document.head.appendChild(metaDesc);
     }
 
-  function kiemTraPhienLamViec() {
+function kiemTraPhienLamViec() {
         const tkluuhd = sessionStorage.getItem("MA_PBAN_HT");
         const tokenluu = sessionStorage.getItem("PGV_TOKEN"); 
         const daGhiLs = sessionStorage.getItem("DA_GHI_LS"); 
@@ -162,8 +162,8 @@ yeucauApi: function(hdong, tdtai, khiTcong, khiLoi) {
            google.accounts.id.initialize({
                 client_id: PGV_GOOGLE_CLIENT_ID,
                 callback: xulyPhienDn,
-                auto_prompt: false
-             use_fedcm_for_prompt: true
+                auto_prompt: false, // [SỬA LỖI]: Đã bổ sung dấu phẩy tại đây
+                use_fedcm_for_prompt: true
             });
             google.accounts.id.renderButton(
                 document.getElementById("khu_vuc_nut_dang_nhap"),
@@ -208,7 +208,7 @@ function xulyPhienDn(phanho) {
       return JSON.parse(noidunjson);
     }
 
-    function thoatTaik() { 
+function thoatTaik() { 
         sessionStorage.removeItem("MA_PBAN_HT"); 
         sessionStorage.removeItem("PGV_TOKEN"); 
         sessionStorage.removeItem("DA_GHI_LS"); 
@@ -216,7 +216,9 @@ function xulyPhienDn(phanho) {
         window.PGV_TOKEN = null;
         location.reload(); 
     }
+  </script>
 
+  <style>
     /* ========================================================== */
     /* NÂNG CẤP: THUẬT TOÁN RESPONSIVE MENU OFF-CANVAS CHO MOBILE */
     /* ========================================================== */
@@ -265,9 +267,7 @@ function xulyPhienDn(phanho) {
         /* Tối ưu hiển thị bảng trên điện thoại */
         .table-responsive { max-height: calc(100vh - 180px) !important; }
     }
-  </script>
 
-  <style>
     body, input, select, textarea, button, table { font-family: 'Times New Roman', Times, serif !important; font-size: 14px; }
     body { background-color: transparent; min-height: 100vh; overflow: hidden; margin: 0; padding: 0; }
     body::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 251, 240, 0.6); z-index: -1; pointer-events: none; }
