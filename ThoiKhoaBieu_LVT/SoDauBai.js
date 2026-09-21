@@ -307,9 +307,20 @@ function khoiTaoDuLieuSoDauBai(duLieuSever) {
     duLieuTKBGopDaMap = tkbGop; 
     napDropdownSoDauBai();
 }
-
 // =========================================================================
-// HÀM 2: KẾT XUẤT SỔ ĐẦU BÀI LÊN LƯỚI (Đã vá lỗi chuẩn hóa Unicode NFC và phân quyền)
+// HÀM BỔ TRỢ: CHUẨN HÓA CHUỖI TIẾNG VIỆT (XÓA DẤU VÀ KHOẢNG TRẮNG)
+// =========================================================================
+function xoaDauVaKhoangTrang(chuoi) {
+    if (!chuoi) return '';
+    return String(chuoi)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Xóa dấu thanh, dấu mũ
+        .replace(/đ/g, "d").replace(/Đ/g, "D") // Đổi đ/Đ thành d/D
+        .toLowerCase() // Chuyển về chữ thường
+        .replace(/\s+/g, ""); // Xóa sạch mọi khoảng trắng
+}
+// =========================================================================
+// HÀM 2: KẾT XUẤT SỔ ĐẦU BÀI LÊN LƯỚI (Đã vá lỗi chuẩn hóa Unicode NFC và phân quyền tuyệt đối)
 // =========================================================================
 function ketXuatSoDauBaiLenLuoi() {
     let tuanChon = document.getElementById('chonTuanSo')?.value;
@@ -427,17 +438,18 @@ function ketXuatSoDauBaiLenLuoi() {
     }
 
     let tapHopMonDay = new Set();
-    // [BẢN VÁ LỖI]: Chuẩn hóa chuỗi bằng normalize('NFC') để tránh lỗi sai khác bảng mã tiếng Việt
-    let maGvDangNhapLC = madinhdanhGV.trim().toLowerCase().normalize('NFC');
+    
+    // [NÂNG CẤP]: Chuẩn hóa mã giáo viên đăng nhập (Xóa toàn bộ dấu và khoảng trắng)
+    let maGvDangNhapChuan = xoaDauVaKhoangTrang(madinhdanhGV);
     
     tkbTuanNay.forEach(dong => {
-        // [BẢN VÁ LỖI]: Chuẩn hóa NFC
-        let gvTkb = String(dong['Mã GV']).trim().toLowerCase().normalize('NFC');
+        let gvTkbRaw = String(dong['Mã GV'] || '');
         let monHoc = String(dong['Môn Học']).trim();
         if (monHoc !== '') {
-            let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
-            // Bao hàm chuỗi con để phòng viết tắt
-            if (quyenQuanTri || tapHopGvTkb.includes(maGvDangNhapLC) || tapHopGvTkb.some(g => maGvDangNhapLC.includes(g) && g.length > 2)) {
+            // [NÂNG CẤP]: Bóc tách và làm sạch mảng giáo viên được phân công trong TKB
+            let tapHopGvTkb = gvTkbRaw.split(/[,;&-]/).map(g => xoaDauVaKhoangTrang(g)).filter(g => g !== '');
+            // Chỉ cấp quyền khi khớp tuyệt đối giữa mã đăng nhập và danh sách TKB
+            if (quyenQuanTri || tapHopGvTkb.includes(maGvDangNhapChuan)) {
                 tapHopMonDay.add(monHoc);
             }
         }
@@ -507,16 +519,15 @@ function ketXuatSoDauBaiLenLuoi() {
                 let chuyenCan = dongDuLieu ? (dongDuLieu['ChuyenCan_Thuc'] || '') : '';
                 let isLocked = isDaLuu && chuKy.trim() !== '';
 
-                // [BẢN VÁ LỖI]: Chuẩn hóa NFC
-                let gvTkb = dongDuLieu ? String(dongDuLieu['Mã GV']).trim().toLowerCase().normalize('NFC') : '';
+                // [NÂNG CẤP]: Cấp quyền nhập liệu từng ô dựa trên chuẩn hóa tuyệt đối
+                let gvTkbRaw = dongDuLieu ? String(dongDuLieu['Mã GV'] || '') : '';
                 let quyenNhapThuCong = false;
                 
                 if (quyenQuanTri) {
                     quyenNhapThuCong = true;
-                } else if (monHoc !== '' && maGvDangNhapLC !== '') {
-                    let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
-                    // [BẢN VÁ LỖI]: Kiểm tra tính bao hàm linh hoạt
-                    if (tapHopGvTkb.includes(maGvDangNhapLC) || tapHopGvTkb.some(g => maGvDangNhapLC.includes(g) && g.length > 2)) {
+                } else if (monHoc !== '' && maGvDangNhapChuan !== '') {
+                    let tapHopGvTkb = gvTkbRaw.split(/[,;&-]/).map(g => xoaDauVaKhoangTrang(g)).filter(g => g !== '');
+                    if (tapHopGvTkb.includes(maGvDangNhapChuan)) {
                         quyenNhapThuCong = true;
                     }
                 }
@@ -784,18 +795,18 @@ function xuatWordSoDauBai() {
     let madinhdanhGV = maGvDangNhapHeThong || (theChotQuyen ? theChotQuyen.getAttribute('data-madinhdanh') || '' : '');
     let quyenQuanTri = coToanQuyenSDB || (theChotQuyen ? (theChotQuyen.getAttribute('data-quantri') === 'true' || theChotQuyen.getAttribute('data-quantri') === true) : false);
     
+    // [NÂNG CẤP]: Phân quyền xuất file dựa trên hàm xóa dấu và khoảng trắng
     let coQuyenTaiXuong = quyenQuanTri;
     if (!coQuyenTaiXuong && madinhdanhGV) {
-        let maGvDangNhapLC = madinhdanhGV.trim().toLowerCase().normalize('NFC');
+        let maGvDangNhapChuan = xoaDauVaKhoangTrang(madinhdanhGV);
         let tkbTuanNay = duLieuTKBGopDaMap.filter(d => String(d['Tuần']).trim() === tuanChon && String(d['Mã Lớp']).trim().toUpperCase() === lopChon.toUpperCase());
         
         coQuyenTaiXuong = tkbTuanNay.some(dong => {
             let monHoc = String(dong['Môn Học']).trim();
             if (monHoc === '') return false;
-            let gvTkb = String(dong['Mã GV']).trim().toLowerCase().normalize('NFC');
-            let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
-            // Kiểm tra bao hàm linh hoạt để phòng trường hợp viết tắt
-            return tapHopGvTkb.includes(maGvDangNhapLC) || tapHopGvTkb.some(g => maGvDangNhapLC.includes(g) && g.length > 2);
+            let gvTkbRaw = String(dong['Mã GV'] || '');
+            let tapHopGvTkb = gvTkbRaw.split(/[,;&-]/).map(g => xoaDauVaKhoangTrang(g)).filter(g => g !== '');
+            return tapHopGvTkb.includes(maGvDangNhapChuan);
         });
     }
 
@@ -854,17 +865,18 @@ async function xuatExcelSoDauBai() {
     let madinhdanhGV = maGvDangNhapHeThong || (theChotQuyen ? theChotQuyen.getAttribute('data-madinhdanh') || '' : '');
     let quyenQuanTri = coToanQuyenSDB || (theChotQuyen ? (theChotQuyen.getAttribute('data-quantri') === 'true' || theChotQuyen.getAttribute('data-quantri') === true) : false);
     
+    // [NÂNG CẤP]: Phân quyền xuất file dựa trên hàm xóa dấu và khoảng trắng
     let coQuyenTaiXuong = quyenQuanTri;
     if (!coQuyenTaiXuong && madinhdanhGV) {
-        let maGvDangNhapLC = madinhdanhGV.trim().toLowerCase().normalize('NFC');
+        let maGvDangNhapChuan = xoaDauVaKhoangTrang(madinhdanhGV);
         let tkbTuanNay = duLieuTKBGopDaMap.filter(d => String(d['Tuần']).trim() === tuanChon && String(d['Mã Lớp']).trim().toUpperCase() === lopChon.toUpperCase());
         
         coQuyenTaiXuong = tkbTuanNay.some(dong => {
             let monHoc = String(dong['Môn Học']).trim();
             if (monHoc === '') return false;
-            let gvTkb = String(dong['Mã GV']).trim().toLowerCase().normalize('NFC');
-            let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
-            return tapHopGvTkb.includes(maGvDangNhapLC) || tapHopGvTkb.some(g => maGvDangNhapLC.includes(g) && g.length > 2);
+            let gvTkbRaw = String(dong['Mã GV'] || '');
+            let tapHopGvTkb = gvTkbRaw.split(/[,;&-]/).map(g => xoaDauVaKhoangTrang(g)).filter(g => g !== '');
+            return tapHopGvTkb.includes(maGvDangNhapChuan);
         });
     }
 
