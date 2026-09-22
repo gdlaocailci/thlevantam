@@ -1216,13 +1216,23 @@ async function xuLyLayThongTin(maTokenTruyCap) {
             window.lamSachBoNhoSoDauBai();
         }
         
+        // [NÂNG CẤP START]: Chuyển UI sang nút Đăng xuất, giữ ảnh đại diện làm icon
         if (nutDangNhap) {
-            nutDangNhap.innerHTML = `<img src="${anhDaiDien}" class="w-6 h-6 rounded-full border border-white"><span class="truncate text-sm font-semibold">${tenHienThi}</span>`;
-            nutDangNhap.classList.replace('bg-slate-700', 'bg-green-700'); 
-            nutDangNhap.classList.replace('hover:bg-slate-600', 'hover:bg-green-600');
-            nutDangNhap.classList.replace('border-slate-500', 'border-green-500'); 
-            nutDangNhap.onclick = null; 
+            nutDangNhap.innerHTML = `<img src="${anhDaiDien}" class="w-6 h-6 rounded-full border border-white" title="Tài khoản: ${tenHienThi}"><span class="truncate text-sm font-semibold group-hover:text-red-300 transition-colors">Đăng xuất</span>`;
+            
+            // Đổi màu nền, viền và hiệu ứng hover sang tông màu đỏ/tối cảnh báo đăng xuất
+            nutDangNhap.classList.replace('bg-slate-700', 'bg-slate-800'); 
+            nutDangNhap.classList.replace('hover:bg-slate-600', 'hover:bg-red-700');
+            nutDangNhap.classList.replace('border-slate-500', 'border-red-500'); 
+            
+            // Gắn sự kiện đăng xuất: Reset toàn bộ phiên làm việc bằng cách tải lại trang
+            nutDangNhap.onclick = function() {
+                if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?')) {
+                    window.location.reload();
+                }
+            }; 
         }
+        // [NÂNG CẤP END]
 
         const dsQuanTri = thongSoHocVu.DANH_SACH_QUAN_TRI || [];
         const dinhDanhGoc = 'tulieuhopthanh@gmail.com';
