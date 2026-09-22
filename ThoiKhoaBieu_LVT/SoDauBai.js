@@ -336,8 +336,11 @@ function ketXuatSoDauBaiLenLuoi() {
     let vungHienThi = document.getElementById('vungHienThiSoDauBai');
 
     if (!tuanChon || !lopChon || !vungHienThi) return;
+    if (inputNgay) {
+        inputNgay.readOnly = true;
+        inputNgay.classList.add('bg-slate-100', 'cursor-not-allowed');
+    }
 
-    // [BẢN VÁ LỖI]: Ưu tiên lấy biến toàn cục trên RAM, dự phòng bằng DOM để tránh lỗi Wipeout
     let theChotQuyen = document.getElementById('theChotQuyenSDB');
     let madinhdanhGV = maGvDangNhapHeThong || (theChotQuyen ? theChotQuyen.getAttribute('data-madinhdanh') || '' : '');
     let quyenQuanTri = coToanQuyenSDB || (theChotQuyen ? (theChotQuyen.getAttribute('data-quantri') === 'true' || theChotQuyen.getAttribute('data-quantri') === true) : false);
