@@ -210,14 +210,14 @@ function capNhatNgayDauTuan() {
 }
 
 // =========================================================================
-// KHỐI 1: KHỞI TẠO VÀ TẢI DỮ LIỆU CƠ BẢN
+// KHỐI 1: KHỞI TẠO VÀ TẢI DỮ LIỆU CƠ BẢN (ĐÃ NÂNG CẤP SMART SYNC FINGERPRINT)
 // =========================================================================
 async function khoiTaoGiaoDien() {
     const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
     const KEY_CH = 'SmartTKB_CauHinh_' + MA_DA;
     const KEY_TKB = 'SmartTKB_DuLieuTuan_' + MA_DA;
     const hienThiTuan = document.getElementById('hienThiTuanHienTai');
-    const spinnerTuan = document.getElementById('spinnerTaiTuan'); // Biến điều khiển tải ngầm
+    const spinnerTuan = document.getElementById('spinnerTaiTuan');
 
     try {
         if(typeof CAU_HINH_FRONTEND !== 'undefined') {
@@ -251,7 +251,7 @@ async function khoiTaoGiaoDien() {
                 if (hienThiTuan) {
                     if (hienThiTuan.tagName === 'INPUT') {
                         hienThiTuan.value = tuanDangXem;
-                        if (spinnerTuan) spinnerTuan.classList.remove('hidden'); // Bật biểu tượng tải
+                        if (spinnerTuan) spinnerTuan.classList.remove('hidden');
                     } else {
                         hienThiTuan.innerHTML = `Tuần ${tuanDangXem} <svg class="inline w-4 h-4 text-blue-500 animate-spin ml-1.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg>`;
                     }
@@ -292,22 +292,50 @@ async function khoiTaoGiaoDien() {
         
         tuanDangXem = parseInt(thongSoHocVu.TUAN_HIEN_TAI) || 1;
         
+        // [NÂNG CẤP]: THUẬT TOÁN ĐỐI SÁNH THÔNG MINH CÓ KHÓA CHỐNG TRỄ
         if (thongSoHocVu.TKB_TUAN && thongSoHocVu.TKB_TUAN.length > 0) {
-            let chuoiTkbMoi = JSON.stringify(thongSoHocVu.TKB_TUAN);
-            let chuoiTkbCu = localStorage.getItem(KEY_TKB);
-            
-            if (chuoiTkbMoi !== chuoiTkbCu) {
-                duLieuTkbHienTai = thongSoHocVu.TKB_TUAN;
-                localStorage.setItem(KEY_TKB, chuoiTkbMoi);
-                xuatMaTranBang(duLieuTkbHienTai);
+            let tkbMayChu = thongSoHocVu.TKB_TUAN;
+            let tkbRam = [];
+            try { tkbRam = JSON.parse(localStorage.getItem(KEY_TKB) || '[]'); } catch(e){}
+
+            // Hàm băm dữ liệu (Tạo "dấu vân tay" loại bỏ nhiễu cấu trúc JSON)
+            const taoDauVanTay = (mangTkb) => {
+                if (!Array.isArray(mangTkb)) return '';
+                return mangTkb.map(t => `${String(t.thu).trim()}_${String(t.buoi).trim()}_${String(t.tiet).trim()}_${String(t.maLop).trim()}_${String(t.monHoc || '').trim()}_${String(t.maGv || '').trim()}`).sort().join('||');
+            };
+
+            let vanTayMayChu = taoDauVanTay(tkbMayChu);
+            let vanTayRam = taoDauVanTay(tkbRam);
+
+            // Kiểm tra xem giáo viên có vừa ấn "Lưu" trong 15 giây qua không
+            let thoiGianKhoa = parseInt(localStorage.getItem('KhoaDongBo_TKB') || '0');
+            let vuaMoiLuu = (Date.now() - thoiGianKhoa) < 15000; 
+
+            if (vanTayMayChu !== vanTayRam) {
+                if (vuaMoiLuu) {
+                    console.log("🔒 [Bảo vệ RAM]: Server có dấu hiệu trễ nhịp. Giữ nguyên dữ liệu vừa lưu trên UI!");
+                    if (!duLieuTkbHienTai || duLieuTkbHienTai.length === 0) duLieuTkbHienTai = tkbRam;
+                } else {
+                    console.log("⚡ [Smart Sync]: Dữ liệu thay đổi. Đang đồng bộ hóa lưới UI...");
+                    duLieuTkbHienTai = tkbMayChu;
+                    localStorage.setItem(KEY_TKB, JSON.stringify(tkbMayChu));
+                    xuatMaTranBang(duLieuTkbHienTai);
+                    if (typeof window.lamSachBoNhoSoDauBai === 'function') window.lamSachBoNhoSoDauBai();
+                }
+            } else {
+                console.log("✅ [Smart Sync]: Dữ liệu RAM và Server khớp 100%.");
+                if (!duLieuTkbHienTai || duLieuTkbHienTai.length === 0) {
+                    duLieuTkbHienTai = tkbRam.length > 0 ? tkbRam : tkbMayChu;
+                }
             }
             
             if (hienThiTuan) {
                 if (hienThiTuan.tagName === 'INPUT') {
                     hienThiTuan.value = tuanDangXem;
-                    if (spinnerTuan) spinnerTuan.classList.add('hidden'); // Tắt biểu tượng tải khi chốt dữ liệu
+                    if (spinnerTuan) spinnerTuan.classList.add('hidden');
+                } else {
+                    hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
                 }
-                else hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
             }
         } else {
             await taiDuLieuTKB(coCache); 
@@ -324,27 +352,30 @@ async function khoiTaoGiaoDien() {
     }
 }
 
-async function taiDuLieuTKB(coCache = false, nguonTruyXuat = 'TKB_HIEN_TAI') {
+// Bổ sung tham số thứ 3: epDongBo để nhận tín hiệu từ nút Lưu
+async function taiDuLieuTKB(coCache = false, nguonTruyXuat = 'TKB_HIEN_TAI', epDongBo = false) {
     const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
     const KEY_TKB = 'SmartTKB_DuLieuTuan_' + MA_DA;
     const vungHienThi = document.getElementById('vungHienThiDuLieu');
     const hienThiTuan = document.getElementById('hienThiTuanHienTai');
-    const spinnerTuan = document.getElementById('spinnerTaiTuan'); // Biến điều khiển tải ngầm
+    const spinnerTuan = document.getElementById('spinnerTaiTuan');
     
     let nhanNguon = nguonTruyXuat === 'DATA_TKB' ? 'Dữ liệu quá khứ' : (nguonTruyXuat === 'TKB_CoDinh' ? 'Dự kiến cố định' : 'Hệ thống hiện tại');
 
+    // [HIỆU ỨNG]: Nếu coCache = true, giữ nguyên lưới nhưng hiển thị vòng quay ở ô Tuần
     if (!coCache) {
         vungHienThi.innerHTML = `<tr><td class="text-center text-blue-600 font-bold py-10 reactbits-fade-in text-lg" style="font-family:'Times New Roman',Times,serif;"><div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang tải TKB Tuần ${tuanDangXem} từ [${nhanNguon}]...</td></tr>`;
     } else if (hienThiTuan) {
         if (hienThiTuan.tagName === 'INPUT') {
-            if (spinnerTuan) spinnerTuan.classList.remove('hidden'); // Bật biểu tượng tải
+            if (spinnerTuan) spinnerTuan.classList.remove('hidden');
         } else if (!hienThiTuan.innerHTML.includes('animate-spin')) {
             hienThiTuan.innerHTML = `Tuần ${tuanDangXem} <svg class="inline w-4 h-4 text-blue-500 animate-spin ml-1.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg>`;
         }
     }
     
     try {
-        const phanHoi = await fetchVoiCoCheThuLai(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTKB&tuan=${tuanDangXem}&nguon=${nguonTruyXuat}`);
+        const urlTKB = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTKB&tuan=${tuanDangXem}&nguon=${nguonTruyXuat}&_noCacheTkb=${new Date().getTime()}`;
+        const phanHoi = await fetchVoiCoCheThuLai(urlTKB);
         const textPhanHoi = await phanHoi.text();
         let duLieu;
 
@@ -357,16 +388,39 @@ async function taiDuLieuTKB(coCache = false, nguonTruyXuat = 'TKB_HIEN_TAI') {
         if (duLieu.trangThai === 'loi_he_thong') throw new Error(duLieu.thongBao);
 
         if (Array.isArray(duLieu)) {
-            let chuoiTkbMoi = JSON.stringify(duLieu);
-            let chuoiTkbCu = localStorage.getItem(KEY_TKB);
+            let tkbRam = [];
+            try { tkbRam = JSON.parse(localStorage.getItem(KEY_TKB) || '[]'); } catch(e){}
             
+            const taoDauVanTay = (mangTkb) => {
+                if (!Array.isArray(mangTkb)) return '';
+                return mangTkb.map(t => `${String(t.thu).trim()}_${String(t.buoi).trim()}_${String(t.tiet).trim()}_${String(t.maLop).trim()}_${String(t.monHoc || '').trim()}_${String(t.maGv || '').trim()}`).sort().join('||');
+            };
+
+            let vanTayMayChu = taoDauVanTay(duLieu);
+            let vanTayRam = taoDauVanTay(tkbRam);
+
+            let thoiGianKhoa = parseInt(localStorage.getItem('KhoaDongBo_TKB') || '0');
+            // Nếu epDongBo = true, vô hiệu hóa Khóa 15s để cho phép tải dữ liệu mới
+            let vuaMoiLuu = (Date.now() - thoiGianKhoa) < 15000 && !epDongBo;
+
             if (nguonTruyXuat === 'TKB_HIEN_TAI') {
-                if (!coCache || chuoiTkbMoi !== chuoiTkbCu) {
-                    duLieuTkbHienTai = duLieu;
-                    localStorage.setItem(KEY_TKB, chuoiTkbMoi);
-                    xuatMaTranBang(duLieuTkbHienTai);
+                if (!coCache || vanTayMayChu !== vanTayRam || epDongBo) {
+                    if (vuaMoiLuu && coCache) {
+                        console.log("🔒 [Bảo vệ RAM]: Từ chối ghi đè dữ liệu cũ từ server do vừa mới lưu xong.");
+                        if (document.getElementById('vungHienThiDuLieu').innerHTML.includes('Đang tải')) {
+                            xuatMaTranBang(duLieuTkbHienTai);
+                        }
+                    } else {
+                        console.log("⚡ [Smart Sync]: Cập nhật lưới TKB Hiện Tại từ Máy chủ...");
+                        duLieuTkbHienTai = duLieu;
+                        localStorage.setItem(KEY_TKB, JSON.stringify(duLieu));
+                        xuatMaTranBang(duLieuTkbHienTai);
+                        if (typeof window.lamSachBoNhoSoDauBai === 'function') window.lamSachBoNhoSoDauBai();
+                    }
                 } else {
-                    xuatMaTranBang(duLieuTkbHienTai);
+                    if (document.getElementById('vungHienThiDuLieu').innerHTML.includes('Đang tải')) {
+                        xuatMaTranBang(duLieuTkbHienTai);
+                    }
                 }
             } else {
                 duLieuTkbHienTai = duLieu; 
@@ -383,10 +437,11 @@ async function taiDuLieuTKB(coCache = false, nguonTruyXuat = 'TKB_HIEN_TAI') {
             </td></tr>`;
         }
     } finally {
+        // Tắt vòng quay thông báo kết thúc tiến trình
         if (hienThiTuan) {
             if (hienThiTuan.tagName === 'INPUT') {
                 hienThiTuan.value = tuanDangXem;
-                if (spinnerTuan) spinnerTuan.classList.add('hidden'); // Tắt biểu tượng tải khi hoàn tất
+                if (spinnerTuan) spinnerTuan.classList.add('hidden');
             }
             else hienThiTuan.innerText = `Tuần ${tuanDangXem}`;
         }
@@ -979,9 +1034,23 @@ async function luuDuLieu(event, loaiLuu) {
                 await luuDuLieu({ currentTarget: btnAn }, 'tuan');
             } else {
                 alert("Đã lưu dữ liệu thời khóa biểu thành công!");
+                
+                // 1. Lưu dự phòng ngay vào RAM để bảo vệ thành quả nếu lỡ rớt mạng ở bước sau
                 duLieuTkbHienTai = dsTietLuoi;
                 const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
                 localStorage.setItem('SmartTKB_DuLieuTuan_' + MA_DA, JSON.stringify(dsTietLuoi));
+
+                // 2. Dọn dẹp cache Sổ Đầu Bài
+                if (typeof window.lamSachBoNhoSoDauBai === 'function') {
+                    window.lamSachBoNhoSoDauBai();
+                }
+
+                // 3. [ĐÁP ỨNG YÊU CẦU]: Kích hoạt hiệu ứng tải ở ô tuần và kéo bản ghi chuẩn xác từ Server về.
+                // Tham số thứ 3 (epDongBo = true) cho phép vòng quay hoạt động và ép hệ thống vượt qua Khóa bảo vệ.
+                await taiDuLieuTKB(true, 'TKB_HIEN_TAI', true);
+
+                // 4. Đặt Khóa chống trễ 15s sau khi đồng bộ xong để chặn F5 làm hỏng dữ liệu
+                localStorage.setItem('KhoaDongBo_TKB', Date.now().toString());
             }
         }
     } catch (loi) { 
@@ -994,7 +1063,6 @@ async function luuDuLieu(event, loaiLuu) {
         }
     }
 }
-
 // =========================================================================
 // KHỐI 5: ĐỘNG CƠ ĐIỀU HƯỚNG SIÊU TỐC
 // =========================================================================
