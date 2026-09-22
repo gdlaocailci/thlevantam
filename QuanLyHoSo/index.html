@@ -917,7 +917,7 @@ function getUrlAndTarget(encodedTd2) {
         kiemTraTrangThaiDangNhap();
     };
 
-    function taiBieuTuongCongKhai() {
+   function taiBieuTuongCongKhai() {
         let cachedIcons = localStorage.getItem(PREFIX_MEM + 'icons_cache');
         if (cachedIcons) {
             try {
@@ -937,8 +937,14 @@ function getUrlAndTarget(encodedTd2) {
             try {
                 let result = JSON.parse(text);
                 if (result.status === 'success') { 
-                    localStorage.setItem(PREFIX_MEM + 'icons_cache', JSON.stringify(result.data));
-                    renderIconsFromData(result.data); 
+                    let newDataString = JSON.stringify(result.data);
+                    
+                    // [NÂNG CẤP]: Thuật toán kiểm tra thay đổi dữ liệu (Chống giật/reload màn hình)
+                    // Chỉ render lại DOM khi dữ liệu từ máy chủ khác với dữ liệu đang hiển thị
+                    if (cachedIcons !== newDataString) {
+                        localStorage.setItem(PREFIX_MEM + 'icons_cache', newDataString);
+                        renderIconsFromData(result.data); 
+                    }
                 } else {
                     if (!cachedIcons) {
                         desktopArea.innerHTML = `<div class="loading-screen" style="background: rgba(0,0,0,0.85); flex-direction: column; padding: 20px; text-align: center;">
