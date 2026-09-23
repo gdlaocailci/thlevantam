@@ -1880,6 +1880,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const theHienThiTuan = document.getElementById('hienThiTuanHienTai');
     if (theHienThiTuan && theHienThiTuan.tagName === 'INPUT') {
         theHienThiTuan.addEventListener('input', window.capNhatTenNutTuanTiepTheo);
+
+        // [NÂNG CẤP]: Khóa phím mũi tên Lên/Xuống ở ô nhập Tuần để tránh thay đổi nhầm
+        theHienThiTuan.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+            }
+        });
+
+        // [NÂNG CẤP]: Khóa thao tác cuộn chuột làm thay đổi số tuần
+        theHienThiTuan.addEventListener('wheel', function(e) {
+            e.preventDefault();
+        });
     }
 });
 
