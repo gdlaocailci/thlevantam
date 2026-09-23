@@ -470,9 +470,8 @@ async function goiThuatToanXepLich() {
     vungHienThi.innerHTML = `<tr><td class="text-center text-orange-600 font-bold py-10 reactbits-fade-in text-lg" style="font-family:'Times New Roman',Times,serif;"><div class="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-3"></div>Đang chạy Động cơ phân bổ cho Tuần ${tuanDangXem}...</td></tr>`;
     try {
         const phanHoi = await fetchVoiCoCheThuLai(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=xepLichTuDong&tuan=${tuanDangXem}`);
-        // [LÕI NÂNG CẤP]: Khởi tạo biến ảo, không gán đè vào duLieuTkbHienTai để bộ lọc cờ nhận diện được sự thay đổi
-        let duLieuXepTuDong = await phanHoi.json(); 
-        xuatMaTranBang(duLieuXepTuDong);
+        duLieuTkbHienTai = await phanHoi.json(); 
+        xuatMaTranBang(duLieuTkbHienTai);
     } catch (loi) { vungHienThi.innerHTML = `<tr><td class="text-center text-red-500 font-bold py-10 text-lg" style="font-family:'Times New Roman',Times,serif;">Lỗi thuật toán xếp lịch tự động.</td></tr>`; }
 }
 
@@ -951,14 +950,14 @@ function xuatMaTranBang(danhSachTiet) {
 }
 
 // =========================================================================
-// Vị trí: file app.js (Thay thế toàn bộ hàm luuDuLieu cũ)
-// Nâng cấp: Thuật toán Delta Mapping - Chỉ gửi những dòng có gắn cờ GHI/XÓA
+// KHỐI 4: TRÌNH LƯU TRỮ VÀ XỬ LÝ DỮ LIỆU ĐA TẦNG
 // =========================================================================
 async function luuDuLieu(event, loaiLuu) {
     let coQuyenThaoTac = quyenSuaChua || (quyenChiTiet && (quyenChiTiet.lop.length > 0 || quyenChiTiet.nut.length > 0));
     if (!coQuyenThaoTac) return;
     
     if (loaiLuu === 'codinh') { if (!confirm("CẢNH BÁO: Thao tác này sẽ ghi đè toàn bộ TKB hiện tại làm TKB Gốc Cố Định cho toàn trường. Bấm OK để tiếp tục.")) return; }
+    
     if (loaiLuu === 'khoiphuc') { if (!confirm(`Xác nhận: Lưu trữ toàn bộ TKB Tuần ${tuanDangXem}, tự động chuyển sang tuần tiếp theo?`)) return; }
 
     const btn = event.currentTarget; 
@@ -971,47 +970,27 @@ async function luuDuLieu(event, loaiLuu) {
     try {
         let dsTietLuoi = []; 
         let namHocChuan = thongSoHocVu.NAM_HOC || "";
-        let thangChuan = "";
-        let dsLopDangSua = new Set(); 
-
-        // 1. Lập bản đồ dữ liệu Gốc lúc vừa tải trang
-        let mapGoc = {};
-        if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) {
-            duLieuTkbHienTai.forEach(t => {
-                let tienTo = (t.buoi === "Sáng") ? "S" : "C";
-                let key = `${t.thu}_${tienTo}_${t.tiet}_${t.maLop}`;
-                mapGoc[key] = { monHoc: t.monHoc || "", maGv: t.maGv || "" };
-            });
-        }
         
         let cacOMon = document.querySelectorAll('input[id^="mon_"]');
+        let setLopDangHienThi = new Set();
         
         cacOMon.forEach(oMon => {
-            let parts = oMon.id.split('_'); 
-            let thu = parts[1];
-            let buoi = parts[2];
-            let tiet = parts[3];
-            let lop = parts.slice(4).join('_'); 
-            
-            let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
             let valMon = oMon.value.trim();
-            let valGv = oGv ? oGv.value.trim() : "";
-            
-            let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
-            let maTietKhoa = `${thu}_${tienToBuoi}_${tiet}_${lop}`;
-            let goc = mapGoc[maTietKhoa] || { monHoc: "", maGv: "" };
-
-            // 2. Chốt kiểm dịch: Chỉ bắt những ô BỊ SỬA ĐỔI so với mốc Gốc ban đầu
-            let daSua = (valMon !== goc.monHoc) || (valGv !== goc.maGv);
-            
-            // Xóa rác: Bỏ qua nếu cả giao diện và bản gốc đều trống rỗng
-            if (valMon === "" && goc.monHoc === "") daSua = false;
-            
-            if (daSua || loaiLuu === 'codinh' || loaiLuu === 'khoiphuc') {
+            if (valMon !== "") {
+                let parts = oMon.id.split('_'); 
+                let thu = parts[1];
+                let buoi = parts[2];
+                let tiet = parts[3];
+                let lop = parts.slice(4).join('_'); 
+                
+                setLopDangHienThi.add(lop); 
+                
+                let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
+                let valGv = oGv ? oGv.value.trim() : "";
+                
                 let thongTinNgay = tinhNgayDocLap(ngayDauTuanUI, thu);
-                if (thangChuan === "") thangChuan = thongTinNgay.thang;
-                dsLopDangSua.add(lop); 
-
+                let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
+                
                 dsTietLuoi.push({ 
                     maTiet: `${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`, 
                     namHoc: namHocChuan || thongTinNgay.nam, 
@@ -1023,43 +1002,66 @@ async function luuDuLieu(event, loaiLuu) {
                     tiet: tiet, 
                     maLop: lop, 
                     monHoc: valMon, 
-                    maGv: valGv,
-                    hanhDong: (valMon === "") ? "XOA" : "GHI"  // Cờ báo cho Server xử lýNhận định của thầy hoàn toàn chính xác. Trong lập trình ứng dụng nhiều người dùng (đặc biệt khi sử dụng Google Sheets làm cơ sở dữ liệu), hiện tượng này được gọi là **Xung đột đồng thời (Race Condition)** hay **Mất dữ liệu cập nhật (Lost Update)**. 
+                    maGv: valGv 
+                });
+            }
+        });
 
-Việc gắn cờ (cột trạng thái) như thầy đề xuất là một hướng tư duy rất chuẩn xác. Để xử lý triệt để bài toán này trên hệ sinh thái Google Apps Script, thầy có thể áp dụng một trong ba cơ chế sau tùy thuộc vào độ phức tạp của ứng dụng:
+        let mangLopDangHienThi = Array.from(setLopDangHienThi);
+        if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) {
+            duLieuTkbHienTai.forEach(tietGoc => {
+                if (!mangLopDangHienThi.includes(tietGoc.maLop)) {
+                    dsTietLuoi.push(tietGoc);
+                }
+            });
+        }
 
-### 1. Cơ chế Khóa bi quan (Pessimistic Locking - Gắn cờ dòng)
-Đây chính là cách thầy đang nhắc đến. Hệ thống sẽ cấp quyền "độc chiếm" cho người mở dữ liệu trước.
-*   **Cách thức:** Tạo thêm một cột `Trạng thái chỉnh sửa` (ví dụ: "Đang khóa", "Trống"). Khi một người bấm "Sửa", hệ thống đánh dấu dòng đó là "Đang khóa". Nếu người thứ 2 bấm sửa cùng dòng đó, hệ thống báo lỗi: *"Dữ liệu đang được thao tác bởi người khác"*. Sau khi người thứ 1 lưu xong, hệ thống xóa cờ "Đang khóa".
-*   **Ưu điểm:** Ngăn chặn xung đột ngay từ lúc bắt đầu nhập liệu.
-*   **Nhược điểm:** Nếu người thứ 1 mở lên rồi đóng trình duyệt (không bấm Lưu hoặc Hủy), dòng đó sẽ bị khóa vĩnh viễn. Cần viết thêm logic đếm thời gian (timeout) để tự động mở khóa sau 10-15 phút.
+        const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { 
+            method: 'POST', 
+            body: JSON.stringify({ thaoTac: 'luuDuLieu', loaiLuu: loaiLuu, tuan: tuanDangXem, duLieu: dsTietLuoi }) 
+        });
+        const ketQua = await phanHoi.json();
+        
+        if(ketQua.trangThai !== 'thanh_cong') { 
+            console.error("Sự cố máy chủ."); 
+            alert("Lưu thất bại: " + ketQua.thongBao);
+        } else { 
+            if (loaiLuu === 'khoiphuc') {
+                await chuyenTuan(1); 
+                console.log("Kích hoạt Lưu Tuần tự động để neo lại mốc thời gian...");
+                let btnAn = document.createElement('button');
+                btnAn.innerHTML = "Auto Save";
+                await luuDuLieu({ currentTarget: btnAn }, 'tuan');
+            } else {
+                alert("Đã lưu dữ liệu thời khóa biểu thành công!");
+                
+                // 1. Lưu dự phòng ngay vào RAM để bảo vệ thành quả nếu lỡ rớt mạng ở bước sau
+                duLieuTkbHienTai = dsTietLuoi;
+                const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
+                localStorage.setItem('SmartTKB_DuLieuTuan_' + MA_DA, JSON.stringify(dsTietLuoi));
 
-### 2. Sử dụng LockService (Hàng đợi tuần tự - Giải pháp gốc của Google)
-Thay vì gắn cờ thủ công, Google Apps Script hỗ trợ hàm `LockService` để tự động xếp hàng các lệnh ghi dữ liệu. Nếu 2 người cùng bấm nút "Lưu" một lúc, hệ thống sẽ bắt người thứ 2 đợi người thứ 1 lưu xong (tối đa trong vài giây) rồi mới thực thi tiếp lệnh của người thứ 2.
+                // 2. Dọn dẹp cache Sổ Đầu Bài
+                if (typeof window.lamSachBoNhoSoDauBai === 'function') {
+                    window.lamSachBoNhoSoDauBai();
+                }
 
-```javascript
-function capNhatDuLieu(dongCanSua, duLieuMoi) {
-  // Yêu cầu khóa kịch bản (Script Lock) chờ tối đa 10 giây (10000ms)
-  var khoaKichBan = LockService.getScriptLock();
-  
-  try {
-    khoaKichBan.waitLock(10000); 
-    
-    // --- Bắt đầu khối lệnh ghi dữ liệu ---
-    var trangTinh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DU_LIEU");
-    
-    // Xác minh lại dòng cần sửa trước khi ghi đè để đảm bảo tính chính xác
-    // Thực hiện lệnh setValues() tại đây...
-    
-    // --- Kết thúc khối lệnh ghi dữ liệu ---
-    
-  } catch (e) {
-    // Trả về thông báo nếu hệ thống quá tải không thể cấp khóa
-    throw new Error("Hệ thống đang xử lý một giao dịch khác, vui lòng thử lại sau giây lát.");
-  } finally {
-    // Bắt buộc giải phóng khóa dù quá trình xử lý thành công hay gặp lỗi
-    khoaKichBan.releaseLock();
-  }
+                // 3. [ĐÁP ỨNG YÊU CẦU]: Kích hoạt hiệu ứng tải ở ô tuần và kéo bản ghi chuẩn xác từ Server về.
+                // Tham số thứ 3 (epDongBo = true) cho phép vòng quay hoạt động và ép hệ thống vượt qua Khóa bảo vệ.
+                await taiDuLieuTKB(true, 'TKB_HIEN_TAI', true);
+
+                // 4. Đặt Khóa chống trễ 15s sau khi đồng bộ xong để chặn F5 làm hỏng dữ liệu
+                localStorage.setItem('KhoaDongBo_TKB', Date.now().toString());
+            }
+        }
+    } catch (loi) { 
+        console.error("Lỗi kết nối.", loi); 
+        alert("Có sự cố trong quá trình kết nối đến máy chủ.");
+    } finally { 
+        if(btn.disabled !== undefined) { 
+            btn.innerHTML = textGoc; 
+            btn.disabled = false; 
+        }
+    }
 }
 // =========================================================================
 // KHỐI 5: ĐỘNG CƠ ĐIỀU HƯỚNG SIÊU TỐC
