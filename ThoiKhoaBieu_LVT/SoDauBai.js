@@ -9,6 +9,11 @@ let tuDienQuyenPhanCong = {};
 let coToanQuyenSDB = false;
 let maGvDangNhapHeThong = '';
 
+// [NÂNG CẤP]: Các biến toàn cục hỗ trợ kiểm soát trạng thái chưa lưu (Chống mất dữ liệu)
+let tuanTruocDo_SDB = '';
+let lopTruocDo_SDB = '';
+let coThayDoiChuaLuu_SDB = false;
+
 // [BẢN VÁ LỖI]: Hàm dọn dẹp bộ nhớ đệm khi có sự kiện đổi tài khoản hoặc TKB
 window.lamSachBoNhoSoDauBai = function() {
     daTaiDuLieuSoDauBai = false;
@@ -17,6 +22,11 @@ window.lamSachBoNhoSoDauBai = function() {
     dinhMucKhungCT = {}; 
     tuDienQuyenPhanCong = {};
     coToanQuyenSDB = false;
+    
+    // Reset cờ bảo vệ dữ liệu
+    tuanTruocDo_SDB = '';
+    lopTruocDo_SDB = '';
+    coThayDoiChuaLuu_SDB = false;
     
     // Xóa triệt để Cache tĩnh của user hiện hành
     let emailGoiLen = typeof window.emailGiaoVienToanCuc !== 'undefined' ? window.emailGiaoVienToanCuc : '';
@@ -327,9 +337,94 @@ function khoiTaoDuLieuSoDauBai(duLieuSever) {
 }
 
 // =========================================================================
-// HÀM 2: KẾT XUẤT SỔ ĐẦU BÀI LÊN LƯỚI (Đã vá lỗi chuẩn hóa Unicode NFC và phân quyền)
+// HÀM 2: KẾT XUẤT SỔ ĐẦU BÀI LÊN LƯỚI (NÂNG CẤP: ÉP BUỘC LƯU THEO TRÌNH TỰ & BẢO VỆ DIRTY CHECK)
+// THIẾT KẾ VÀ PHÁT TRIỂN: HOÀNG NGỌC LÂM
 // =========================================================================
 function ketXuatSoDauBaiLenLuoi() {
+    let theSelectTuan = document.getElementById('chonTuanSo');
+    let theSelectLop = document.getElementById('chonLopSo');
+    let tuanChon = theSelectTuan?.value;
+    let lopChon = theSelectLop?.value;
+
+    if (!tuanChon || !lopChon) return; // Chờ đến khi chọn đủ cả Tuần và Lớp
+
+    let tuanSoChon = parseInt(tuanChon.replace(/\D/g, ''));
+
+    // =========================================================================
+    // CHỐT CHẶN 1: ÉP BUỘC TRÌNH TỰ TỊNH TIẾN SỔ (CHỐNG LỆCH PPCT)
+    // =========================================================================
+    let trangThaiCacTuan = {};
+    let tuanChuaLuuNhoNhat = null;
+
+    // Quét toàn bộ dữ liệu TKB của Lớp đang chọn để thống kê trạng thái Lưu
+    duLieuTKBGopDaMap.forEach(d => {
+        let maLop = String(d['Mã Lớp']).trim().toUpperCase();
+        if (maLop === lopChon.toUpperCase()) {
+            let t = parseInt(String(d['Tuần']).replace(/\D/g, '')) || 0;
+            if (t > 0) {
+                if (!trangThaiCacTuan[t]) {
+                    trangThaiCacTuan[t] = { tongTietCoMon: 0, tongTietChuaLuu: 0 };
+                }
+                // Chỉ tính toán các tiết có môn học thực tế
+                if (String(d['Môn Học']).trim() !== '') {
+                    trangThaiCacTuan[t].tongTietCoMon++;
+                    if (d.DaLuu !== true) {
+                        trangThaiCacTuan[t].tongTietChuaLuu++;
+                    }
+                }
+            }
+        }
+    });
+
+    // Sắp xếp các tuần có dữ liệu từ nhỏ đến lớn và tìm ra tuần nợ sổ đầu tiên
+    let cacTuanCoDuLieu = Object.keys(trangThaiCacTuan).map(Number).sort((a, b) => a - b);
+    for (let i = 0; i < cacTuanCoDuLieu.length; i++) {
+        let t = cacTuanCoDuLieu[i];
+        if (trangThaiCacTuan[t].tongTietCoMon > 0 && trangThaiCacTuan[t].tongTietChuaLuu > 0) {
+            tuanChuaLuuNhoNhat = t;
+            break;
+        }
+    }
+
+    // Nếu phát hiện có tuần cũ chưa lưu, và giáo viên đang chọn tuần lớn hơn tuần đó
+    if (tuanChuaLuuNhoNhat !== null && tuanSoChon > tuanChuaLuuNhoNhat) {
+        alert(`⛔ CẢNH BÁO TRÌNH TỰ SỔ ĐẦU BÀI:\n\nĐồng chí không thể lập sổ Tuần ${tuanSoChon} vì Tuần ${tuanChuaLuuNhoNhat} của lớp này chưa được chốt sổ!\n\nNguyên tắc hệ thống: Bắt buộc phải lưu Sổ đầu bài theo đúng trình tự thời gian để Phân phối chương trình (PPCT) tự động tịnh tiến chính xác.\n\nHệ thống sẽ tự động quay trở về Tuần ${tuanChuaLuuNhoNhat}.`);
+        
+        // Tự động tìm và trả Dropdown về Tuần chưa lưu
+        let optionToSelect = Array.from(theSelectTuan.options).find(opt => parseInt(opt.value.replace(/\D/g, '')) === tuanChuaLuuNhoNhat);
+        
+        if (optionToSelect) {
+            theSelectTuan.value = optionToSelect.value;
+            // Kích hoạt lại hàm kết xuất với giá trị Tuần đã được lùi về an toàn
+            setTimeout(ketXuatSoDauBaiLenLuoi, 100); 
+            return; // Hủy luồng kết xuất hiện tại
+        }
+    }
+
+    // =========================================================================
+    // CHỐT CHẶN 2: BẢO VỆ DỮ LIỆU ĐANG NHẬP DỞ TRÊN LƯỚI (DIRTY CHECKING)
+    // =========================================================================
+    if (coThayDoiChuaLuu_SDB && (tuanChon !== tuanTruocDo_SDB || lopChon !== lopTruocDo_SDB)) {
+        alert("Cảnh báo: Đồng chí đang có dữ liệu chưa lưu trên màn hình! Vui lòng bấm 'Lưu Sổ đầu bài' để chốt dữ liệu trước khi chuyển sang Tuần hoặc Lớp khác.");
+        
+        // Hoàn tác Dropdown về trạng thái đang nhập dở
+        if (theSelectTuan && tuanTruocDo_SDB) theSelectTuan.value = tuanTruocDo_SDB;
+        if (theSelectLop && lopTruocDo_SDB) theSelectLop.value = lopTruocDo_SDB;
+        return; // Hủy lệnh vẽ lưới mới
+    }
+
+    // =========================================================================
+    // AN TOÀN - TIẾN HÀNH KẾT XUẤT LƯỚI
+    // =========================================================================
+    thucThiKetXuatSoDauBaiLenLuoi();
+
+    // Cập nhật mốc lưu trữ sau khi kết xuất thành công để dùng cho lần kiểm tra sau
+    tuanTruocDo_SDB = theSelectTuan?.value || '';
+    lopTruocDo_SDB = theSelectLop?.value || '';
+    coThayDoiChuaLuu_SDB = false; // Reset cờ báo thay đổi cho phiên làm việc mới
+}
+
+function thucThiKetXuatSoDauBaiLenLuoi() {
     let tuanChon = document.getElementById('chonTuanSo')?.value;
     let lopChon = document.getElementById('chonLopSo')?.value;
     let inputNgay = document.getElementById('chonNgaySDB');
@@ -616,6 +711,13 @@ function ketXuatSoDauBaiLenLuoi() {
             ta.style.height = 'auto';
             ta.style.height = (ta.scrollHeight) + 'px';
         });
+
+        // [NÂNG CẤP]: Lắng nghe mọi sự kiện chỉnh sửa trên lưới để bật cờ "Chưa lưu"
+        let tatCaOVanBan = vungHienThi.querySelectorAll('textarea, input, select');
+        tatCaOVanBan.forEach(oNhap => {
+            oNhap.addEventListener('input', () => { coThayDoiChuaLuu_SDB = true; });
+            oNhap.addEventListener('change', () => { coThayDoiChuaLuu_SDB = true; });
+        });
     }, 50);
 }
 
@@ -759,6 +861,7 @@ async function luuSoDauBaiSangMayChu() {
 
         if (ketQua.trangThai === 'thanh_cong') {
             alert(`✅ Đã chốt thành công Sổ đầu bài Lớp ${lopChon} - Tuần ${tuanSo}!`);
+            coThayDoiChuaLuu_SDB = false; // [NÂNG CẤP]: Xóa cờ cảnh báo sau khi lưu thành công
             await taiDuLieuSoDauBaiTuMayChu();
             daTaiDuLieuSoDauBai = false; 
             taiDuLieuSoDauBaiTuMayChu();
@@ -864,9 +967,10 @@ function dongBoTenBaiHoc() {
                             // Xử lý thẻ Textarea (Kể cả khi bị disable do không có quyền)
                             if (theTextarea && theTextarea.value.trim() === '') {
                                 theTextarea.value = baiDayChuan;
-                                theTextarea.innerHTML = baiDayChuan; // Cập nhật cưỡng chế vào DOM
+                                document.activeElement.blur(); // Tách focus để tránh xung đột giao diện
                                 theTextarea.style.height = 'auto';
                                 theTextarea.style.height = (theTextarea.scrollHeight) + 'px';
+                                coThayDoiChuaLuu_SDB = true; // [NÂNG CẤP]: Bật cờ "Chưa lưu"
                             }
                         }
                     }
@@ -1189,11 +1293,13 @@ function chonMucPPCT(soTiet, tenBai, event) {
     
     if (trangThaiKhungPPCT.inputTiet) {
         trangThaiKhungPPCT.inputTiet.value = soTiet;
+        coThayDoiChuaLuu_SDB = true; // [NÂNG CẤP]: Bật cờ cảnh báo
     }
     if (trangThaiKhungPPCT.inputTenBai && tenBai !== 'Chưa có dữ liệu bài dạy') {
         trangThaiKhungPPCT.inputTenBai.value = tenBai;
         trangThaiKhungPPCT.inputTenBai.style.height = 'auto';
         trangThaiKhungPPCT.inputTenBai.style.height = (trangThaiKhungPPCT.inputTenBai.scrollHeight) + 'px';
+        coThayDoiChuaLuu_SDB = true; // [NÂNG CẤP]: Bật cờ cảnh báo
     }
     dongKhungTruotPPCT(); // Đóng khung ngay lập tức sau khi gán xong dữ liệu
 }
