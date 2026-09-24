@@ -1748,3 +1748,63 @@ window.locTheoLop = function() {
         }
     });
 };
+// =========================================================================
+// THUẬT TOÁN TỊNH TIẾN TUẦN: XÓA TKB HIỆN TẠI & CHÉP TKB CỐ ĐỊNH
+// =========================================================================
+async function thucThiChuyenTuanTiepTheo(event) {
+    if (!quyenSuaChua) {
+        alert("Từ chối truy cập: Đồng chí không có quyền quản trị để thực hiện tịnh tiến thời khóa biểu toàn trường.");
+        return;
+    }
+
+    let tuanHeThong = parseInt(thongSoHocVu.TUAN_HIEN_TAI, 10) || 1;
+    let tuanMoi = tuanHeThong + 1;
+
+    let canhBao = `⛔ XÁC NHẬN CHUYỂN TUẦN ${tuanMoi}:\n\n` +
+                  `Hệ thống sẽ thực hiện:\n` +
+                  `1. Xóa toàn bộ dữ liệu của Tuần ${tuanHeThong} tại Sheet TKB_HIEN_TAI.\n` +
+                  `2. Chép toàn bộ TKB chuẩn từ Sheet TKB_CoDinh sang Tuần ${tuanMoi}.\n` +
+                  `3. Tịnh tiến tuần làm việc của toàn trường lên Tuần ${tuanMoi}.\n\n` +
+                  `Đồng chí có chắc chắn muốn thực hiện?`;
+
+    if (!confirm(canhBao)) return;
+
+    const btn = event.currentTarget || event.target;
+    const textGoc = btn.innerHTML;
+    btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span class="ml-2">Đang đồng bộ...</span>`;
+    btn.disabled = true;
+
+    try {
+        const payload = { 
+            thaoTac: 'chuyenTuanTiepTheoDongBo', 
+            tuanCu: tuanHeThong,
+            tuanMoi: tuanMoi 
+        };
+        
+        const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        const ketQua = await phanHoi.json();
+        
+        if (ketQua.trangThai === 'thanh_cong') {
+            alert(`✅ Đã tịnh tiến hệ thống sang Tuần ${tuanMoi} và nạp TKB Cố định thành công!`);
+            
+            // Xóa triệt để Cache để ép hệ thống tải lại TKB mới tinh từ máy chủ
+            const MA_DA = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND.MA_DU_AN) ? CAU_HINH_FRONTEND.MA_DU_AN : 'MAC_DINH';
+            localStorage.removeItem('SmartTKB_CauHinh_' + MA_DA);
+            localStorage.removeItem('SmartTKB_DuLieuTuan_' + MA_DA);
+            
+            // Tải lại trang để khởi tạo lại toàn bộ ma trận UI
+            window.location.reload(); 
+        } else {
+            throw new Error(ketQua.thongBao);
+        }
+    } catch (loi) {
+        alert("Lỗi chuyển tuần: " + loi.message);
+    } finally {
+        btn.innerHTML = textGoc;
+        btn.disabled = false;
+    }
+}
