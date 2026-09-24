@@ -564,12 +564,24 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     if (coDayBuThu7) danhSachThu.push("Thứ 7");
     if (coDayBuChuNhat) danhSachThu.push("Chủ nhật");
 
-    let mienNgayHienTai = inputNgay ? inputNgay.value : '';
-    if (!mienNgayHienTai && mapNgayChinhXac['Thứ 2']) {
+   // [NÂNG CẤP - FIX LỖI]: Ép buộc cập nhật Ngày đầu tuần theo đúng dữ liệu TKB của tuần vừa chọn
+    let mienNgayHienTai = '';
+    
+    // Ưu tiên lấy ngày Thứ 2 trực tiếp từ cục dữ liệu TKB của tuần đang được render
+    if (mapNgayChinhXac['Thứ 2']) {
         let p = mapNgayChinhXac['Thứ 2'].split('/');
         if (p.length === 3) {
-            mienNgayHienTai = `${p[2]}-${p[1]}-${p[0]}`; 
-            if (inputNgay) inputNgay.value = mienNgayHienTai;
+            mienNgayHienTai = `${p[2]}-${p[1]}-${p[0]}`; // Định dạng yyyy-mm-dd chuẩn cho thẻ input
+        }
+    }
+
+    if (inputNgay) {
+        if (mienNgayHienTai) {
+            // Nếu có ngày chính xác từ tuần mới, ghi đè ngay lập tức để đồng bộ UI
+            inputNgay.value = mienNgayHienTai;
+        } else {
+            // Dự phòng: Nếu tuần này khuyết dữ liệu ngày trên server, dùng tạm giá trị đang có trên Input để tính toán tiếp
+            mienNgayHienTai = inputNgay.value;
         }
     }
 
