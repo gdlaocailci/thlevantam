@@ -17,7 +17,8 @@ const DANH_SACH_NUT_CHUC_NANG = [
     {id: 'btnLuuCoDinh', ten: 'TKB Cố Định'},
     {id: 'btnXepTuDong', ten: 'Xếp Tự Động'},
     {id: 'btnKiemTra', ten: 'Định Mức tiết'},
-    {id: 'btnChuyenTuan', ten: 'Mũi tên Chuyển tuần'}
+    {id: 'btnChuyenTuan', ten: 'Mũi tên Chuyển tuần'},
+    { id: 'btnLuuSua', ten: 'Lưu Sửa' }
 ];
 
 // Khởi tạo và Bơm Giao diện vào index.html lúc tải trang
