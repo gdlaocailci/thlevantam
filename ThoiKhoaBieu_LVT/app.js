@@ -856,7 +856,7 @@ async function luuDuLieu(event, loaiLuu) {
     
     if (loaiLuu === 'codinh') { if (!confirm("CẢNH BÁO: Thao tác này sẽ ghi đè toàn bộ TKB hiện tại làm TKB Gốc Cố Định cho toàn trường. Bấm OK để tiếp tục.")) return; }
     if (loaiLuu === 'khoiphuc') { if (!confirm(`Xác nhận: Lưu trữ toàn bộ TKB Tuần ${tuanDangXem}, tự động chuyển sang tuần tiếp theo?`)) return; }
-    if (loaiLuu === 'tuan') { if (!confirm(`Xác nhận: Xóa trắng và ghi đè toàn bộ dữ liệu Tuần ${tuanDangXem} trên máy chủ bằng nội dung đang hiển thị trên màn hình?`)) return; }
+    if (loaiLuu === 'tuan') { if (!confirm(`Xác nhận: Xóa trắng và ghi đè toàn bộ dữ liệu Tuần ${tuanDangXem} trên máy chủ bằng nội dung Thời khoá biểu mặc định?`)) return; }
 
     const btn = event.currentTarget; 
     const textGoc = btn.innerHTML;
