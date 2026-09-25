@@ -44,7 +44,7 @@
             withSuccessHandler: function(cb) { return createRunner(cb, onFailure); },
             withFailureHandler: function(cb) { return createRunner(onSuccess, cb); },
          
-_call: function(hdong, tso) {
+_call: function(hdong, tso, lan_thu = 1) { // NÂNG CẤP: Thêm tham số đếm số lần thử lại
                 const sysId = window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || ""; 
                 const maDonVi = sessionStorage.getItem("SKT_MA_DON_VI") || "TRUONG_1"; 
                 const endpoint = typeof SKT_GAS_URL !== 'undefined' ? SKT_GAS_URL : "";
@@ -62,7 +62,6 @@ _call: function(hdong, tso) {
                     redirect: 'follow',
                     credentials: 'omit'
                 })
-                // --- BẮT ĐẦU VỊ TRÍ NÂNG CẤP BẮT LỖI UNEXPECTED TOKEN '<' ---
                 .then(res => {
                     const kieuDuLieu = res.headers.get("content-type");
                     if (kieuDuLieu && kieuDuLieu.includes("application/json")) {
@@ -71,7 +70,6 @@ _call: function(hdong, tso) {
                         throw new Error("LỖI TRIỂN KHAI: Máy chủ Google từ chối quyền truy cập API (Trả về trang HTML thay vì dữ liệu JSON). Yêu cầu kiểm tra lại cấu hình Deploy (Who has access: Anyone).");
                     }
                 })
-                // --- KẾT THÚC VỊ TRÍ NÂNG CẤP ---
                 .then(res => {
                     if (res.trth === "tcon") { 
                         if (onSuccess) onSuccess(res.dliu); 
@@ -83,6 +81,14 @@ _call: function(hdong, tso) {
                     }
                 })
                 .catch(err => {
+                    // NÂNG CẤP: Tự động thử lại ngầm khi gặp sự cố mạng chập chờn
+                    if (lan_thu > 0) {
+                        setTimeout(() => {
+                            this._call(hdong, tso, lan_thu - 1);
+                        }, 1500); // Tạm nghỉ 1.5 giây trước khi tự động kết nối lại
+                        return;
+                    }
+                    
                     const lder = document.getElementById('instant-loader');
                     if (lder) lder.style.display = 'none';
                     if (onFailure) onFailure(err);
@@ -874,8 +880,9 @@ function dangxg() {
 
 /* ========================================================================== */
 /* KHỐI XỬ LÝ KHỞI ĐỘNG BẤT ĐỒNG BỘ: CHẠY SONG SONG TẢI UI VÀ KIỂM TRA QUYỀN  */
+/* NÂNG CẤP: Tích hợp cơ chế Auto-Retry (Thử lại ngầm) chống lỗi đường truyền */
 /* ========================================================================== */
-function kiemtqvata(tk_chuyen_den = null) {
+function kiemtqvata(tk_chuyen_den = null, so_lan_thu = 1) {
     let taikht = tk_chuyen_den || window.skttktoanc || layluutrant("SKT_DINHDANH_TAIK") || "";
     taikht = String(taikht).toLowerCase().trim();
     window.sktquyenht = "";
@@ -936,7 +943,6 @@ function kiemtqvata(tk_chuyen_den = null) {
                         dangxg(); // Gọi hàm reset hệ thống
                     };
 
-                    // Lắng nghe sự kiện để trả nút về nguyên bản khi đóng (tránh ảnh hưởng thông báo khác)
                     const overlay = document.getElementById('custom-alert-overlay');
                     const observer = new MutationObserver((mutations) => {
                         if (overlay.style.display === 'none') {
@@ -967,7 +973,6 @@ function kiemtqvata(tk_chuyen_den = null) {
                 el.disabled = false;
             });
             
-            // Khóa chờ UI cấp 2 (Thống kê)
             document.querySelectorAll('#s_gv, #s_nkt, #s_bp, #cbMaHoSo').forEach(el => {
                 el.classList.add('reactbits-skeleton');
                 el.disabled = true;
@@ -1032,16 +1037,25 @@ function kiemtqvata(tk_chuyen_den = null) {
                 }
             })
              .withFailureHandler(err => {
-    console.log("Cảnh báo tải ngầm: " + err.message); // Bắt lỗi âm thầm, không bung popup
-})
+                console.log("Cảnh báo tải ngầm: " + err.message);
+            })
             .skt_gopgio_thanhbao({ cucgach: taikht, uu_tien: 2 });
 
         }, 50);
 
     }).catch(err => {
+        // NÂNG CẤP: Tự động thử lại nếu đường truyền bị gián đoạn lần đầu
+        if (so_lan_thu > 0) {
+            setTimeout(() => {
+                kiemtqvata(tk_chuyen_den, so_lan_thu - 1);
+            }, 1500);
+            return;
+        }
+        
         const lder = document.getElementById('instant-loader');
         if (lder) lder.style.display = 'none'; 
         alert("LỖI KHỞI ĐỘNG GIAO DIỆN HOẶC MẤT KẾT NỐI MÁY CHỦ: " + err.message);
+        document.getElementById('login-overlay').style.display = 'flex';
     });
 }
 
