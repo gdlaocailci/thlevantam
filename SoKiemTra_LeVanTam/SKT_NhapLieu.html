@@ -14,8 +14,15 @@
   .cell-input::placeholder { color: #94a3b8 !important; opacity: 0.5; font-style: italic; font-size: 13px; }
   #mainTable .cell-input::placeholder { opacity: 0.45; }
   select.cell-input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231e3a8a%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 5px top 50%; background-size: 8px auto; padding-right: 15px; text-align-last: center; }
-    th { text-align: center !important; vertical-align: middle !important; }
+  th { text-align: center !important; vertical-align: middle !important; }
   .filter-section { grid-template-columns: 220px 220px 220px 175px 1fr !important; }
+
+  /* NÂNG CẤP UI: Hiệu ứng làm mờ chữ khi người dùng đang focus chọn lại danh sách */
+  .input-dimmed::placeholder {
+      color: #64748b !important; 
+      opacity: 0.6 !important;
+      font-style: normal !important;
+  }
 
   /* Hiệu ứng trích xuất từ ReactBits (Shiny Button Effect) */
   .reactbits-btn {
@@ -42,26 +49,27 @@
       0% { left: -150%; }
       100% { left: 200%; }
   }
- 
 </style>
 
 <div id="main_content">
   <div class="header-card">
    <h1 id="title_nhaplieu" style="text-align:center; color:var(--brand-red); margin-top:0; font-family: 'Times New Roman', serif; font-size: 22px; font-weight: bold;">ĐANG ĐỒNG BỘ DỮ LIỆU...</h1>
-<div class="filter-section">
+
+    <div class="filter-section">
+      <!-- NÂNG CẤP: Chuyển hướng sự kiện onchange qua hàm đánh chặn skt_change_cb -->
       <div class="f-item">
         <span>Giáo viên</span>
-        <input id="cbGiaoVien" list="list_cbGiaoVien" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="khindthd('GV')" onclick="this.select(); try{this.showPicker();}catch(e){}" autocomplete="off">
+        <input id="cbGiaoVien" list="list_cbGiaoVien" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="skt_change_cb(this, 'GV')" onclick="skt_click_cb(this)" onblur="skt_blur_cb(this)" autocomplete="off">
         <datalist id="list_cbGiaoVien"></datalist>
       </div>
       <div class="f-item">
         <span>Người kiểm tra</span>
-        <input id="cbNguoiKiemTra" list="list_cbNguoiKiemTra" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="khindthd('NKT')" onclick="this.select(); try{this.showPicker();}catch(e){}" autocomplete="off">
+        <input id="cbNguoiKiemTra" list="list_cbNguoiKiemTra" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="skt_change_cb(this, 'NKT')" onclick="skt_click_cb(this)" onblur="skt_blur_cb(this)" autocomplete="off">
         <datalist id="list_cbNguoiKiemTra"></datalist>
       </div>
       <div class="f-item">
         <span>Bộ phận</span>
-        <input id="cbBoPhan" list="list_cbBoPhan" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="capnmab()" onclick="this.select(); try{this.showPicker();}catch(e){}" autocomplete="off">
+        <input id="cbBoPhan" list="list_cbBoPhan" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="skt_change_cb(this, 'BP')" onclick="skt_click_cb(this)" onblur="skt_blur_cb(this)" autocomplete="off">
         <datalist id="list_cbBoPhan"></datalist>
       </div>
       <div class="f-item">
@@ -70,10 +78,11 @@
       </div>
       <div class="f-item">
         <span>Mã hồ sơ <button id="btnRefreshMaHoSo" class="refresh-btn" title="Cập nhật danh sách" onclick="lammdsm()">↻</button></span>
-        <input id="cbMaHoSo" list="list_cbMaHoSo" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="khindthd('MAHS')" onclick="this.select(); try{this.showPicker();}catch(e){}" autocomplete="off">
+        <input id="cbMaHoSo" list="list_cbMaHoSo" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="skt_change_cb(this, 'MAHS')" onclick="skt_click_cb(this)" onblur="skt_blur_cb(this)" autocomplete="off">
         <datalist id="list_cbMaHoSo"></datalist>
       </div>
     </div>
+    
         <div class="status-stepper">
       <div id="step1" class="step active">1. CHỜ CHỌN</div>
       <div id="step2" class="step">2. NẠP DỮ LIỆU</div>
@@ -158,6 +167,49 @@
 </div>
 
 <script>
+  // --- NÂNG CẤP: Xử lý hiệu ứng mờ chữ và hiển thị toàn bộ danh sách (An toàn tuyệt đối với onchange) ---
+  function skt_click_cb(el) {
+      if (el.readOnly || el.disabled) return;
+      if (el.value.trim() !== "") {
+          el.setAttribute("data-giatri-cu", el.value);
+          el.placeholder = el.value; // Chuyển chữ đang có thành trạng thái mờ (placeholder)
+          el.classList.add("input-dimmed");
+          el.value = ""; // Xóa tạm thời để click vào bung toàn bộ danh sách
+      }
+      try { el.showPicker(); } catch(e) {}
+  }
+
+  function skt_change_cb(el, lo) {
+      // ĐÁNH CHẶN: Nếu người dùng không chọn gì (ô trống) mà thoát ra -> Phục hồi dữ liệu và hủy onchange
+      if (el.value.trim() === "" && el.hasAttribute("data-giatri-cu")) {
+          el.value = el.getAttribute("data-giatri-cu");
+          el.removeAttribute("data-giatri-cu");
+          el.classList.remove("input-dimmed");
+          el.placeholder = "-- Chọn / Nhập tìm kiếm --";
+          return; // Dừng lại ở đây, hệ thống không bị kích hoạt gọi hàm phân quyền cũ
+      }
+      
+      // Nếu có chọn người mới hợp lệ, tiến hành dọn dẹp các thuộc tính mờ
+      el.removeAttribute("data-giatri-cu");
+      el.classList.remove("input-dimmed");
+      el.placeholder = "-- Chọn / Nhập tìm kiếm --";
+
+      // Kích hoạt luồng chức năng nguyên bản của hệ thống
+      if (lo === 'GV' || lo === 'NKT' || lo === 'MAHS') khindthd(lo);
+      else if (lo === 'BP') capnmab();
+  }
+
+  function skt_blur_cb(el) {
+      el.classList.remove("input-dimmed");
+      el.placeholder = "-- Chọn / Nhập tìm kiếm --";
+      // Đảm bảo an toàn: Nếu skt_change_cb bị lọt sự kiện, blur sẽ khôi phục lại chữ
+      if (el.value.trim() === "" && el.hasAttribute("data-giatri-cu")) {
+          el.value = el.getAttribute("data-giatri-cu");
+      }
+      el.removeAttribute("data-giatri-cu");
+  }
+  // --- KẾT THÚC KHỐI NÂNG CẤP JS ---
+
   // --- ĐỒNG BỘ ĐỊNH DANH GIAO DIỆN ---
   (function dongBoNhanDien() {
       setTimeout(function() {
@@ -1086,8 +1138,4 @@ function xulyxo() {
       if(nt) { nt.innerHTML = nt.getAttribute('data-original') || '🗑️'; nt.disabled = false; } 
       dongcxoa = null; 
   }
-  //===================================
-  document.addEventListener('DOMContentLoaded', function() {
-   
-  });
 </script>
