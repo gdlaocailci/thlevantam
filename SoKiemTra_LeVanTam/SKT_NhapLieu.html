@@ -56,7 +56,6 @@
    <h1 id="title_nhaplieu" style="text-align:center; color:var(--brand-red); margin-top:0; font-family: 'Times New Roman', serif; font-size: 22px; font-weight: bold;">ĐANG ĐỒNG BỘ DỮ LIỆU...</h1>
 
     <div class="filter-section">
-      <!-- NÂNG CẤP: Chuyển hướng sự kiện onchange qua hàm đánh chặn skt_change_cb -->
       <div class="f-item">
         <span>Giáo viên</span>
         <input id="cbGiaoVien" list="list_cbGiaoVien" class="f-input" placeholder="-- Chọn / Nhập tìm kiếm --" onchange="skt_change_cb(this, 'GV')" onclick="skt_click_cb(this)" onblur="skt_blur_cb(this)" autocomplete="off">
@@ -167,34 +166,30 @@
 </div>
 
 <script>
-  // --- NÂNG CẤP: Xử lý hiệu ứng mờ chữ và hiển thị toàn bộ danh sách (An toàn tuyệt đối với onchange) ---
   function skt_click_cb(el) {
       if (el.readOnly || el.disabled) return;
       if (el.value.trim() !== "") {
           el.setAttribute("data-giatri-cu", el.value);
-          el.placeholder = el.value; // Chuyển chữ đang có thành trạng thái mờ (placeholder)
+          el.placeholder = el.value; 
           el.classList.add("input-dimmed");
-          el.value = ""; // Xóa tạm thời để click vào bung toàn bộ danh sách
+          el.value = ""; 
       }
       try { el.showPicker(); } catch(e) {}
   }
 
   function skt_change_cb(el, lo) {
-      // ĐÁNH CHẶN: Nếu người dùng không chọn gì (ô trống) mà thoát ra -> Phục hồi dữ liệu và hủy onchange
       if (el.value.trim() === "" && el.hasAttribute("data-giatri-cu")) {
           el.value = el.getAttribute("data-giatri-cu");
           el.removeAttribute("data-giatri-cu");
           el.classList.remove("input-dimmed");
           el.placeholder = "-- Chọn / Nhập tìm kiếm --";
-          return; // Dừng lại ở đây, hệ thống không bị kích hoạt gọi hàm phân quyền cũ
+          return; 
       }
       
-      // Nếu có chọn người mới hợp lệ, tiến hành dọn dẹp các thuộc tính mờ
       el.removeAttribute("data-giatri-cu");
       el.classList.remove("input-dimmed");
       el.placeholder = "-- Chọn / Nhập tìm kiếm --";
 
-      // Kích hoạt luồng chức năng nguyên bản của hệ thống
       if (lo === 'GV' || lo === 'NKT' || lo === 'MAHS') khindthd(lo);
       else if (lo === 'BP') capnmab();
   }
@@ -202,15 +197,12 @@
   function skt_blur_cb(el) {
       el.classList.remove("input-dimmed");
       el.placeholder = "-- Chọn / Nhập tìm kiếm --";
-      // Đảm bảo an toàn: Nếu skt_change_cb bị lọt sự kiện, blur sẽ khôi phục lại chữ
       if (el.value.trim() === "" && el.hasAttribute("data-giatri-cu")) {
           el.value = el.getAttribute("data-giatri-cu");
       }
       el.removeAttribute("data-giatri-cu");
   }
-  // --- KẾT THÚC KHỐI NÂNG CẤP JS ---
 
-  // --- ĐỒNG BỘ ĐỊNH DANH GIAO DIỆN ---
   (function dongBoNhanDien() {
       setTimeout(function() {
           try {
@@ -222,8 +214,8 @@
       }, 50);
   })();
 
-  // --- LOGIC HOẠT ĐỘNG ---
-  let tknd = window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || ""; 
+  /* BẢN NÂNG CẤP: Loại bỏ hoàn toàn từ khóa SKT_USER_TAIK, đồng nhất sử dụng SKT_DINHDANH_TAIK */
+  let tknd = window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || ""; 
   let dlgvi = [], dlnktra = [], dlbpha = {}, dlmhso = [];
   let donghtta = null; 
   let dongcxoa = null; 
@@ -236,14 +228,12 @@
       return String(ch).normalize("NFC").toLowerCase().replace(/[\s\uFEFF\xA0]+/g, '');
   }
 
-// 4. Nâng cấp hàm set dữ liệu tự động (Nhận diện tự động Input hoặc Select)
   function dathopc(idd, gt) {
       const pht = document.getElementById(idd);
       if(!pht) return;
       if (pht.tagName.toLowerCase() === 'input') {
-          pht.value = gt || ""; // Trả thẳng giá trị vào thẻ input
+          pht.value = gt || ""; 
       } else {
-          // Tương thích ngược với các thẻ select cũ nếu còn
           const t1 = chuanhchu(gt);
           for(let iso = 0; iso < pht.options.length; iso++) {
               if(chuanhchu(pht.options[iso].text) === t1 || chuanhchu(pht.options[iso].value) === t1) {
@@ -400,9 +390,6 @@ function trallkch(ddn) {
       else hienhth("⚠️ Chưa tải được chức năng upload!"); 
   }
 
-/* ========================================================================== */
-/* ĐỒNG BỘ: KHI ĐÍNH KÈM MINH CHỨNG, DÙNG SYS_QUYEN ĐỂ KIỂM TRA NHANH         */
-/* ========================================================================== */
 function kiemtlqsu(dg) {
     const sysQ = window.SYS_QUYEN || {};
     const selectedNKT = document.getElementById('cbNguoiKiemTra').value;
@@ -426,10 +413,7 @@ function kiemtlqsu(dg) {
         }
     }
 }
-/* ========================================================================== */
-/* NÂNG CẤP: THUẬT TOÁN LOAD QUYỀN VÀ RENDER UI TỐC ĐỘ O(1)                   */
-/* CHÚ THÍCH: Đưa toàn bộ tính toán quyền hạn vào bộ đệm window.SYS_QUYEN     */
-/* ========================================================================== */
+
 function taidli() {
     chuyentxo('initial', true);
 
@@ -446,7 +430,6 @@ function taidli() {
     dienho('cbNguoiKiemTra', dlnktra); 
     dienhopd('cbBoPhan', Object.keys(dlbpha)); 
 
-    // THUẬT TOÁN MỚI: Xây dựng bộ đệm quyền hạn (Role Cache) 1 LẦN DUY NHẤT
     let emcan = chuanhchu(tknd);
     const q_h_t = String(window.sktquyenht).trim().toLowerCase();
     
@@ -459,7 +442,6 @@ function taidli() {
         isNKT_System: false
     };
 
-    // Quét mảng tìm tên định danh (Chỉ quét 1 lần)
     for (let i = 0; i < dlgvi.length; i++) {
         if (chuanhchu(dlgvi[i].taik) === emcan) { window.SYS_QUYEN.tenGV_Cua_User = dlgvi[i].tenn; break; }
     }
@@ -474,14 +456,12 @@ function taidli() {
     const hpgv = document.getElementById('cbGiaoVien');
 
     if (window.SYS_QUYEN.tenGV_Cua_User && !window.SYS_QUYEN.isNKT_System && !window.SYS_QUYEN.quyenQuanTri) {
-        // ĐỐI VỚI NGƯỜI ĐƯỢC KIỂM TRA
         hpgv.value = ""; 
         hpgv.disabled = true;
         document.getElementById('cbNguoiKiemTra').disabled = true;
         document.getElementById('cbBoPhan').disabled = true;
         document.getElementById('txtMaBoPhan').disabled = true;
     } else if (window.SYS_QUYEN.tenGV_Cua_User) {
-        // ĐỐI VỚI NGƯỜI KIỂM TRA / QUẢN TRỊ
         dathopc('cbGiaoVien', window.SYS_QUYEN.tenGV_Cua_User);
     }
 
@@ -491,11 +471,7 @@ function taidli() {
     apdquye();
 }
   
-/* ========================================================================== */
-/* HÀM APPLY QUYỀN LÊN LƯỚI - TỐC ĐỘ THỰC THI < 5ms (Giảm tải Main Thread)    */
-/* ========================================================================== */
 function apdquye() {
-    // 1. Gọi bộ đệm hệ thống (O(1))
     const sysQ = window.SYS_QUYEN || {};
     
     let isRecordSigned = false;
@@ -526,14 +502,12 @@ function apdquye() {
     
     const duThongTin = (selectedGV !== "" && selectedNKT !== "" && selectedBP !== "");
 
-    // So sánh quyền bằng cache, không gọi vòng lặp
     const isOwner = (sysQ.tenGV_Cua_User && chuanhchu(sysQ.tenGV_Cua_User) === chuanhchu(selectedGV) && selectedGV !== "");
     const isSelectedInspector = (sysQ.tenNKT_Cua_User && chuanhchu(sysQ.tenNKT_Cua_User) === chuanhchu(selectedNKT) && selectedNKT !== "");
     
     const isInspectorRole = (sysQ.isSuperAdmin || sysQ.isQuyenX || sysQ.isNKT_System);
     const isHistoryLoaded = (document.getElementById('cbMaHoSo').value !== "");
 
-    // 2. Điều khiển trạng thái Bộ lọc khóa/mở
     const filters = document.querySelectorAll('#main_content .f-input');
     filters.forEach(input => {
         if (input.id === 'cbMaHoSo') {
@@ -545,7 +519,6 @@ function apdquye() {
 
     const duocPhepCapNhatFile = (sysQ.isSuperAdmin || (sysQ.isQuyenX && isSelectedInspector) || isOwner);
 
-    // 3. Khóa/Mở lưới dữ liệu nhập liệu
     danhSachDong.forEach(dg => {
         const cacn = dg.querySelectorAll('.cell-input');
         
@@ -553,7 +526,7 @@ function apdquye() {
             if (isRecordSigned) {
                 input.disabled = true; 
             } else {
-                input.disabled = true; // Khóa mặc định chờ đủ điều kiện
+                input.disabled = true; 
                 
                 if (sysQ.isSuperAdmin) {
                     input.disabled = (index !== 9 && index !== 10) ? !duThongTin : false;
@@ -583,7 +556,6 @@ function apdquye() {
         }
     });
     
-    // 4. Quản lý trạng thái các nút lệnh thực thi tác vụ
     const btnSave = document.getElementById('btnSave');
     const btnSubmit = document.getElementById('btnSubmit');
     const addRowBtn = document.querySelector('.add-row-container');
@@ -612,7 +584,6 @@ function apdquye() {
 function khindthd(lo) {
     if ((lo === 'GV' || lo === 'NKT') && kiemttrem(lo)) return;
     
-    // 👉 NÂNG CẤP: Xóa sạch bảng, reset mã hồ sơ và tạo dòng mới khi đổi Giáo viên hoặc Người kiểm tra
     if (lo === 'GV' || lo === 'NKT') {
         document.getElementById('tableContent').innerHTML = "";
         document.getElementById('cbMaHoSo').value = "";
@@ -625,16 +596,24 @@ function khindthd(lo) {
     if (lo === 'MAHS' && hp.value) {
         dattr(2);
 
-        // THUẬT TOÁN MỚI: QUÉT TRỰC TIẾP TRÊN RAM TRÌNH DUYỆT
+        // NÂNG CẤP BỔ SUNG: Kiểm tra dữ liệu nạp trước, tránh lỗi ẩn khi chưa bấm Cập nhật
+        if (!window.skt_kho_nhatky || window.skt_kho_nhatky.length === 0) {
+            hienhth("⚠️ Hệ thống chưa nạp dữ liệu hồ sơ. Vui lòng nhấn nút ↻ (Cập nhật) ở ô Mã hồ sơ trước khi tìm kiếm!");
+            dattr(1);
+            hp.value = "";
+            return;
+        }
+
         const ma_tim = hp.value.trim().toLowerCase();
-        const kq = (window.skt_kho_nhatky || []).filter(hang =>
+        const kq = window.skt_kho_nhatky.filter(hang =>
             hang[16] && hang[16].toString().trim().toLowerCase() === ma_tim
         );
 
         if (kq && kq.length > 0) {
             const bg = kq;
 
-            let emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+            // ĐỒNG BỘ NÂNG CẤP: Loại bỏ từ khóa nhạy cảm, sử dụng SKT_DINHDANH_TAIK 
+            let emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || tknd);
             let tgvc = dlgvi.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
             let tnktc = dlnktra.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
             
@@ -644,7 +623,6 @@ function khindthd(lo) {
             const q_h_t = String(window.sktquyenht || "").trim().toLowerCase();
             const quyenQuanTri = (q_h_t === 'xx' || q_h_t === 'xxx');
 
-            // 👉 NÂNG CẤP: Chặn load nếu không phải Admin, không phải NKT của hồ sơ này, và không phải GV của hồ sơ này
             const laGVcuaHoSo = (tgvc && chuanhchu(bggv) === chuanhchu(tgvc));
             const laNKTcuaHoSo = (tnktc && chuanhchu(bgnkt) === chuanhchu(tnktc));
 
@@ -659,14 +637,16 @@ function khindthd(lo) {
             ['cbGiaoVien','cbNguoiKiemTra','cbBoPhan'].forEach(idd=>document.getElementById(idd).disabled=true);
             setTimeout(() => { apdquye(); dattr(4); }, 300);
         } else {
+            // NÂNG CẤP BỔ SUNG: Xử lý hiển thị thông báo lỗi khi không tìm thấy hồ sơ hoặc nhập sai mã
+            hienhth("⚠️ Không tìm thấy Mã hồ sơ này hoặc bạn chưa bấm ↻ để đồng bộ dữ liệu mới nhất!");
             dattr(1);
+            hp.value = "";
         }
     } else {
         apdquye();
     }
 }
-//======================================================================================================
-// NÂNG CẤP: Hàm kiểm tra sự kiện nhập liệu cột Ký tên (Căn chỉnh lại lề cho Icon SVG)
+
 function kiemTraKyTen(o_nhap) {
     const td = o_nhap.closest('td');
     const icon = td.querySelector('.icon-check-ky');
@@ -681,7 +661,6 @@ function kiemTraKyTen(o_nhap) {
     }
 }
 
-// NÂNG CẤP: Thay thế emoji bằng Mã nhúng đồ họa (SVG) chuẩn xác theo hình ảnh
 function themdongmo(dld = null) {
   const datg = new Date().getTime().toString().slice(-5);
   const idng = Math.floor(Math.random() * 1000); 
@@ -742,7 +721,7 @@ function themdongmo(dld = null) {
   }
   apdquye();
 }
-//=======================================================================
+
   function xulylu() { if(hopllu()) thuchms("skt_luubg_nha", document.getElementById('btnSave'), "LƯU KẾT QUẢ"); }
   
   function xulyno() { 
@@ -754,15 +733,12 @@ function themdongmo(dld = null) {
       if(hoplno()) thuchms("skt_nopbg_cuo", document.getElementById('btnSubmit'), "NỘP KẾT QUẢ"); 
   }
 
-/* ========================================================================== */
-// 5. Cập nhật nhỏ trong hàm thuchms (Khắc phục lỗi đọc .options của Select cũ)
-/* ========================================================================== */
 function thuchms(ha, nt, ch) {
-    const con_trau_nuoc = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+    // ĐỒNG BỘ NÂNG CẤP: Loại bỏ từ khóa nhạy cảm, sử dụng SKT_DINHDANH_TAIK 
+    const con_trau_nuoc = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || tknd);
     const hop_dien_thoai = document.getElementById('cbGiaoVien');
     const hop_may_tinh = document.getElementById('cbNguoiKiemTra');
     
-    // NÂNG CẤP: Đọc giá trị trực tiếp từ .value vì các ô này nay đã là thẻ <input>
     const qua_chuoi_chin = String(hop_dien_thoai.value || "").trim();
     const qua_dua_hau = String(hop_may_tinh.value || "").trim();
     
@@ -772,18 +748,15 @@ function thuchms(ha, nt, ch) {
     const nguoi_cam_can = dlnktra.some(chau_chau => chuanhchu(chau_chau.taik) === con_trau_nuoc && chuanhchu(chau_chau.tenn) === chuanhchu(qua_dua_hau));
     const nguoi_len_thot = dlgvi.some(cao_cao => chuanhchu(cao_cao.taik) === con_trau_nuoc && chuanhchu(cao_cao.tenn) === chuanhchu(qua_chuoi_chin));
 
-    // ĐỒNG BỘ: Kiểm tra lệnh Nộp là "skt_nopbg_cuo"
     const isSubmit = (ha === "skt_nopbg_cuo");
     
     if (isSubmit) {
-        // Kiểm tra quyền nộp (Chỉ người kiểm tra hoặc quản trị cao nhất)
         const canSubmit = (nguoi_cam_can && (cai_ban_go === 'x' || cai_ban_go === 'xx' || cai_ban_go === 'xxx')) || quyen_toi_cao;
         if (!canSubmit) {
             hienhth("⛔ Bạn không có quyền nộp hồ sơ");
             return;
         }
     } else {
-        // Kiểm tra quyền chỉnh sửa/lưu
         const canSave = (nguoi_cam_can || nguoi_len_thot || quyen_toi_cao);
         if (!canSave) {
             hienhth("⛔ LỖI PHÂN QUYỀN: Thầy/Cô không có quyền chỉnh sửa hồ sơ này!");
@@ -797,7 +770,6 @@ function thuchms(ha, nt, ch) {
     const gia_vi_4 = document.getElementById('txtMaBoPhan').value;
     const thung_chua_do = [];
     
-    // Quét dữ liệu trên lưới
     document.querySelectorAll('#tableContent tr').forEach(dong_chay => {
         const cac_hat_tieu = dong_chay.querySelectorAll('.cell-input');
         const ma_the_bai = dong_chay.querySelector('.ma-ho-so-cell');
@@ -831,7 +803,6 @@ function thuchms(ha, nt, ch) {
     nt.innerText = "⏳ XỬ LÝ..."; 
     nt.classList.add('loading-spin');
     
-    // Nếu là lệnh nộp, chạy logic "Lưu nền (Lệnh 1) cõng Nộp (Lệnh 2)"
     if (isSubmit) {
         google.script.run
         .withSuccessHandler(kq_luu => {
@@ -859,7 +830,6 @@ function thuchms(ha, nt, ch) {
             hienhth("❌ Lỗi lưu nền hệ thống: " + lo_luu.message);
         }).skt_luubg_nha(thung_chua_do);
     } else {
-        // Lưu thường
         google.script.run
         .withSuccessHandler(kq => {
           nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin'); 
@@ -889,7 +859,6 @@ function thuchms(ha, nt, ch) {
   }
 
   function capnst() { document.querySelectorAll('#tableContent tr').forEach((dg, iso) => dg.querySelector('.stt-cell').innerText = iso + 1); }
- // 1. Nâng cấp hàm đổ dữ liệu Giáo viên/NKT
   function dienho(idd, dl) { 
     const list = document.getElementById('list_' + idd); 
     if(list) {
@@ -897,7 +866,6 @@ function thuchms(ha, nt, ch) {
         dl.forEach(ptu => list.appendChild(new Option(ptu.tenn, ptu.tenn)));
     }
   }
-// 2. Nâng cấp hàm đổ dữ liệu Bộ phận
   function dienhopd(idd, ds) { 
     const list = document.getElementById('list_' + idd); 
     if(list) {
@@ -908,12 +876,11 @@ function thuchms(ha, nt, ch) {
   function capnmab() { 
     document.getElementById('txtMaBoPhan').value = dlbpha[document.getElementById('cbBoPhan').value]||""; 
     
-    // 👉 NÂNG CẤP: Xóa sạch bảng, reset mã hồ sơ và tạo dòng mới khi đổi Bộ phận
     document.getElementById('tableContent').innerHTML = "";
     document.getElementById('cbMaHoSo').value = "";
     themdongmo();
     
-    apdquye(); // 👉 NÂNG CẤP: Gọi hàm kiểm tra quyền ngay khi chọn xong Bộ phận
+    apdquye(); 
 }
   function hienhth(tb) { document.getElementById('modal_message_nhap').innerText=tb; document.getElementById('modal_overlay_nhap').style.display='flex'; }
   function donghth() { document.getElementById('modal_overlay_nhap').style.display='none'; }
@@ -927,7 +894,8 @@ function datlbie() {
       const p1 = document.getElementById(idd); if(p1) { p1.value = ""; p1.disabled = false; }
     });
     
-    let emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+    // ĐỒNG BỘ NÂNG CẤP: Loại bỏ từ khóa nhạy cảm, sử dụng SKT_DINHDANH_TAIK 
+    const emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || tknd);
     let tgvc = dlgvi.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
     let tnktc = dlnktra.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
     const q_h_t = String(window.sktquyenht).trim().toLowerCase();
@@ -935,7 +903,6 @@ function datlbie() {
     
     const hpgv = document.getElementById('cbGiaoVien');
     if (tgvc && !tnktc && !quyenQuanTri) {
-        // ĐỐI VỚI NGƯỜI ĐƯỢC KIỂM TRA: Đưa về trạng thái rỗng và khóa lại
         hpgv.value = "";
         hpgv.disabled = true;
         document.getElementById('cbNguoiKiemTra').disabled = true;
@@ -951,10 +918,9 @@ function datlbie() {
     themdongmo(); 
     dattr(1);
     
-    apdquye(); // Cập nhật lại vòng kiểm soát quyền
+    apdquye(); 
 }
   
-// 3. Nâng cấp hàm đổ dữ liệu Mã hồ sơ
   function capnhopm() {
     const hp = document.getElementById('cbMaHoSo'); 
     const ht = hp.value;
@@ -977,7 +943,6 @@ function lammdsm() {
     if(kq.tcon) { 
         dlmhso = kq.dlmh; 
         
-        // Cập nhật làm mới lại cả Kho đệm cục bộ khi thực hiện đồng bộ lại
         window.skt_kho_nhatky = kq.dlnhatky_san || []; 
         
         capnhopm(); 
@@ -1031,7 +996,8 @@ function lammdsm() {
   }
 
   function xoado(nt) {
-      const emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+      // ĐỒNG BỘ NÂNG CẤP: Loại bỏ từ khóa nhạy cảm, sử dụng SKT_DINHDANH_TAIK 
+      const emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || tknd);
       const tnktc = dlnktra.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
       const nkt = document.getElementById('cbNguoiKiemTra').value;
       const lnk = (tnktc && chuanhchu(tnktc) === chuanhchu(nkt));
@@ -1053,7 +1019,6 @@ function xulyxo() {
       
       const dgd = dongcxoa; 
       
-      // BƯỚC 1: NẾU LÀ DÒNG CHƯA LƯU, XÓA NGAY TRÊN GIAO DIỆN (BỎ QUA GỌI MÁY CHỦ)
       if (dgd.getAttribute('data-isnew') === '1') {
           donghthx();
           dgd.style.transition = "all 0.5s ease"; 
@@ -1068,7 +1033,6 @@ function xulyxo() {
           return;
       }
 
-      // BƯỚC 2: NẾU DÒNG ĐÃ LƯU, THỰC HIỆN XÓA API NHƯ CŨ
       const mh = dgd.querySelector('.ma-ho-so-cell').innerText;
       const nhlk = dgd.querySelector('.link-input');
       const dl = nhlk ? nhlk.value : "";
@@ -1104,7 +1068,6 @@ function xulyxo() {
           clearTimeout(timer);
           if (ntd) ntd.style.display = 'inline-block'; 
 
-          // Đồng bộ linh hoạt: Dù kết quả SUCCESS hay bị kẹt NOT_FOUND đều cho phép dọn dẹp khỏi giao diện
           if (kq === "SUCCESS" || kq === "NOT_FOUND") { 
               donghth(); 
               dgd.style.transition = "all 0.5s ease"; 
