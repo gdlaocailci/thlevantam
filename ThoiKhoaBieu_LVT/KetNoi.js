@@ -18,4 +18,4 @@ const CAU_HINH_FRONTEND = {
     LINK_ICON_LAM_MOI: 'https://i.postimg.cc/xjzpvXCm/Logo-HL.png'
 };
 
-//const SKT_GOOGLE_CLIENT_ID = "1097384743947-1jdc5rhhmbu0s9jp5vgt814g4f4id7lu.apps.googleusercontent.com";
+const SKT_GOOGLE_CLIENT_ID = "1097384743947-1jdc5rhhmbu0s9jp5vgt814g4f4id7lu.apps.googleusercontent.com";
