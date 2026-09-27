@@ -931,9 +931,10 @@ async function luuSoDauBaiSangMayChu() {
         if (ketQua.trangThai === 'thanh_cong') {
             alert(`✅ Đã chốt thành công các cập nhật của Sổ đầu bài Lớp ${lopChon} - Tuần ${tuanSo}!`);
             coThayDoiChuaLuu_SDB = false; 
+            
+            // ÉP TẢI LẠI TRỰC TIẾP TỪ MÁY CHỦ LÊN GIAO DIỆN
+            daTaiDuLieuSoDauBai = false; // Reset cờ để kích hoạt hàm tải
             await taiDuLieuSoDauBaiTuMayChu();
-            daTaiDuLieuSoDauBai = false; 
-            taiDuLieuSoDauBaiTuMayChu();
         } else throw new Error(ketQua.thongBao);
     } catch (loi) { 
         alert("Lưu thất bại: " + loi.message); 
