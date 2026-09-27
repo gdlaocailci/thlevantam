@@ -52,7 +52,7 @@
                 <img id="logoMenuDoc" src="" alt="Logo" class="w-20 h-20 rounded-full object-cover">
             </div>
             <h2 id="tenDonViMenu" class="text-center text-white font-bold text-base uppercase tracking-wide leading-relaxed">
-                Trường Tiểu học<br>Lê Văn Tám
+                Trường Tiểu Học<br>Lê Văn Tám
             </h2>
         </div>
         <div class="px-6 my-2 flex-none"><hr class="border-dashed border-blue-300 opacity-40"></div>
@@ -700,15 +700,16 @@
     <script src="QuanLyDanhMucSGK.js"></script>
     <script src="SoDauBai.js"></script>
     <script src="PhanQuyenAdmin.js"></script>
-    <script>
-        let boDemLamMoiNgam;
-        const THOI_GIAN_CHO_LAM_MOI = 60000; // 1 phút = 60000 ms
-
+   <script>
         async function thucThiLamMoiNgam() {
-            // Chỉ chạy đồng bộ ngầm khi người dùng đang mở tab Sổ đầu bài
+            // Xác định khung Sổ đầu bài trước
             let tabSDB = document.getElementById('khungSoDauBai');
             if (!tabSDB || tabSDB.classList.contains('hidden')) return;
-            
+
+            // [CHỐT BẢO VỆ ĐỘC LẬP]: Dùng tabSDB.querySelector thay vì document.querySelector
+            if (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true) return;
+            if (tabSDB.querySelector('td[data-thaydoi="true"]')) return;
+
             let emailGoiLen = typeof window.emailGiaoVienToanCuc !== 'undefined' ? window.emailGiaoVienToanCuc : '';
             if (!emailGoiLen || typeof CAU_HINH_FRONTEND === 'undefined') return;
 
@@ -718,52 +719,40 @@
                 const duLieuSever = await phanHoi.json();
                 
                 if (duLieuSever && duLieuSever.trangThai !== 'loi_he_thong') {
+                    // ... (Toàn bộ phần code cập nhật dữ liệu bên dưới giữ nguyên)
                     
-                    // 2. Lưu lại tùy chọn Tuần và Lớp hiện tại của giáo viên
                     let theTuan = document.getElementById('chonTuanSo');
                     let theLop = document.getElementById('chonLopSo');
                     let tuanChon = theTuan ? theTuan.value : null;
                     let lopChon = theLop ? theLop.value : null;
                     
-                    // 3. [MẸO KỸ THUẬT]: Tạm thời đổi ID của vùng hiển thị để chặn hàm mặc định xóa trắng lưới
                     let vungHienThi = document.getElementById('vungHienThiSoDauBai');
                     if (vungHienThi) vungHienThi.id = 'vungHienThiSoDauBai_DangDongBoNgam';
                     
-                    // 4. Cập nhật dữ liệu mới từ Server vào bộ nhớ RAM (Biến toàn cục)
                     if (typeof khoiTaoDuLieuSoDauBai === 'function') {
                         khoiTaoDuLieuSoDauBai(duLieuSever);
                     }
                     
-                    // 5. Trả lại ID gốc
                     let vungTemp = document.getElementById('vungHienThiSoDauBai_DangDongBoNgam');
                     if (vungTemp) vungTemp.id = 'vungHienThiSoDauBai';
                     
-                    // 6. Khôi phục tùy chọn và render lại lưới (Dữ liệu mới đè lên siêu mượt)
-                    if (tuanChon && theTuan) theTuan.value = tuanChon;
-                    if (lopChon && theLop) theLop.value = lopChon;
+                    if (tuanChon && theTuan) {
+                        theTuan.value = tuanChon;
+                        if (typeof dongBoHienThiTuSelect === 'function') dongBoHienThiTuSelect('chonTuanSo');
+                    }
+                    if (lopChon && theLop) {
+                        theLop.value = lopChon;
+                        if (typeof dongBoHienThiTuSelect === 'function') dongBoHienThiTuSelect('chonLopSo');
+                    }
                     
                     if (tuanChon && lopChon && typeof ketXuatSoDauBaiLenLuoi === 'function') {
                         ketXuatSoDauBaiLenLuoi();
                     }
                 }
             } catch (loi) {
-                // Lỗi mạng hoặc đang offline sẽ bị bỏ qua, không làm phiền người dùng
-                console.warn("Tiến trình đồng bộ ngầm tạm dừng do mạng.");
+                console.warn("Tiến trình đồng bộ ngầm SDB tạm dừng do mạng.");
             }
         }
-
-        function datLaiBoDemLamMoi() {
-            if (boDemLamMoiNgam) clearInterval(boDemLamMoiNgam);
-            // Thiết lập gọi hàm đồng bộ ngầm sau mỗi 1 phút rảnh tay
-            boDemLamMoiNgam = setInterval(thucThiLamMoiNgam, THOI_GIAN_CHO_LAM_MOI);
-        }
-
-        // Theo dõi hành vi: Chỉ đếm thời gian khi người dùng KHÔNG thao tác (chuột/phím)
-        document.addEventListener('DOMContentLoaded', datLaiBoDemLamMoi);
-        document.addEventListener('mousemove', datLaiBoDemLamMoi);
-        document.addEventListener('keypress', datLaiBoDemLamMoi);
-        document.addEventListener('click', datLaiBoDemLamMoi);
-        document.addEventListener('scroll', datLaiBoDemLamMoi);
     </script>
 </body>
 </html>
