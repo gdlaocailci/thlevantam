@@ -941,7 +941,9 @@ async function luuDuLieu(event, loaiLuu) {
                 localStorage.setItem('SmartTKB_DuLieuTuan_' + MA_DA, JSON.stringify(dsTietLuoi));
 
                 if (typeof window.lamSachBoNhoSoDauBai === 'function') window.lamSachBoNhoSoDauBai();
-                await taiDuLieuTKB(true, 'TKB_HIEN_TAI', true);
+                
+                // [ĐÃ SỬA]: Chỉ giữ lại một dòng gọi hàm tải dữ liệu với tham số false
+                await taiDuLieuTKB(false, 'TKB_HIEN_TAI', true);
                 localStorage.setItem('KhoaDongBo_TKB', Date.now().toString());
             }
         }
@@ -951,7 +953,6 @@ async function luuDuLieu(event, loaiLuu) {
         if(btn.disabled !== undefined) { btn.innerHTML = textGoc; btn.disabled = false; }
     }
 }
-
 // =========================================================================
 // KHỐI 5: ĐỘNG CƠ ĐIỀU HƯỚNG SIÊU TỐC
 // =========================================================================
@@ -1083,7 +1084,8 @@ async function xuLyLayThongTin(maTokenTruyCap) {
         window.emailGiaoVienToanCuc = dinhDanhHeThong;
 
         if (typeof window.lamSachBoNhoSoDauBai === 'function') window.lamSachBoNhoSoDauBai();
-        
+        await taiDuLieuTKB(false, 'TKB_HIEN_TAI', true);
+        localStorage.setItem('KhoaDongBo_TKB', Date.now().toString());
         if (nutDangNhap) {
             nutDangNhap.innerHTML = `<img src="${anhDaiDien}" class="w-6 h-6 rounded-full border border-white" title="Tài khoản: ${tenHienThi}"><span class="truncate text-sm font-semibold group-hover:text-red-300 transition-colors">Đăng xuất</span>`;
             nutDangNhap.classList.replace('bg-slate-700', 'bg-slate-800'); 
@@ -1806,5 +1808,96 @@ async function thucThiChuyenTuanTiepTheo(event) {
     } finally {
         btn.innerHTML = textGoc;
         btn.disabled = false;
+    }
+}
+// =========================================================================
+// KHỐI ĐỒNG BỘ DỮ LIỆU NGẦM THÔNG MINH (BẢO VỆ CHỐNG MẤT DỮ LIỆU)
+// =========================================================================
+let boDemDongBoToanCuc;
+let thoiGianThaoTacCuoi = Date.now();
+const THOI_GIAN_DONG_BO = 60000; // 1 phút / lần
+
+// Ghi nhận mốc thời gian khi có thao tác gõ phím trên toàn hệ thống
+document.addEventListener('keydown', () => { thoiGianThaoTacCuoi = Date.now(); });
+document.addEventListener('input', () => { thoiGianThaoTacCuoi = Date.now(); });
+
+async function dongBoDuLieuNgamToanCuc() {
+    // 1. Kiểm tra thao tác: Nếu người dùng vừa gõ phím trong 10 giây qua -> Tạm hoãn tải
+    if (Date.now() - thoiGianThaoTacCuoi < 10000) return;
+
+    let khungTKB = document.getElementById('khungTKB');
+    let khungSDB = document.getElementById('khungSoDauBai');
+
+    // LUỒNG 1: XỬ LÝ ĐỘC LẬP CHO THỜI KHÓA BIỂU
+    if (khungTKB && !khungTKB.classList.contains('hidden')) {
+        // [CHỐT ĐỘC LẬP]: Chỉ quét cây bút bên trong vùng khungTKB
+        if (khungTKB.querySelector('td[data-thaydoi="true"]')) {
+            console.warn("TKB đang có ô sửa đổi, tạm dừng tải TKB.");
+            return; 
+        }
+
+        hienThiThongBaoTaiNgam(true);
+        try {
+            if (typeof taiDuLieuTKB === 'function') await taiDuLieuTKB(true, 'TKB_HIEN_TAI', false);
+        } finally {
+            setTimeout(() => hienThiThongBaoTaiNgam(false), 1500);
+        }
+    } 
+    // LUỒNG 2: XỬ LÝ ĐỘC LẬP CHO SỔ ĐẦU BÀI
+    else if (khungSDB && !khungSDB.classList.contains('hidden')) {
+        let coThayDoiSDB = (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true);
+        // [CHỐT ĐỘC LẬP]: Chỉ quét cây bút bên trong vùng khungSDB
+        let coOThayDoiDOM_SDB = khungSDB.querySelector('td[data-thaydoi="true"]');
+
+        if (coThayDoiSDB || coOThayDoiDOM_SDB) {
+            console.warn("Sổ đầu bài đang gõ dở, tạm dừng tải SDB.");
+            return;
+        }
+
+        hienThiThongBaoTaiNgam(true);
+        try {
+            if (typeof thucThiLamMoiNgam === 'function') await thucThiLamMoiNgam();
+        } finally {
+            setTimeout(() => hienThiThongBaoTaiNgam(false), 1500);
+        }
+    }
+}
+
+function kichHoatDongBoNgamToanCuc() {
+    if (boDemDongBoToanCuc) clearInterval(boDemDongBoToanCuc);
+    boDemDongBoToanCuc = setInterval(dongBoDuLieuNgamToanCuc, THOI_GIAN_DONG_BO);
+}
+
+// Khởi chạy động cơ khi trang được nạp
+document.addEventListener('DOMContentLoaded', kichHoatDongBoNgamToanCuc);
+
+// =========================================================================
+// GIAO DIỆN HIỂN THỊ TRẠNG THÁI TẢI NGẦM (TOAST NOTIFICATION)
+// =========================================================================
+function hienThiThongBaoTaiNgam(dangTai) {
+    let theThongBao = document.getElementById('thongBaoTaiNgamHT');
+    
+    // Nếu chưa có thẻ HTML thì tự động tạo mới
+    if (!theThongBao) {
+        theThongBao = document.createElement('div');
+        theThongBao.id = 'thongBaoTaiNgamHT';
+        // Tailwind CSS: Bo góc, đổ bóng, màu nền Slate sang trọng và hiệu ứng trượt (Transition)
+        theThongBao.className = 'fixed bottom-5 right-5 bg-slate-800 border border-slate-600 text-white px-4 py-2.5 rounded-lg shadow-2xl flex items-center gap-3 z-[9999] transition-all duration-500 transform translate-y-20 opacity-0 pointer-events-none';
+        theThongBao.innerHTML = `
+            <svg class="w-4 h-4 text-blue-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span class="text-sm font-bold tracking-wide">Đang đồng bộ dữ liệu ngầm...</span>
+        `;
+        document.body.appendChild(theThongBao);
+    }
+
+    // Điều khiển hiệu ứng hiển thị / ẩn
+    if (dangTai) {
+        theThongBao.classList.remove('translate-y-20', 'opacity-0');
+        theThongBao.classList.add('translate-y-0', 'opacity-100');
+    } else {
+        theThongBao.classList.remove('translate-y-0', 'opacity-100');
+        theThongBao.classList.add('translate-y-20', 'opacity-0');
     }
 }
