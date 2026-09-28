@@ -702,11 +702,9 @@
     <script src="PhanQuyenAdmin.js"></script>
    <script>
         async function thucThiLamMoiNgam() {
-            // Xác định khung Sổ đầu bài trước
             let tabSDB = document.getElementById('khungSoDauBai');
             if (!tabSDB || tabSDB.classList.contains('hidden')) return;
 
-            // [CHỐT BẢO VỆ ĐỘC LẬP]: Dùng tabSDB.querySelector thay vì document.querySelector
             if (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true) return;
             if (tabSDB.querySelector('td[data-thaydoi="true"]')) return;
 
@@ -714,18 +712,17 @@
             if (!emailGoiLen || typeof CAU_HINH_FRONTEND === 'undefined') return;
 
             try {
-                // 1. Gọi API lấy dữ liệu tĩnh lặng (Không hiển thị vòng quay Loading)
                 const phanHoi = await fetch(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(emailGoiLen)}`);
                 const duLieuSever = await phanHoi.json();
                 
                 if (duLieuSever && duLieuSever.trangThai !== 'loi_he_thong') {
-                    // ... (Toàn bộ phần code cập nhật dữ liệu bên dưới giữ nguyên)
                     
                     let theTuan = document.getElementById('chonTuanSo');
                     let theLop = document.getElementById('chonLopSo');
                     let tuanChon = theTuan ? theTuan.value : null;
                     let lopChon = theLop ? theLop.value : null;
                     
+                    // Khắc phục lỗi xóa nhầm UI
                     let vungHienThi = document.getElementById('vungHienThiSoDauBai');
                     if (vungHienThi) vungHienThi.id = 'vungHienThiSoDauBai_DangDongBoNgam';
                     
@@ -745,12 +742,13 @@
                         if (typeof dongBoHienThiTuSelect === 'function') dongBoHienThiTuSelect('chonLopSo');
                     }
                     
-                    if (tuanChon && lopChon && typeof ketXuatSoDauBaiLenLuoi === 'function') {
-                        ketXuatSoDauBaiLenLuoi();
+                    // Gọi hàm cập nhật cục bộ chống giật màn hình
+                    if (tuanChon && lopChon && typeof capNhatSoDauBaiNgamLenLuoi === 'function') {
+                        capNhatSoDauBaiNgamLenLuoi(tuanChon, lopChon);
                     }
                 }
             } catch (loi) {
-                console.warn("Tiến trình đồng bộ ngầm SDB tạm dừng do mạng.");
+                console.warn("Tiến trình đồng bộ ngầm SDB tạm dừng do lỗi mạng.");
             }
         }
     </script>
