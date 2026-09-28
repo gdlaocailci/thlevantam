@@ -1658,3 +1658,243 @@ document.addEventListener('scroll', function(event) {
         dongKhungTruotChuKy();
     }
 }, true);
+// =========================================================================
+// HÀM MỚI: CẬP NHẬT DỮ LIỆU NGẦM LÊN LƯỚI MÀ KHÔNG VẼ LẠI UI (CHỐNG GIẬT)
+// =========================================================================
+window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
+    let vungHienThi = document.getElementById('vungHienThiSoDauBai');
+    if (!vungHienThi || !tuanChon || !lopChon) return;
+
+    let maxTuanChon = parseInt(tuanChon.replace(/\D/g, '')) || 0;
+    let matchKhoiChon = lopChon.match(/\d+/);
+    let khoiChon = matchKhoiChon ? matchKhoiChon[0] : '';
+    
+    let boDemTietPPCT = {}; 
+    
+    // 1. Quét tiến độ PPCT các tuần trước
+    duLieuTKBGopDaMap.forEach(d => {
+        let t = parseInt(String(d['Tuần']).replace(/\D/g, '')) || 0;
+        let maLop = String(d['Mã Lớp']).trim().toUpperCase();
+
+        if (maLop === lopChon.toUpperCase() && t < maxTuanChon) {
+            let mon = String(d['Môn Học']).trim();
+            if (mon !== '') {
+                let monPPCT = mon.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+                if (d.DaLuu === true) {
+                    boDemTietPPCT[monPPCT] = (boDemTietPPCT[monPPCT] || 0) + 1; 
+                }
+            }
+        }
+    });
+
+    // 2. Tính toán tiếp tiến độ cho các tiết chưa lưu trong tuần hiện tại
+    let tkbTuanNay = duLieuTKBGopDaMap.filter(d => 
+        String(d['Tuần']).trim() === tuanChon && 
+        String(d['Mã Lớp']).trim().toUpperCase() === lopChon.toUpperCase()
+    );
+
+    let dictTKBMoi = {};
+    tkbTuanNay.forEach(dong => {
+        let thuGoc = String(dong['Thứ']).trim().toLowerCase();
+        let buoiKiemTra = String(dong['Buổi']).trim().toLowerCase() === 'sáng' ? 'Sang' : 'Chieu';
+        
+        let mon = String(dong['Môn Học']).trim();
+        if (mon !== '') {
+            let monPPCT = mon.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+            if (dong['DaLuu'] === true) {
+                let tietLuu = parseInt(String(dong['TietPPCT_Thuc']).replace(/\D/g, '')) || 0;
+                if (tietLuu > (boDemTietPPCT[monPPCT] || 0)) boDemTietPPCT[monPPCT] = tietLuu;
+            } else {
+                boDemTietPPCT[monPPCT] = (boDemTietPPCT[monPPCT] || 0) + 1;
+                dong['TietPPCT_Thuc'] = boDemTietPPCT[monPPCT];
+
+                let khoaChinh = `${khoiChon}_${mon.toLowerCase().replace(/\s+/g, ' ')}_${dong['TietPPCT_Thuc']}`;
+                let khoaPhu = `${khoiChon}_${monPPCT}_${dong['TietPPCT_Thuc']}`;
+                dong['TenBai_Thuc'] = tuDienPPCTToanCuc[khoaChinh] || tuDienPPCTToanCuc[khoaPhu] || '';
+            }
+        }
+        dictTKBMoi[`${thuGoc}_${buoiKiemTra}_${dong['Tiết']}`] = dong;
+    });
+
+    let theChotQuyen = document.getElementById('theChotQuyenSDB');
+    let madinhdanhGV = maGvDangNhapHeThong || (theChotQuyen ? theChotQuyen.getAttribute('data-madinhdanh') || '' : '');
+    let quyenQuanTri = coToanQuyenSDB || (theChotQuyen ? (theChotQuyen.getAttribute('data-quantri') === 'true' || theChotQuyen.getAttribute('data-quantri') === true) : false);
+    let maGvDangNhapLC = madinhdanhGV.trim().toLowerCase().normalize('NFC');
+
+    // 3. Cập nhật DOM cục bộ
+    let cacBang = document.querySelectorAll('#vungHienThiSoDauBai .bang-so-dau-bai-container');
+    
+    cacBang.forEach(khungBang => {
+        let thuHienTai = '';
+        let cacDong = khungBang.querySelectorAll('table tbody tr');
+        
+        cacDong.forEach(dong => {
+            let cellThu = dong.querySelector('td[rowspan]');
+            if (cellThu) {
+                let textThuNgay = cellThu.innerText.split('\n');
+                thuHienTai = textThuNgay[0].trim().toLowerCase();
+            }
+
+            let buoiThuocDong = dong.getAttribute('data-buoi') || 'Sáng';
+            let buoiKiemTra = buoiThuocDong.toLowerCase() === 'sáng' ? 'Sang' : 'Chieu';
+            
+            let oTiet = dong.querySelector('td[data-loai="tietSDB"]');
+            let tiet = oTiet ? oTiet.innerText.trim() : '';
+
+            if (thuHienTai !== '' && tiet !== '') {
+                let dongDuLieuMoi = dictTKBMoi[`${thuHienTai}_${buoiKiemTra}_${tiet}`];
+                
+                if (dongDuLieuMoi) {
+                    let monHocMoi = dongDuLieuMoi['Môn Học'] || '';
+                    let isDaLuuMoi = dongDuLieuMoi['DaLuu'] || false;
+                    
+                    let tenBaiMoi = String(dongDuLieuMoi['TenBai_Thuc'] || '');
+                    let nhanXetMoi = String(dongDuLieuMoi['NhanXet_Thuc'] || '');
+                    let xepLoaiMoi = String(dongDuLieuMoi['XepLoai_Thuc'] || '');
+                    let chuKyMoi = String(dongDuLieuMoi['ChuKy_Thuc'] || '');
+                    let chuyenCanMoi = String(dongDuLieuMoi['ChuyenCan_Thuc'] || '');
+                    let tietPPCTMoi = String(dongDuLieuMoi['TietPPCT_Thuc'] || '');
+                    let isLockedMoi = isDaLuuMoi && chuKyMoi.trim() !== '';
+
+                    let gvTkb = String(dongDuLieuMoi['Mã GV']).trim().toLowerCase().normalize('NFC');
+                    let quyenNhapThuCong = false;
+                    if (quyenQuanTri) {
+                        quyenNhapThuCong = true;
+                    } else if (monHocMoi !== '' && maGvDangNhapLC !== '') {
+                        let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
+                        if (tapHopGvTkb.includes(maGvDangNhapLC) || tapHopGvTkb.some(g => maGvDangNhapLC.includes(g) && g.length > 2)) {
+                            quyenNhapThuCong = true;
+                        }
+                    }
+
+                    let tdMon = dong.querySelector('td[data-loai="mon"]');
+                    if (tdMon && tdMon.innerText.trim() !== monHocMoi) {
+                        tdMon.innerText = monHocMoi;
+                    }
+
+                    let tdTenBai = dong.querySelector('td[data-loai="tenBai"]');
+                    if (tdTenBai) tdTenBai.setAttribute('data-islocked', isLockedMoi);
+                    dong.setAttribute('data-daluu', isDaLuuMoi);
+
+                    const capNhatO = (loai, giaTriMoi) => {
+                        let td = dong.querySelector(`td[data-loai="${loai}"]`);
+                        if (!td) return;
+                        
+                        if (isLockedMoi) {
+                            let theSpan = td.querySelector('span');
+                            let canDoi = !theSpan || theSpan.innerText.trim() !== giaTriMoi;
+                            
+                            if (loai === 'tenBai') {
+                                canDoi = !td.querySelector('span') && td.innerText.trim() !== giaTriMoi;
+                                if (td.querySelector('textarea')) canDoi = true; 
+                            }
+
+                            if (canDoi) {
+                                if (loai === 'tenBai') {
+                                    td.innerHTML = giaTriMoi; 
+                                    td.className = "border border-gray-500 p-1 text-emerald-700 font-bold bg-white group-hover:bg-slate-50 align-middle";
+                                } else if (loai === 'chuyenCan') {
+                                    td.innerHTML = `<span class="font-bold text-slate-800 block text-center">${giaTriMoi}</span>`;
+                                } else if (loai === 'nhanXet') {
+                                    td.innerHTML = `<span class="font-normal text-slate-800 block">${giaTriMoi}</span>`;
+                                } else if (loai === 'xepLoai') {
+                                    td.innerHTML = `<span class="font-bold text-slate-800 block text-center">${giaTriMoi}</span>`;
+                                } else if (loai === 'chuKy') {
+                                    td.innerHTML = `<span class="font-bold text-slate-800 uppercase block text-center">${giaTriMoi}</span>`;
+                                } else if (loai === 'tiet') {
+                                    td.innerHTML = `<span class="font-extrabold text-blue-700 block text-center">${giaTriMoi}</span>`;
+                                }
+                            }
+                        } else {
+                            let tagNhap = td.querySelector('input, select, textarea');
+                            let trangThaiKhoa = !quyenNhapThuCong ? "disabled" : "";
+                            let cssNenKhoa = !quyenNhapThuCong ? "bg-slate-100 cursor-not-allowed opacity-70" : "bg-transparent";
+
+                            if (!tagNhap) {
+                                if (loai === 'tenBai') {
+                                    let placeholderText = !quyenNhapThuCong ? "Không có quyền" : "Nhập...";
+                                    td.innerHTML = `<textarea rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px';" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400 px-1 resize-none overflow-hidden align-middle" placeholder="${placeholderText}">${giaTriMoi}</textarea>`;
+                                    td.className = "border border-gray-500 p-1 bg-white group-hover:bg-slate-50 align-middle";
+                                } else if (loai === 'chuyenCan') {
+                                    td.innerHTML = `<input type="text" ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400" placeholder="..." value="${giaTriMoi}">`;
+                                } else if (loai === 'nhanXet') {
+                                    td.innerHTML = `<textarea rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px';" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-normal text-slate-800 placeholder-slate-400 px-1 resize-none overflow-hidden align-middle" placeholder="Nhận xét...">${giaTriMoi}</textarea>`;
+                                } else if (loai === 'xepLoai') {
+                                    let optTot = (giaTriMoi === 'Tốt') ? 'selected' : '';
+                                    let optKha = (giaTriMoi === 'Khá') ? 'selected' : '';
+                                    let optTB = (giaTriMoi === 'TB') ? 'selected' : '';
+                                    let optYeu = (giaTriMoi === 'Yếu') ? 'selected' : '';
+                                    td.innerHTML = `<select ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-bold text-slate-800 cursor-pointer appearance-none"><option value="" ${!giaTriMoi ? 'selected' : ''}>-Chọn-</option><option value="Tốt" ${optTot}>Tốt</option><option value="Khá" ${optKha}>Khá</option><option value="TB" ${optTB}>TB</option><option value="Yếu" ${optYeu}>Yếu</option></select>`;
+                                } else if (loai === 'chuKy') {
+                                    let thuocVeGvHienTai = quyenNhapThuCong && !quyenQuanTri;
+                                    td.innerHTML = `<div class="relative flex items-center justify-center w-full h-full"><input type="text" autocomplete="off" ${trangThaiKhoa} data-thuocve="${thuocVeGvHienTai}" class="w-full text-center outline-none transition-colors duration-300 rounded ${cssNenKhoa} font-semibold text-blue-700 placeholder-blue-300 cursor-pointer hover:bg-blue-50 focus:bg-blue-50 pr-5" placeholder="${!quyenNhapThuCong ? 'Không có quyền' : 'Ghi rõ họ tên...'}" value="${giaTriMoi}" onclick="moKhungTruotChuKy(event, this)" oninput="locDanhSachChuKy(this)">${!quyenNhapThuCong ? '' : `<svg class="w-4 h-4 absolute right-1 text-blue-400 pointer-events-none opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`}</div>`;
+                                } else if (loai === 'tiet') {
+                                    let monHocAnToan = monHocMoi.replace(/'/g, "\\'"); 
+                                    let onfocusLogic = `moKhungTruotPPCT(event, this, '${khoiChon}', '${monHocAnToan}', this.value || 1)`;
+                                    td.innerHTML = `<input type="text" onclick="${onfocusLogic}" readonly ${trangThaiKhoa} class="w-full text-center outline-none ${cssNenKhoa} font-extrabold text-blue-700 placeholder-blue-300 transition-all cursor-pointer hover:bg-blue-50" placeholder="..." value="${giaTriMoi}">`;
+                                }
+                                
+                                let tagMoi = td.querySelector('input, select, textarea');
+                                if(tagMoi) {
+                                    tagMoi.addEventListener('input', (e) => { coThayDoiChuaLuu_SDB = true; danhDauDongThayDoi(e.target.closest('tr')); });
+                                    tagMoi.addEventListener('change', (e) => { coThayDoiChuaLuu_SDB = true; danhDauDongThayDoi(e.target.closest('tr')); });
+                                    if (tagMoi.tagName === 'TEXTAREA') {
+                                        tagMoi.style.height = 'auto';
+                                        tagMoi.style.height = (tagMoi.scrollHeight) + 'px';
+                                    }
+                                }
+                            } else {
+                                if (tagNhap.value !== giaTriMoi) {
+                                    tagNhap.value = giaTriMoi;
+                                    if (tagNhap.tagName === 'TEXTAREA') {
+                                        tagNhap.style.height = 'auto';
+                                        tagNhap.style.height = (tagNhap.scrollHeight) + 'px';
+                                    }
+                                }
+                                
+                                if (quyenNhapThuCong) {
+                                    tagNhap.removeAttribute('disabled');
+                                    tagNhap.classList.remove('bg-slate-100', 'cursor-not-allowed', 'opacity-70');
+                                    tagNhap.classList.add('bg-transparent');
+                                } else {
+                                    tagNhap.setAttribute('disabled', 'disabled');
+                                    tagNhap.classList.remove('bg-transparent');
+                                    tagNhap.classList.add('bg-slate-100', 'cursor-not-allowed', 'opacity-70');
+                                }
+                            }
+                        }
+                    };
+
+                    capNhatO('chuyenCan', chuyenCanMoi);
+                    capNhatO('tiet', tietPPCTMoi);
+                    capNhatO('tenBai', tenBaiMoi);
+                    capNhatO('nhanXet', nhanXetMoi);
+                    capNhatO('xepLoai', xepLoaiMoi);
+                    capNhatO('chuKy', chuKyMoi);
+                    
+                    dong.setAttribute('data-thaydoi', 'false');
+                    let iconSua = dong.querySelector('.icon-sua-chua');
+                    if(iconSua) iconSua.remove();
+                }
+            }
+        });
+    });
+
+    // 4. Thanh trạng thái tổng quát
+    let soTietDaLuu = tkbTuanNay.filter(d => d.DaLuu === true).length;
+    let tongSoTietCoMon = tkbTuanNay.filter(d => String(d['Môn Học']).trim() !== '').length;
+
+    if (tongSoTietCoMon > 0) {
+        let containerDiv = vungHienThi.querySelector('div.mb-4.p-2');
+        if (containerDiv) {
+            if (soTietDaLuu > 0) {
+                containerDiv.className = "mb-4 p-2 bg-emerald-50 border border-emerald-200 shadow-sm flex items-center justify-between rounded";
+                containerDiv.innerHTML = `<div class="flex items-center gap-2"><div class="bg-emerald-500 rounded-full p-1"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div><span class="text-sm font-extrabold text-emerald-800 tracking-wide uppercase">CÓ DỮ LIỆU ĐÃ ĐƯỢC CHỐT SỔ</span></div><span class="text-xs font-semibold text-emerald-700 italic hidden sm:block">Các tiết đã Ký Tên sẽ bị khóa cứng. Các tiết chưa ký vẫn tiếp tục mở để chỉnh sửa.</span>`;
+            } else {
+                containerDiv.className = "mb-4 p-2 bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded animate-pulse-once";
+                containerDiv.innerHTML = `<div class="flex items-center gap-2"><div class="bg-amber-500 rounded-full p-1"><svg class="w-3 h-3 text-white animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></div><span class="text-sm font-extrabold text-amber-800 tracking-wide uppercase">DỮ LIỆU MỚI TỊNH TIẾN (CHƯA LƯU)</span></div><span class="text-xs font-bold text-amber-800 bg-amber-200 px-3 py-1 rounded-full border border-amber-400">⚠️ Yêu cầu: Bấm "Đồng bộ Tên bài", Nhập Đánh giá, Ký tên và bấm "Lưu Sổ đầu bài" để lưu!</span>`;
+            }
+        }
+    }
+};
