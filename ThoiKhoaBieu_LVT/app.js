@@ -711,16 +711,21 @@ function xuatMaTranBang(danhSachTiet) {
         return;
     }
 
-    let dateInput = document.getElementById('chonNgayDauTuan');
-    if (duLieuTiet && duLieuTiet.length > 0) {
+   let dateInput = document.getElementById('chonNgayDauTuan');
+       
+    if (!ngayDauTuanUI && duLieuTiet && duLieuTiet.length > 0) {
         let thu2Data = duLieuTiet.find(t => t.thu === "Thứ 2" && t.ngay);
         if (thu2Data && thu2Data.ngay) {
             let p = thu2Data.ngay.split('/'); 
             if (p.length === 3) {
                 ngayDauTuanUI = `${p[2]}-${p[1]}-${p[0]}`; 
-                if (dateInput) dateInput.value = ngayDauTuanUI;
             }
         }
+    }
+    
+    // Luôn ép Input UI hiển thị theo biến toàn cục (Nguồn chân lý)
+    if (dateInput && ngayDauTuanUI) {
+        dateInput.value = ngayDauTuanUI;
     }
 
     let theadHTML = `<tr style="height: 45px;">
@@ -1887,7 +1892,7 @@ function hienThiThongBaoTaiNgam(dangTai) {
             <svg class="w-4 h-4 text-blue-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
-            <span class="text-sm font-bold tracking-wide">Đang đồng bộ dữ liệu mới nhất...</span>
+            <span class="text-sm font-bold tracking-wide">Đang đồng bộ dữ liệu mới...</span>
         `;
         document.body.appendChild(theThongBao);
     }
