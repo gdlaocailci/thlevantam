@@ -702,10 +702,13 @@
     <script src="PhanQuyenAdmin.js"></script>
    <script>
         async function thucThiLamMoiNgam() {
+          if (typeof dangTaiDuLieuSoDauBai !== 'undefined' && dangTaiDuLieuSoDauBai === true) return;
+
             let tabSDB = document.getElementById('khungSoDauBai');
             if (!tabSDB || tabSDB.classList.contains('hidden')) return;
 
             if (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true) return;
+          
             if (tabSDB.querySelector('td[data-thaydoi="true"]')) return;
 
             let emailGoiLen = typeof window.emailGiaoVienToanCuc !== 'undefined' ? window.emailGiaoVienToanCuc : '';
