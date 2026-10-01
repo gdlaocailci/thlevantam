@@ -704,45 +704,61 @@
        async function thucThiLamMoiNgam() {
         let vungHienThi = document.getElementById('vungHienThiSoDauBai');
         
+        // KHÓA BẢO VỆ 1: Đang tải lần đầu
         if (vungHienThi && vungHienThi.innerHTML.includes('Đang kết nối kho dữ liệu')) return;
         if (typeof dangTaiDuLieuSoDauBai !== 'undefined' && dangTaiDuLieuSoDauBai === true) return;
 
         let tabSDB = document.getElementById('khungSoDauBai');
         if (!tabSDB || tabSDB.classList.contains('hidden')) return;
 
+        // KHÓA BẢO VỆ 2: Đang gõ dở TRƯỚC KHI kết nối
         if (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true) return;
         if (tabSDB.querySelector('td[data-thaydoi="true"]')) return;
 
-        let idGiaoVienGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
+        // An toàn biến định danh
+        let idGiaoVienGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : (typeof window.emailGiaoVienToanCuc !== 'undefined' ? window.emailGiaoVienToanCuc : '');
         if (!idGiaoVienGoiLen || typeof CAU_HINH_FRONTEND === 'undefined') return;
 
         try {
-            // ĐỘT PHÁ 1: Vượt Cache
+            // Dùng fetchVoiCoCheThuLai phá vỡ Cache (Kế thừa nguyên vẹn nâng cấp trước đó)
             const phanHoi = await fetchVoiCoCheThuLai(
                 `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(idGiaoVienGoiLen)}`,
                 {}, 3, 60000
             );
             
-            // ĐỘT PHÁ 2: Kiểm tra cờ sau khi tải mạng để bảo vệ vi mô
+            // =========================================================================
+            // [NHẬN DIỆN THÔNG MINH 2]: KIỂM TRA LẠI CỜ CHỈNH SỬA SAU KHI TẢI MẠNG XONG
+            // =========================================================================
+            // Trọng tâm bảo vệ: Trong thời gian mạng tải (1-3 giây), nếu người dùng vừa kịp gõ 
+            // thêm dữ liệu (cờ bật lên) -> HỦY NGAY TIẾN TRÌNH GÁN DỮ LIỆU ĐỂ BẢO VỆ CÔNG SỨC!
             let coThayDoiSDB_SauTai = (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true);
             let coOThayDoiDOM_SauTai = tabSDB.querySelector('td[data-thaydoi="true"]');
+            
             if (coThayDoiSDB_SauTai || coOThayDoiDOM_SauTai) {
                 console.warn("Hủy đồng bộ: Bắt được tín hiệu chỉnh sửa trong lúc đang tải ngầm. Dữ liệu gõ dở đã được bảo vệ!");
-                return; 
+                return; // Ngắt luồng lập tức, bỏ qua gói dữ liệu vừa lấy về
             }
 
             const phanHoiText = await phanHoi.text();
             let duLieuSever;
-            try { duLieuSever = JSON.parse(phanHoiText); } catch (e) { throw new Error("Lỗi định dạng."); }
+            try { 
+                duLieuSever = JSON.parse(phanHoiText); 
+            } catch (loiParse) { 
+                throw new Error("Dữ liệu JSON máy chủ trả về bị nhiễu."); 
+            }
             
             if (duLieuSever && duLieuSever.trangThai !== 'loi_he_thong') {
                 if (vungHienThi) vungHienThi.id = 'vungHienThiSoDauBai_DangDongBoNgam';
                 
-                if (typeof khoiTaoDuLieuSoDauBai === 'function') khoiTaoDuLieuSoDauBai(duLieuSever);
+                if (typeof khoiTaoDuLieuSoDauBai === 'function') {
+                    khoiTaoDuLieuSoDauBai(duLieuSever);
+                }
                 
+                // Trả lại ID trước khi render (Khắc phục lỗi không vẽ lại UI)
                 let vungTemp = document.getElementById('vungHienThiSoDauBai_DangDongBoNgam');
                 if (vungTemp) vungTemp.id = 'vungHienThiSoDauBai';
 
+                // Kích hoạt vẽ UI
                 let theTuan = document.getElementById('chonTuanSo');
                 let theLop = document.getElementById('chonLopSo');
                 if (theTuan && theTuan.value && theLop && theLop.value) {
@@ -752,7 +768,7 @@
                 }
             }
         } catch (loi) {
-            console.warn("Tiến trình đồng bộ ngầm SDB tạm dừng do sự cố mạng kết nối.");
+            console.warn("Tiến trình đồng bộ ngầm SDB tạm dừng do sự cố mạng.");
         }
     }
     </script>
