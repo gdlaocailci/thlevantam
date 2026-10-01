@@ -707,14 +707,13 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     let ngayDauTieuDe = mienNgayHienTai ? tinhNgayTuInputDate(mienNgayHienTai, "Thứ 2") : '...';
     let ngayCuoiTieuDe = mienNgayHienTai ? tinhNgayTuInputDate(mienNgayHienTai, danhSachThu[danhSachThu.length - 1]) : '...';
 
-    let htmlBang = `
+   let htmlBang = `
         <div class="mb-8 bang-so-dau-bai-container overflow-x-auto">
-            <div class="flex justify-between items-center mb-2 font-bold text-slate-800 uppercase">
-                <span>LỚP: ${lopChon}</span>
-                <span>TUẦN ${tuanChon.replace(/\D/g,'')}</span>
-            </div>
-            <div class="text-center italic mb-2 text-sm text-slate-600">
-                (Từ ngày ${ngayDauTieuDe} đến ngày ${ngayCuoiTieuDe})
+            <!-- ĐÃ SỬA: Đưa toàn bộ 3 thành phần lên 1 dòng với flex justify-between -->
+            <div class="flex justify-between items-center mb-2">
+                <span class="font-bold text-slate-800 uppercase text-base header-lop">LỚP: ${lopChon}</span>
+                <span class="text-center italic text-sm text-slate-600 flex-1 header-ngay">(Từ ngày ${ngayDauTieuDe} đến ngày ${ngayCuoiTieuDe})</span>
+                <span class="font-bold text-slate-800 uppercase text-base header-tuan">TUẦN ${tuanChon.replace(/\D/g,'')}</span>
             </div>
             <table class="w-full min-w-[950px] border-collapse border border-gray-500 text-sm">
                 <thead class="bg-slate-100 text-center font-bold">
@@ -1236,9 +1235,13 @@ function xuatWordSoDauBai() {
             th { text-align: center; font-weight: bold; }
             .text-center { text-align: center; }
             .italic { font-style: italic; }
-            .flex { display: table; width: 100%; font-weight: bold; margin-bottom: 5px; }
-            .justify-between span { display: table-cell; width: 50%; }
-            .justify-between span:last-child { text-align: right; }
+            
+            /* ĐÃ SỬA: Bố cục CSS phân chia làm 3 cột bằng nhau để dàn đều trên Word */
+            .flex { display: table; width: 100%; margin-bottom: 10px; }
+            .justify-between span { display: table-cell; vertical-align: middle; width: 33.33%; }
+            .justify-between span:nth-child(1) { text-align: left; font-weight: bold; font-size: 13pt; }
+            .justify-between span:nth-child(2) { text-align: center; font-style: italic; font-size: 11pt; color: #475569; }
+            .justify-between span:last-child { text-align: right; font-weight: bold; font-size: 13pt; }
         </style>
         </head><body><div class='WordSection1'>
     `;
@@ -1253,11 +1256,12 @@ function xuatWordSoDauBai() {
         if (cacInputClone[idx]) cacInputClone[idx].setAttribute('value', input.value);
     });
 
-    let htmlContent = preHtml + noiDungClone.innerHTML + "</div></body></html>";
-    let blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+  let htmlContent = preHtml + noiDungClone.innerHTML + "</div></body></html>";
+       
+    let blob = new Blob(['\ufeff', htmlContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     let link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `SoDauBai_Lop${lopChon}_Tuan${tuanChon.replace(/\D/g,'')}.doc`;
+    link.download = `SoDauBai_Lop${lopChon}_Tuan${tuanChon.replace(/\D/g,'')}.docx`;
     link.click();
 }
 
@@ -1311,13 +1315,20 @@ async function xuatExcelSoDauBai() {
 
         cacBang.forEach(khungBang => {
             let rowHeader1 = worksheet.getRow(rowIndex);
-            rowHeader1.getCell(1).value = khungBang.querySelector('.flex').innerText.replace(/\n/g, '                ');
+            
+            // [ĐÃ SỬA]: Lấy riêng text của từng thẻ span thông qua các class đánh dấu
+            let txtLop = khungBang.querySelector('.header-lop') ? khungBang.querySelector('.header-lop').innerText : '';
+            let txtTuan = khungBang.querySelector('.header-tuan') ? khungBang.querySelector('.header-tuan').innerText : '';
+            
+            rowHeader1.getCell(1).value = txtLop + '                ' + txtTuan;
             rowHeader1.font = { name: 'Times New Roman', size: 14, bold: true };
             worksheet.mergeCells(`A${rowIndex}:I${rowIndex}`);
             rowIndex++;
 
             let rowHeader2 = worksheet.getRow(rowIndex);
-            rowHeader2.getCell(1).value = khungBang.querySelector('.italic').innerText;
+            let txtNgay = khungBang.querySelector('.header-ngay') ? khungBang.querySelector('.header-ngay').innerText : '';
+            
+            rowHeader2.getCell(1).value = txtNgay;
             rowHeader2.font = { name: 'Times New Roman', size: 12, italic: true };
             rowHeader2.getCell(1).alignment = { horizontal: 'center' };
             worksheet.mergeCells(`A${rowIndex}:I${rowIndex}`);
