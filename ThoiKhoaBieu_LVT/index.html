@@ -701,59 +701,60 @@
     <script src="SoDauBai.js"></script>
     <script src="PhanQuyenAdmin.js"></script>
    <script>
-        async function thucThiLamMoiNgam() {
-          if (typeof dangTaiDuLieuSoDauBai !== 'undefined' && dangTaiDuLieuSoDauBai === true) return;
+       async function thucThiLamMoiNgam() {
+        let vungHienThi = document.getElementById('vungHienThiSoDauBai');
+        
+        if (vungHienThi && vungHienThi.innerHTML.includes('Đang kết nối kho dữ liệu')) return;
+        if (typeof dangTaiDuLieuSoDauBai !== 'undefined' && dangTaiDuLieuSoDauBai === true) return;
 
-            let tabSDB = document.getElementById('khungSoDauBai');
-            if (!tabSDB || tabSDB.classList.contains('hidden')) return;
+        let tabSDB = document.getElementById('khungSoDauBai');
+        if (!tabSDB || tabSDB.classList.contains('hidden')) return;
 
-            if (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true) return;
-          
-            if (tabSDB.querySelector('td[data-thaydoi="true"]')) return;
+        if (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true) return;
+        if (tabSDB.querySelector('td[data-thaydoi="true"]')) return;
 
-            let emailGoiLen = typeof window.emailGiaoVienToanCuc !== 'undefined' ? window.emailGiaoVienToanCuc : '';
-            if (!emailGoiLen || typeof CAU_HINH_FRONTEND === 'undefined') return;
+        let idGiaoVienGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
+        if (!idGiaoVienGoiLen || typeof CAU_HINH_FRONTEND === 'undefined') return;
 
-            try {
-                const phanHoi = await fetch(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(emailGoiLen)}`);
-                const duLieuSever = await phanHoi.json();
+        try {
+            // ĐỘT PHÁ 1: Vượt Cache
+            const phanHoi = await fetchVoiCoCheThuLai(
+                `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(idGiaoVienGoiLen)}`,
+                {}, 3, 60000
+            );
+            
+            // ĐỘT PHÁ 2: Kiểm tra cờ sau khi tải mạng để bảo vệ vi mô
+            let coThayDoiSDB_SauTai = (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true);
+            let coOThayDoiDOM_SauTai = tabSDB.querySelector('td[data-thaydoi="true"]');
+            if (coThayDoiSDB_SauTai || coOThayDoiDOM_SauTai) {
+                console.warn("Hủy đồng bộ: Bắt được tín hiệu chỉnh sửa trong lúc đang tải ngầm. Dữ liệu gõ dở đã được bảo vệ!");
+                return; 
+            }
+
+            const phanHoiText = await phanHoi.text();
+            let duLieuSever;
+            try { duLieuSever = JSON.parse(phanHoiText); } catch (e) { throw new Error("Lỗi định dạng."); }
+            
+            if (duLieuSever && duLieuSever.trangThai !== 'loi_he_thong') {
+                if (vungHienThi) vungHienThi.id = 'vungHienThiSoDauBai_DangDongBoNgam';
                 
-                if (duLieuSever && duLieuSever.trangThai !== 'loi_he_thong') {
-                    
-                    let theTuan = document.getElementById('chonTuanSo');
-                    let theLop = document.getElementById('chonLopSo');
-                    let tuanChon = theTuan ? theTuan.value : null;
-                    let lopChon = theLop ? theLop.value : null;
-                    
-                    // Khắc phục lỗi xóa nhầm UI
-                    let vungHienThi = document.getElementById('vungHienThiSoDauBai');
-                    if (vungHienThi) vungHienThi.id = 'vungHienThiSoDauBai_DangDongBoNgam';
-                    
-                    if (typeof khoiTaoDuLieuSoDauBai === 'function') {
-                        khoiTaoDuLieuSoDauBai(duLieuSever);
-                    }
-                    
-                    let vungTemp = document.getElementById('vungHienThiSoDauBai_DangDongBoNgam');
-                    if (vungTemp) vungTemp.id = 'vungHienThiSoDauBai';
-                    
-                    if (tuanChon && theTuan) {
-                        theTuan.value = tuanChon;
-                        if (typeof dongBoHienThiTuSelect === 'function') dongBoHienThiTuSelect('chonTuanSo');
-                    }
-                    if (lopChon && theLop) {
-                        theLop.value = lopChon;
-                        if (typeof dongBoHienThiTuSelect === 'function') dongBoHienThiTuSelect('chonLopSo');
-                    }
-                    
-                    // Gọi hàm cập nhật cục bộ chống giật màn hình
-                    if (tuanChon && lopChon && typeof capNhatSoDauBaiNgamLenLuoi === 'function') {
-                        capNhatSoDauBaiNgamLenLuoi(tuanChon, lopChon);
+                if (typeof khoiTaoDuLieuSoDauBai === 'function') khoiTaoDuLieuSoDauBai(duLieuSever);
+                
+                let vungTemp = document.getElementById('vungHienThiSoDauBai_DangDongBoNgam');
+                if (vungTemp) vungTemp.id = 'vungHienThiSoDauBai';
+
+                let theTuan = document.getElementById('chonTuanSo');
+                let theLop = document.getElementById('chonLopSo');
+                if (theTuan && theTuan.value && theLop && theLop.value) {
+                    if (typeof capNhatSoDauBaiNgamLenLuoi === 'function') {
+                        capNhatSoDauBaiNgamLenLuoi(theTuan.value, theLop.value);
                     }
                 }
-            } catch (loi) {
-                console.warn("Tiến trình đồng bộ ngầm SDB tạm dừng do lỗi mạng.");
             }
+        } catch (loi) {
+            console.warn("Tiến trình đồng bộ ngầm SDB tạm dừng do sự cố mạng kết nối.");
         }
+    }
     </script>
 </body>
 </html>
