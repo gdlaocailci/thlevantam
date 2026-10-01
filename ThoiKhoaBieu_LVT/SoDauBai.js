@@ -935,6 +935,7 @@ async function luuSoDauBaiSangMayChu() {
                     String(d['Buổi']).trim().toLowerCase() === buoi.toLowerCase()
                 );
 
+                // [FIX LỖI]: Giới hạn kiểm tra quyền chữ ký chỉ dành cho những tiết người dùng vừa sửa đổi hoặc tiết mới.
                 if (chuKyGV !== '' && (isThayDoi || !isDaLuu)) {
                     if (!quyenQuanTri && indexTrongRam !== -1) {
                         let gvTkb = String(duLieuTKBGopDaMap[indexTrongRam]['Mã GV']).trim().toLowerCase().normalize('NFC');
