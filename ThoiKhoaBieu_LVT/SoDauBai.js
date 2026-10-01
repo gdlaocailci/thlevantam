@@ -935,7 +935,7 @@ async function luuSoDauBaiSangMayChu() {
                     String(d['Buổi']).trim().toLowerCase() === buoi.toLowerCase()
                 );
 
-                if (chuKyGV !== '') {
+                if (chuKyGV !== '' && (isThayDoi || !isDaLuu)) {
                     if (!quyenQuanTri && indexTrongRam !== -1) {
                         let gvTkb = String(duLieuTKBGopDaMap[indexTrongRam]['Mã GV']).trim().toLowerCase().normalize('NFC');
                         let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
