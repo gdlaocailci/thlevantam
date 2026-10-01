@@ -1257,11 +1257,10 @@ function xuatWordSoDauBai() {
     });
 
   let htmlContent = preHtml + noiDungClone.innerHTML + "</div></body></html>";
-       
-    let blob = new Blob(['\ufeff', htmlContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    let blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
     let link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `SoDauBai_Lop${lopChon}_Tuan${tuanChon.replace(/\D/g,'')}.docx`;
+    link.download = `SoDauBai_Lop${lopChon}_Tuan${tuanChon.replace(/\D/g,'')}.doc`;
     link.click();
 }
 
