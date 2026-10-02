@@ -707,7 +707,7 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     let ngayDauTieuDe = mienNgayHienTai ? tinhNgayTuInputDate(mienNgayHienTai, "Thứ 2") : '...';
     let ngayCuoiTieuDe = mienNgayHienTai ? tinhNgayTuInputDate(mienNgayHienTai, danhSachThu[danhSachThu.length - 1]) : '...';
 
-   let htmlBang = `
+    let htmlBang = `
         <div class="mb-8 bang-so-dau-bai-container overflow-x-auto">
             <!-- ĐÃ SỬA: Đưa toàn bộ 3 thành phần lên 1 dòng với flex justify-between -->
             <div class="flex justify-between items-center mb-2">
@@ -925,13 +925,14 @@ async function luuSoDauBaiSangMayChu() {
                 let chuKyGV = getVal(dong.querySelector('td[data-loai="chuKy"]'));
                 let buoi = dong.getAttribute('data-buoi') || 'Sáng';
 
-                // Đối chiếu với bộ nhớ RAM
+                // Đối chiếu với bộ nhớ RAM [NÂNG CẤP TỌA ĐỘ 6 TRỤC ĐỂ ĐỊNH VỊ TUYỆT ĐỐI]
                 let indexTrongRam = duLieuTKBGopDaMap.findIndex(d => 
                     String(d['Tuần']).trim() == tuanSo && 
                     String(d['Mã Lớp']).trim().toUpperCase() === lopChon.toUpperCase() && 
                     String(d['Thứ']).trim() === thuHienTai && 
+                    String(d['Buổi']).trim().toLowerCase() === buoi.toLowerCase() &&
                     String(d['Tiết']).trim() == tiet &&
-                    String(d['Buổi']).trim().toLowerCase() === buoi.toLowerCase()
+                    (String(d['Ngày']).trim() === ngayHienTai || String(d['Ngày']).trim() === '') // Khớp ngày tuyệt đối
                 );
 
                 // [FIX LỖI]: Giới hạn kiểm tra quyền chữ ký chỉ dành cho những tiết người dùng vừa sửa đổi hoặc tiết mới.
@@ -973,10 +974,17 @@ async function luuSoDauBaiSangMayChu() {
                     soDongCoThayDoi++;
                     danhSachThongBao.push(`- ${thuHienTai} (${buoi}), Tiết ${tiet}: ${mon}`);
                     
-                    let maLuuTru = `${tuanSo}_${lopChon}_${thuHienTai}_${buoi}_${tiet}`;
+                    // Tuyệt đối không tự ý ghép nối tạo mã mới nếu dữ liệu đã tồn tại.
+                    // Tìm bản ghi gốc trong RAM (duLieuTKBGopDaMap) để lấy lại Mã nguyên bản
+                    let maLuuTruNguyenBan = '';
+                    if (indexTrongRam !== -1 && duLieuTKBGopDaMap[indexTrongRam]['Mã Lưu Trữ']) {
+                         maLuuTruNguyenBan = duLieuTKBGopDaMap[indexTrongRam]['Mã Lưu Trữ'];
+                    } else {
+                         maLuuTruNguyenBan = `${tuanSo}_${lopChon}_${thuHienTai}_${buoi}_${tiet}`;
+                    }
                     
                     duLieuQuetDuoc.push({
-                        maLuuTru: maLuuTru, 
+                        maLuuTru: maLuuTruNguyenBan, // Trả lại y nguyên mã cũ đã định vị cho Server
                         tuan: tuanSo, 
                         maLop: lopChon,
                         thu: thuHienTai, 
@@ -994,6 +1002,7 @@ async function luuSoDauBaiSangMayChu() {
 
                     // Cập nhật giá trị sửa vào bộ nhớ tạm (RAM)
                     if (indexTrongRam !== -1) {
+                        duLieuTKBGopDaMap[indexTrongRam]['Mã Lưu Trữ'] = maLuuTruNguyenBan; 
                         duLieuTKBGopDaMap[indexTrongRam]['ChuyenCan_Thuc'] = chuyenCan;
                         duLieuTKBGopDaMap[indexTrongRam]['TietPPCT_Thuc'] = tietPPCT;
                         duLieuTKBGopDaMap[indexTrongRam]['TenBai_Thuc'] = tenBai;
@@ -1256,7 +1265,7 @@ function xuatWordSoDauBai() {
         if (cacInputClone[idx]) cacInputClone[idx].setAttribute('value', input.value);
     });
 
-  let htmlContent = preHtml + noiDungClone.innerHTML + "</div></body></html>";
+   let htmlContent = preHtml + noiDungClone.innerHTML + "</div></body></html>";
     let blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
     let link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
