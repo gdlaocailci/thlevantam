@@ -1921,7 +1921,13 @@ async function dongBoDuLieuNgamToanCuc() {
 
         hienThiThongBaoTaiNgam(true);
         try {
-            if (typeof taiDuLieuTKB === 'function') await taiDuLieuTKB(true, 'TKB_HIEN_TAI', false);
+            // [NÂNG CẤP ĐỊNH TUYẾN NGẦM]: Tự động quét đúng nguồn thay vì fix cứng TKB_HIEN_TAI
+            let tuanHeThong = parseInt(thongSoHocVu.TUAN_HIEN_TAI, 10) || 1;
+            let nguonTruyXuat = 'TKB_HIEN_TAI';
+            if (tuanDangXem < tuanHeThong) nguonTruyXuat = 'DATA_TKB';
+            else if (tuanDangXem > tuanHeThong) nguonTruyXuat = 'TKB_CoDinh';
+
+            if (typeof taiDuLieuTKB === 'function') await taiDuLieuTKB(true, nguonTruyXuat, false);
         } finally {
             setTimeout(() => hienThiThongBaoTaiNgam(false), 1500);
         }
