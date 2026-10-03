@@ -734,14 +734,24 @@ function xuatMaTranBang(danhSachTiet) {
         return;
     }
 
-    let dateInput = document.getElementById('chonNgayDauTuan');
-   
-    // [BẢO VỆ DỮ LIỆU]: Chỉ lấy ngày từ Server khi ngayDauTuanUI đang rỗng (lúc nạp trang lần đầu tiên)
-    if (!ngayDauTuanUI && duLieuTiet && duLieuTiet.length > 0) {
-        if (duLieuTiet[0].ngay) {
-            let p = String(duLieuTiet[0].ngay).trim().split('/'); 
+   let dateInput = document.getElementById('chonNgayDauTuan');
+       
+    // [NÂNG CẤP ĐỒNG BỘ THỜI GIAN ĐỘT PHÁ]: LUÔN LUÔN ưu tiên lấy ngày từ dữ liệu Máy chủ (nếu có).
+    // Xóa bỏ chốt chặn (!ngayDauTuanUI) để thời gian trên UI bị ép buộc phải khớp 100% với dữ liệu Sheet thực tế (như Tuần 5 là 05/10 thay vì 28/09).
+    if (duLieuTiet && duLieuTiet.length > 0) {
+        // Tìm dòng bất kỳ có chứa ngày (Khử lỗi khoảng trắng "Thứ 2 ")
+        let dongCoNgay = duLieuTiet.find(t => t.ngay && String(t.ngay).trim() !== "");
+        if (dongCoNgay) {
+            let p = String(dongCoNgay.ngay).trim().split('/'); 
             if (p.length === 3) {
-                ngayDauTuanUI = `${p[2]}-${p[1]}-${p[0]}`; 
+                let ngayGoc = new Date(p[2], p[1] - 1, p[0]);
+                const doLechThu = {"Thứ 2": 0, "Thứ 3": 1, "Thứ 4": 2, "Thứ 5": 3, "Thứ 6": 4, "Thứ 7": 5, "Chủ nhật": 6};
+                let tenThu = String(dongCoNgay.thu).trim();
+                let soNgayLech = doLechThu[tenThu] || 0;
+                
+                // Lùi ngày về đúng Thứ 2 và ghi đè thẳng vào biến UI
+                ngayGoc.setDate(ngayGoc.getDate() - soNgayLech);
+                ngayDauTuanUI = `${ngayGoc.getFullYear()}-${(ngayGoc.getMonth() + 1).toString().padStart(2, '0')}-${ngayGoc.getDate().toString().padStart(2, '0')}`; 
             }
         }
     }
