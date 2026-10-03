@@ -331,7 +331,8 @@ async function taiDuLieuTKB(coCache = false, nguonTruyXuat = 'TKB_HIEN_TAI', epD
             
             const taoDauVanTay = (mangTkb) => {
                 if (!Array.isArray(mangTkb)) return '';
-                return mangTkb.map(t => `${String(t.thu).trim()}_${String(t.buoi).trim()}_${String(t.tiet).trim()}_${String(t.maLop).trim()}_${String(t.monHoc || '').trim()}_${String(t.maGv || '').trim()}`).sort().join('||');
+                // [NÂNG CẤP 1]: Bổ sung t.tuan và t.ngay vào thuật toán sinh mã băm để nhận diện thay đổi
+                return mangTkb.map(t => `${String(t.tuan || '').trim()}_${String(t.thu).trim()}_${String(t.buoi).trim()}_${String(t.tiet).trim()}_${String(t.maLop).trim()}_${String(t.monHoc || '').trim()}_${String(t.maGv || '').trim()}_${String(t.ngay || '').trim()}`).sort().join('||');
             };
 
             let vanTayMayChu = taoDauVanTay(duLieu);
@@ -351,6 +352,18 @@ async function taiDuLieuTKB(coCache = false, nguonTruyXuat = 'TKB_HIEN_TAI', epD
                         console.log("⚡ [Smart Sync]: Cập nhật lưới TKB Hiện Tại từ Máy chủ...");
                         duLieuTkbHienTai = duLieu;
                         localStorage.setItem(KEY_TKB, JSON.stringify(duLieu));
+                        
+                        // [NÂNG CẤP 2]: Cưỡng ép lấy Ngày tháng mới nhất từ Server chèn vào Ô nhập liệu trước khi vẽ bảng
+                        let thu2Data = duLieuTkbHienTai.find(t => t.thu === "Thứ 2" && t.ngay);
+                        if (thu2Data && thu2Data.ngay) {
+                            let p = thu2Data.ngay.split('/'); 
+                            if (p.length === 3) {
+                                ngayDauTuanUI = `${p[2]}-${p[1]}-${p[0]}`; 
+                                let dateInput = document.getElementById('chonNgayDauTuan');
+                                if(dateInput) dateInput.value = ngayDauTuanUI;
+                            }
+                        }
+
                         xuatMaTranBang(duLieuTkbHienTai);
                         if (typeof window.lamSachBoNhoSoDauBai === 'function') window.lamSachBoNhoSoDauBai();
                     }
