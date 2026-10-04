@@ -30,7 +30,7 @@ window.lamSachBoNhoSoDauBai = function() {
     lopTruocDo_SDB = '';
     coThayDoiChuaLuu_SDB = false;
     
-    let emailGoiLen = typeof window.emailGiaoVienToanCuc !== 'undefined' ? window.emailGiaoVienToanCuc : '';
+    let emailGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
     try { sessionStorage.removeItem(`SDB_CACHE_${emailGoiLen}`); } catch(e) {}
     
     maGvDangNhapHeThong = '';
@@ -82,8 +82,7 @@ async function taiDuLieuSoDauBaiTuMayChu() {
     const vungHienThi = document.getElementById('vungHienThiSoDauBai');
     
     // Kiểm tra trực tiếp biến toàn cục thay vì check sự kiện onclick để chống lỗi Race Condition
-    const chuaDangNhap = typeof window.emailGiaoVienToanCuc === 'undefined' || window.emailGiaoVienToanCuc === '';
-
+    const chuaDangNhap = typeof window.dinhDanhGiaoVienToanCuc === 'undefined' || window.dinhDanhGiaoVienToanCuc === '';
     if (chuaDangNhap) {
         // Giao diện Khóa bảo mật: Yêu cầu định danh trực quan trên vùng hiển thị
         if (vungHienThi) {
@@ -147,7 +146,7 @@ function kiemTraTrangThaiDangNhapSDB() {
     }
 
     let vongLap = setInterval(() => {
-        if (typeof window.emailGiaoVienToanCuc !== 'undefined' && window.emailGiaoVienToanCuc !== '') {
+        if (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc !== '') {
             clearInterval(vongLap);
             thucThiTaiDuLieuVaVeLuoi(vungHienThi);
         }
@@ -188,7 +187,7 @@ async function thucThiTaiDuLieuVaVeLuoi(vungHienThi) {
     }
 
     try {
-        let emailGoiLen = typeof window.emailGiaoVienToanCuc !== 'undefined' ? window.emailGiaoVienToanCuc : '';
+        let emailGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
         
         const phanHoi = await fetchVoiCoCheThuLai(
             `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(emailGoiLen)}`,
@@ -679,25 +678,30 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     if (coDayBuThu7) danhSachThu.push("Thứ 7");
     if (coDayBuChuNhat) danhSachThu.push("Chủ nhật");
 
-    // [THUẬT TOÁN ĐỒNG BỘ THỜI GIAN TUYỆT ĐỐI]: Tước quyền quyết định của CSDL Sổ Đầu Bài
-    // Tính toán trực tiếp khoảng cách từ Tuần đang xem bên TKB (Nguồn chân lý)
+    // =========================================================================
+    // [NÂNG CẤP BẢO MẬT HIỂN THỊ]: Độc lập hoàn toàn với biến ngayDauTuanUI của TKB
+    // =========================================================================
     let mienNgayHienTai = '';
-    let tuanSoChonSDB = parseInt(tuanChon.replace(/\D/g, '')) || 1;
-
-    if (typeof ngayDauTuanUI !== 'undefined' && ngayDauTuanUI !== '' && typeof tuanDangXem !== 'undefined') {
-        let parts = ngayDauTuanUI.split('-');
-        if (parts.length === 3) {
-            let d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            // Tính số ngày lệch: (Tuần SDB - Tuần TKB) * 7
-            d.setDate(d.getDate() + ((tuanSoChonSDB - tuanDangXem) * 7));
-            mienNgayHienTai = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-        }
-    }
     
-    // Fallback an toàn cực đoan nếu chưa liên kết được app.js
-    if (!mienNgayHienTai && mapNgayChinhXac['Thứ 2']) {
+    // Ưu tiên 1: Nội soi trực tiếp ngày Thứ 2 (nếu có) trong dữ liệu quá khứ của chính Sổ Đầu Bài
+    if (mapNgayChinhXac['Thứ 2']) {
         let p = mapNgayChinhXac['Thứ 2'].split('/');
         if (p.length === 3) mienNgayHienTai = `${p[2]}-${p[1]}-${p[0]}`; 
+    } 
+    // Ưu tiên 2: Nếu tuần này trống hoặc nghỉ Thứ 2, lấy bất kỳ ngày nào có thật rồi dịch ngược về Thứ 2
+    else {
+        let keys = Object.keys(mapNgayChinhXac);
+        if (keys.length > 0) {
+            let thuBatKy = keys[0];
+            let p = mapNgayChinhXac[thuBatKy].split('/');
+            if (p.length === 3) {
+                let d = new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+                let mapThuToDay = {"Thứ 2": 1, "Thứ 3": 2, "Thứ 4": 3, "Thứ 5": 4, "Thứ 6": 5, "Thứ 7": 6, "Chủ nhật": 0};
+                let khoangCach = mapThuToDay[thuBatKy] - 1; 
+                d.setDate(d.getDate() - khoangCach);
+                mienNgayHienTai = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+            }
+        }
     }
 
     if (inputNgay && mienNgayHienTai) {
@@ -1592,7 +1596,6 @@ window.renderDanhSach = function(selectEl, listEl, inputEl, searchTerm) {
         listEl.appendChild(li);
     }
 };
-
 window.dongBoHienThiTuSelect = function(selectId) {
     let selectEl = document.getElementById(selectId);
     let inputEl = document.getElementById('input_' + selectId);
