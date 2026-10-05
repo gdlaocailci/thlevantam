@@ -31,7 +31,9 @@ window.lamSachBoNhoSoDauBai = function() {
     coThayDoiChuaLuu_SDB = false;
     
     let emailGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
-    try { sessionStorage.removeItem(`SDB_CACHE_${emailGoiLen}`); } catch(e) {}
+    try { 
+        sessionStorage.removeItem(window.layKhoaCachLy(`SDB_DATA_STATIC_${emailGoiLen}`)); 
+    } catch(e) {}
     
     maGvDangNhapHeThong = '';
     
@@ -187,9 +189,8 @@ async function thucThiTaiDuLieuVaVeLuoi(vungHienThi) {
     }
 
     try {
-        // Biến nội bộ sạch, tuân thủ nguyên tắc không dùng từ khóa nhạy cảm
         let dinhDanhGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
-        let cacheKey = `SDB_DATA_STATIC_${dinhDanhGoiLen}`;
+        let cacheKey = window.layKhoaCachLy(`SDB_DATA_STATIC_${dinhDanhGoiLen}`);
         let duLieuSever = {};
         
         // KIỂM TRA CACHE
