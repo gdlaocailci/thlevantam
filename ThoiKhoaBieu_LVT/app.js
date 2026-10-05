@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => { khoiTaoGiaoDien(); });
 // =========================================================================
 // KHỐI KẾT NỐI MẠNG CỐT LÕI (NÂNG CẤP CHỐNG TREO & CHỐNG CACHE AN TOÀN CORS)
 // =========================================================================
-async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3, thoiGianCho = 45000) {
+async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3, thoiGianCho = 60000) {
     for (let i = 0; i < soLanThu; i++) {
         const boDieuKhien = new AbortController();
         const idHenGio = setTimeout(() => boDieuKhien.abort(), thoiGianCho);
