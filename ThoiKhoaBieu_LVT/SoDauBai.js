@@ -159,7 +159,7 @@ function kiemTraTrangThaiDangNhapSDB() {
 }
 
 async function thucThiTaiDuLieuVaVeLuoi(vungHienThi) {
-    dangTaiDuLieuSoDauBai = true; // Bật khiếu nại bảo vệ tiến trình
+    dangTaiDuLieuSoDauBai = true;
 
     let selTuan = document.getElementById('chonTuanSo');
     let selLop = document.getElementById('chonLopSo');
@@ -182,30 +182,57 @@ async function thucThiTaiDuLieuVaVeLuoi(vungHienThi) {
         vungHienThi.innerHTML = `<div class="text-center py-12 text-slate-500 font-bold">
             <div class="w-9 h-9 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
             <p class="text-base text-blue-900 font-extrabold">Đang kết nối kho dữ liệu Sổ Đầu Bài...</p>
-            <span class="text-xs text-slate-500 font-normal mt-1 block">Khối lượng dữ liệu lớn đang được đồng bộ, quá trình này có thể mất khoảng 30 - 45 giây. Đồng chí vui lòng không chuyển trang...</span>
+            <span class="text-xs text-slate-500 font-normal mt-1 block">Hệ thống đang tối ưu bộ nhớ đệm để tăng tốc. Vui lòng không chuyển trang...</span>
         </div>`;
     }
 
     try {
-        let emailGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
+        // Biến nội bộ sạch, tuân thủ nguyên tắc không dùng từ khóa nhạy cảm
+        let dinhDanhGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
+        let cacheKey = `SDB_DATA_STATIC_${dinhDanhGoiLen}`;
+        let duLieuSever = {};
+        
+        // KIỂM TRA CACHE
+        let duLieuTinhCache = sessionStorage.getItem(cacheKey);
+        let yeuCauTaiToanBo = duLieuTinhCache ? false : true;
+
+        // [SỬA LỖI]: Phục hồi key 'emailTruyCap' trên chuỗi URL để khớp nối chính xác với tham số Backend GAS đang chờ
+        let thongSoURL = `thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(dinhDanhGoiLen)}&taiToanBo=${yeuCauTaiToanBo}`;
         
         const phanHoi = await fetchVoiCoCheThuLai(
-            `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(emailGoiLen)}`,
+            `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?${thongSoURL}`,
             {}, 3, 60000
         );
         
         const phanHoiText = await phanHoi.text();
         
-        let duLieuSever;
-        try { duLieuSever = JSON.parse(phanHoiText); } 
+        let duLieuMoi;
+        try { duLieuMoi = JSON.parse(phanHoiText); } 
         catch (loiParse) { throw new Error("Phản hồi máy chủ gặp sự cố định dạng. Vui lòng thử lại!"); }
 
-        if (duLieuSever.trangThai === 'loi_he_thong') throw new Error(duLieuSever.thongBao);
+        if (duLieuMoi.trangThai === 'loi_he_thong') throw new Error(duLieuMoi.thongBao);
+
+        // LẮP RÁP DỮ LIỆU TỪ CACHE
+        if (yeuCauTaiToanBo) {
+            duLieuSever = duLieuMoi;
+            let duLieuTinh = {
+                KHUNG_CHUONG_TRINH: duLieuMoi.KHUNG_CHUONG_TRINH,
+                PPCT: duLieuMoi.PPCT
+            };
+            try { sessionStorage.setItem(cacheKey, JSON.stringify(duLieuTinh)); } catch (e) {}
+        } else {
+            let cacheParsed = JSON.parse(duLieuTinhCache);
+            duLieuSever = {
+                ...duLieuMoi, // Gồm SO_DAU_BAI, DATA_TKB, TKB_HIEN_TAI, MA_GIAO_VIEN, TOAN_QUYEN
+                KHUNG_CHUONG_TRINH: cacheParsed.KHUNG_CHUONG_TRINH,
+                PPCT: cacheParsed.PPCT
+            };
+        }
 
         setTimeout(() => {
             khoiTaoDuLieuSoDauBai(duLieuSever);
             daTaiDuLieuSoDauBai = true;
-            dangTaiDuLieuSoDauBai = false; // Hoàn thành tải, gỡ bỏ bảo vệ
+            dangTaiDuLieuSoDauBai = false; 
 
             let inTuanReset = document.getElementById('input_chonTuanSo');
             let inLopReset = document.getElementById('input_chonLopSo');
@@ -220,7 +247,7 @@ async function thucThiTaiDuLieuVaVeLuoi(vungHienThi) {
         }, 10);
 
     } catch (loi) {
-        dangTaiDuLieuSoDauBai = false; // Có lỗi cũng phải gỡ bảo vệ
+        dangTaiDuLieuSoDauBai = false; 
         console.error("Lỗi Sổ đầu bài:", loi);
         if (vungHienThi) {
             vungHienThi.innerHTML = `<div class="text-center py-10 text-red-600 font-bold text-lg">⚠️ Cảnh báo lỗi kết nối: <br><span class="text-base font-normal text-slate-700">${loi.message}</span></div>`;
