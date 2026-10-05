@@ -546,7 +546,22 @@ function thoatTaik() {
         $(document).on('change', '#locNamBcao', () => { if(typeof veBangBcao === 'function') veBangBcao(); });
     }
 
-    function thuchScript(ptu) { const cack = ptu.querySelectorAll('script'); cack.forEach(kc => { const km = document.createElement('script'); Array.from(kc.attributes).forEach(tt => km.setAttribute(tt.name, tt.value)); km.appendChild(document.createTextNode(kc.innerHTML)); kc.parentNode.replaceChild(km, kc); }); }
+    function thuchScript(ptu) {
+    const cack = ptu.querySelectorAll('script');
+    cack.forEach(kc => {
+        const km = document.createElement('script');
+        // Quét và sao chép các thuộc tính, sử dụng try...catch để bỏ qua các thuộc tính lỗi do Extension chèn vào
+        Array.from(kc.attributes).forEach(tt => {
+            try {
+                km.setAttribute(tt.name, tt.value);
+            } catch (loiThuocTinh) {
+                console.warn("Đã bỏ qua thuộc tính không hợp lệ: " + tt.name);
+            }
+        });
+        km.appendChild(document.createTextNode(kc.innerHTML));
+        kc.parentNode.replaceChild(km, kc);
+    });
+}
 
     function taiDlBdau() { window.khachApi.layDlCanb(null, window.PGV_ID_TC, khiTaiDlXong, khiLoiMayChu); }
 
