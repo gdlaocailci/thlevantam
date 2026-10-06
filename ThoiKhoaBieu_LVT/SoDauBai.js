@@ -781,7 +781,11 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                 let xepLoai = dongDuLieu ? dongDuLieu['XepLoai_Thuc'] : '';
                 let chuKy = dongDuLieu ? dongDuLieu['ChuKy_Thuc'] : '';
                 let chuyenCan = dongDuLieu ? (dongDuLieu['ChuyenCan_Thuc'] || '') : '';
-                let isLocked = isDaLuu && chuKy.trim() !== '';
+                // [TÙY CHỈNH]: Tạm thời tắt tính năng khóa cứng khi đã ký để GV dễ dàng bổ sung Tên bài. 
+                // Khi nào cần khóa lại, chỉ cần mở comment dòng dưới và xóa dòng let isLocked = false;
+                // let isLocked = isDaLuu && chuKy.trim() !== '';
+                let isLocked = false;
+                                
 
                 let gvTkb = dongDuLieu ? String(dongDuLieu['Mã GV']).trim().toLowerCase().normalize('NFC') : '';
                 let quyenNhapThuCong = false;
@@ -1951,7 +1955,9 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
                     let chuKyMoi = String(dongDuLieuMoi['ChuKy_Thuc'] || '');
                     let chuyenCanMoi = String(dongDuLieuMoi['ChuyenCan_Thuc'] || '');
                     let tietPPCTMoi = String(dongDuLieuMoi['TietPPCT_Thuc'] || '');
-                    let isLockedMoi = isDaLuuMoi && chuKyMoi.trim() !== '';
+                    // [TÙY CHỈNH]: Tạm thời tắt tính năng khóa cứng khi đã ký.
+                    // let isLockedMoi = isDaLuuMoi && chuKyMoi.trim() !== '';
+                    let isLockedMoi = false;
 
                     let gvTkb = String(dongDuLieuMoi['Mã GV']).trim().toLowerCase().normalize('NFC');
                     let quyenNhapThuCong = false;
