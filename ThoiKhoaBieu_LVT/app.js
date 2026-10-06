@@ -789,16 +789,19 @@ function xuatMaTranBang(danhSachTiet) {
     const tableEl = document.querySelector('.bang-excel');
     if (tableEl) { tableEl.style.borderCollapse = 'separate'; tableEl.style.borderSpacing = '0'; }
 
-    if (!document.getElementById('datalistChung_Mon')) {
-        let dlMon = document.createElement('datalist'); dlMon.id = 'datalistChung_Mon';
-        (thongSoHocVu.DANH_SACH_MON_HOC || []).forEach(m => { dlMon.innerHTML += `<option value="${m}">`; });
-        document.body.appendChild(dlMon);
-    }
-    if (!document.getElementById('datalistChung_GV')) {
-        let dlGv = document.createElement('datalist'); dlGv.id = 'datalistChung_GV';
-        (thongSoHocVu.DANH_SACH_GIAO_VIEN || []).forEach(g => { dlGv.innerHTML += `<option value="${g}">`; });
-        document.body.appendChild(dlGv);
-    }
+    // Xóa và tạo mới datalist Môn học để luôn cập nhật dữ liệu mới nhất
+    let oldDlMon = document.getElementById('datalistChung_Mon');
+    if (oldDlMon) oldDlMon.remove();
+    let dlMon = document.createElement('datalist'); dlMon.id = 'datalistChung_Mon';
+    (thongSoHocVu.DANH_SACH_MON_HOC || []).forEach(m => { dlMon.innerHTML += `<option value="${m}">`; });
+    document.body.appendChild(dlMon);
+
+    // Xóa và tạo mới datalist Giáo viên để luôn cập nhật dữ liệu mới nhất
+    let oldDlGv = document.getElementById('datalistChung_GV');
+    if (oldDlGv) oldDlGv.remove();
+    let dlGv = document.createElement('datalist'); dlGv.id = 'datalistChung_GV';
+    (thongSoHocVu.DANH_SACH_GIAO_VIEN || []).forEach(g => { dlGv.innerHTML += `<option value="${g}">`; });
+    document.body.appendChild(dlGv);
 
     const duLieuTiet = danhSachTiet || [];
     
