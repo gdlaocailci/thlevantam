@@ -601,12 +601,29 @@ function locTheoGiaoVien() {
 window.danhDauDongThayDoiTKB = function(inputEl) {
     if (!inputEl) return;
     let td = inputEl.closest('td');
-    if (td && td.getAttribute('data-thaydoi') !== 'true') {
-        td.setAttribute('data-thaydoi', 'true');
-        td.classList.add('relative'); 
-        
-        if (!td.querySelector('.icon-sua-chua')) {
-            inputEl.insertAdjacentHTML('afterend', `<svg class="icon-sua-chua w-[14px] h-[14px] absolute top-1 right-1 text-amber-600 animate-pulse pointer-events-none drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>`);
+    if (!td) return;
+
+    // Đối chiếu giá trị hiện tại với giá trị gốc lúc khởi tạo
+    let giaTriHienTai = inputEl.value.trim();
+    let giaTriGoc = inputEl.getAttribute('data-valgoc') || '';
+
+    if (giaTriHienTai !== giaTriGoc) {
+        // Bật cờ và hiển thị icon nếu có sự thay đổi thực sự
+        if (td.getAttribute('data-thaydoi') !== 'true') {
+            td.setAttribute('data-thaydoi', 'true');
+            td.classList.add('relative'); 
+            
+            if (!td.querySelector('.icon-sua-chua')) {
+                inputEl.insertAdjacentHTML('afterend', `<svg class="icon-sua-chua w-[14px] h-[14px] absolute top-1 right-1 text-amber-600 animate-pulse pointer-events-none drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>`);
+            }
+        }
+    } else {
+        // Tự động gỡ cờ và xóa icon nếu người dùng hoàn trả về đúng giá trị ban đầu
+        if (td.getAttribute('data-thaydoi') === 'true') {
+            td.removeAttribute('data-thaydoi');
+            td.classList.remove('relative');
+            let icon = td.querySelector('.icon-sua-chua');
+            if (icon) icon.remove();
         }
     }
 };
@@ -621,13 +638,15 @@ function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = 
     let kieuKiemTraGV = (idPhanTu && idPhanTu.startsWith('gv_')) ? `if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang();` : '';
     let triggerThayDoi = `if(typeof danhDauDongThayDoiTKB === 'function') danhDauDongThayDoiTKB(this);`;
     
-    let onFocusClick = `this.dataset.val=this.value; if(this.value !== ''){ this.placeholder=this.value; this.value=''; } if(this.showPicker) this.showPicker();`;
-    let onBlurLogic = `if(this.value.trim() === '') { this.value = this.dataset.val || ''; } this.placeholder='--'; xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV}`;
+   let onFocusClick = `this.dataset.val=this.value; if(this.value !== ''){ this.placeholder=this.value; this.value=''; }`;
+    
+    // Đã bổ sung ${triggerThayDoi} vào cuối onBlurLogic để ép kiểm tra lại cờ khi ô chọn mất tiêu điểm
+    let onBlurLogic = `if(this.value.trim() === '') { this.value = this.dataset.val || ''; } this.placeholder='--'; xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV} ${triggerThayDoi}`;
     
     let suKienMoi = `oninput="${kieuKiemTraGV} ${triggerThayDoi}" onchange="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV} ${triggerThayDoi}" onfocus="${onFocusClick}" onclick="if(this.showPicker) this.showPicker();" onblur="${onBlurLogic}"`;
 
-    let html = `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" ${suKienMoi}>`; 
-    
+    // Đã bổ sung thuộc tính data-valgoc="${giaTriMacDinh || ''}" vào thẻ input
+    let html = `<input type="text" size="1" list="${idDatalist}" data-valgoc="${giaTriMacDinh || ''}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" ${suKienMoi}>`;
     return html;
 }
 
