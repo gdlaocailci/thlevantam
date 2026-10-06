@@ -4,7 +4,6 @@ let quyenChiTiet = { menu: [], nut: [], lop: [] };
 let duLieuTkbHienTai = []; 
 let tuanDangXem = 1; 
 let ngayDauTuanUI = '';
-
 // =========================================================================
 // HÀM BỔ SUNG: BỘ CÁCH LY DỮ LIỆU ĐA TÊN MIỀN (MULTI-TENANT ISOLATION)
 // =========================================================================
@@ -20,7 +19,6 @@ window.layKhoaCachLy = function(keyBase) {
     }
     return keyBase + '_' + prefix;
 };
-
 // =========================================================================
 // HÀM BỔ SUNG: SINH DANH SÁCH THỨ ĐỘNG THEO NGÀY CỦA UI (CHỈ TỚI THỨ 7)
 // =========================================================================
