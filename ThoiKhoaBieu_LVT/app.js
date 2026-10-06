@@ -601,40 +601,16 @@ function locTheoGiaoVien() {
 window.danhDauDongThayDoiTKB = function(inputEl) {
     if (!inputEl) return;
     let td = inputEl.closest('td');
-    if (!td) return;
-
-    // [THUẬT TOÁN MỚI]: Chuẩn hóa chuỗi để so sánh chính xác tuyệt đối 
-    // (Bỏ qua khoảng trắng thừa, sai khác hoa/thường, và hiểu lệnh xóa "---")
-    const chuanHoa = (chuoi) => {
-        if (!chuoi) return '';
-        let val = String(chuoi).trim();
-        if (val === '---' || val === '--') val = '';
-        return val.normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
-    };
-
-    let giaTriHienTai = chuanHoa(inputEl.value);
-    let giaTriGoc = chuanHoa(inputEl.getAttribute('data-valgoc'));
-
-    if (giaTriHienTai !== giaTriGoc) {
-        // Bật cờ và hiển thị icon nếu có sự thay đổi thực sự
-        if (td.getAttribute('data-thaydoi') !== 'true') {
-            td.setAttribute('data-thaydoi', 'true');
-            td.classList.add('relative'); 
-            
-            if (!td.querySelector('.icon-sua-chua')) {
-                inputEl.insertAdjacentHTML('afterend', `<svg class="icon-sua-chua w-[14px] h-[14px] absolute top-1 right-1 text-amber-600 animate-pulse pointer-events-none drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>`);
-            }
-        }
-    } else {
-        // Tự động gỡ cờ và xóa icon nếu người dùng hoàn trả về đúng giá trị ban đầu
-        if (td.getAttribute('data-thaydoi') === 'true') {
-            td.removeAttribute('data-thaydoi');
-            td.classList.remove('relative');
-            let icon = td.querySelector('.icon-sua-chua');
-            if (icon) icon.remove();
+    if (td && td.getAttribute('data-thaydoi') !== 'true') {
+        td.setAttribute('data-thaydoi', 'true');
+        td.classList.add('relative'); 
+        
+        if (!td.querySelector('.icon-sua-chua')) {
+            inputEl.insertAdjacentHTML('afterend', `<svg class="icon-sua-chua w-[14px] h-[14px] absolute top-1 right-1 text-amber-600 animate-pulse pointer-events-none drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>`);
         }
     }
 };
+
 function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '', coQuyenSua = quyenSuaChua) {
     let idThocTinh = idPhanTu ? `id="${idPhanTu}"` : '';
     let thuocTinhKhoa = coQuyenSua ? '' : 'disabled'; 
@@ -645,15 +621,12 @@ function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = 
     let kieuKiemTraGV = (idPhanTu && idPhanTu.startsWith('gv_')) ? `if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang();` : '';
     let triggerThayDoi = `if(typeof danhDauDongThayDoiTKB === 'function') danhDauDongThayDoiTKB(this);`;
     
-    let onFocusClick = `this.dataset.val=this.value; if(this.value !== ''){ this.placeholder=this.value; this.value=''; }`;
+    let onFocusClick = `this.dataset.val=this.value; if(this.value !== ''){ this.placeholder=this.value; this.value=''; } if(this.showPicker) this.showPicker();`;
+    let onBlurLogic = `if(this.value.trim() === '') { this.value = this.dataset.val || ''; } this.placeholder='--'; xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV}`;
     
-   // Đã bổ sung ${triggerThayDoi} vào cuối onBlurLogic để chốt kiểm tra khi rời ô
-    let onBlurLogic = `if(this.value.trim() === '') { this.value = this.dataset.val || ''; } this.placeholder='--'; xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV} ${triggerThayDoi}`;
-    
-    // [NÂNG CẤP]: Đã XÓA ${triggerThayDoi} khỏi oninput. Cờ chỉ được tính khi onchange (chọn xong) hoặc onblur
-    let suKienMoi = `oninput="${kieuKiemTraGV}" onchange="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV} ${triggerThayDoi}" onfocus="${onFocusClick}" onclick="if(this.showPicker) this.showPicker();" onblur="${onBlurLogic}"`;
+    let suKienMoi = `oninput="${kieuKiemTraGV} ${triggerThayDoi}" onchange="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV} ${triggerThayDoi}" onfocus="${onFocusClick}" onclick="if(this.showPicker) this.showPicker();" onblur="${onBlurLogic}"`;
 
-    let html = `<input type="text" size="1" list="${idDatalist}" data-valgoc="${giaTriMacDinh || ''}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" ${suKienMoi}>`; 
+    let html = `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" ${suKienMoi}>`; 
     
     return html;
 }
@@ -823,7 +796,7 @@ function xuatMaTranBang(danhSachTiet) {
     const tableEl = document.querySelector('.bang-excel');
     if (tableEl) { tableEl.style.borderCollapse = 'separate'; tableEl.style.borderSpacing = '0'; }
 
-    // Xóa và tạo mới datalist Môn học để luôn cập nhật dữ liệu mới nhất
+   // Xóa và tạo mới datalist Môn học để luôn cập nhật dữ liệu mới nhất
     let oldDlMon = document.getElementById('datalistChung_Mon');
     if (oldDlMon) oldDlMon.remove();
     let dlMon = document.createElement('datalist'); dlMon.id = 'datalistChung_Mon';
@@ -1143,15 +1116,10 @@ async function luuDuLieu(event, loaiLuu) {
                 duLieuTkbHienTai = dsTietLuoi;
                 
                 document.querySelectorAll('td[data-thaydoi="true"]').forEach(td => {
-                td.removeAttribute('data-thaydoi');
-                let icon = td.querySelector('.icon-sua-chua');
-                if (icon) icon.remove();
-                
-                // BỔ SUNG: Cập nhật lại mốc giá trị gốc cho các ô input sau khi lưu thành công
-                // Để các lần sửa đổi tiếp theo không bị so sánh nhầm với dữ liệu cũ
-                let inputs = td.querySelectorAll('input');
-                inputs.forEach(inp => { inp.setAttribute('data-valgoc', inp.value); });
-            });
+                    td.removeAttribute('data-thaydoi');
+                    let icon = td.querySelector('.icon-sua-chua');
+                    if (icon) icon.remove();
+                });
 
                 localStorage.setItem(layKhoaCachLy('SmartTKB_DuLieuTuan'), JSON.stringify(dsTietLuoi));
 
