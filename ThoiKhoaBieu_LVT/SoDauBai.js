@@ -766,7 +766,7 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
 
    danhSachThu.forEach(thu => {
         let ngayCuaThu = mienNgayHienTai ? tinhNgayTuInputDate(mienNgayHienTai, thu) : '';
-        let hienThiThu = ngayCuaThu ? `${thu}<br><span class="text-[11px] font-normal tracking-tight normal-case">${ngayCuaThu}</span>` : thu;
+        let hienThiThu = ngayCuaThu ? `<span style="display: block;">${thu}</span><span style="display: block; font-size: 11pt; font-weight: normal;">${ngayCuaThu}</span>` : `<span style="display: block;">${thu}</span>`;
         let danhSachBuoi = [{ id: 'Sang', dataBuoi: 'Sáng', dsTiet: [1, 2, 3, 4, 5] }, { id: 'Chieu', dataBuoi: 'Chiều', dsTiet: [1, 2, 3, 4] }];
         let tongDongTrongNgay = 9; let daInCotThu = false;
 
@@ -781,11 +781,11 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                 let xepLoai = dongDuLieu ? dongDuLieu['XepLoai_Thuc'] : '';
                 let chuKy = dongDuLieu ? dongDuLieu['ChuKy_Thuc'] : '';
                 let chuyenCan = dongDuLieu ? (dongDuLieu['ChuyenCan_Thuc'] || '') : '';
-                // [TÙY CHỈNH]: Tạm thời tắt tính năng khóa cứng khi đã ký để GV dễ dàng bổ sung Tên bài. 
+               // [TÙY CHỈNH]: Tạm thời tắt tính năng khóa cứng khi đã ký để GV dễ dàng bổ sung Tên bài. 
                 // Khi nào cần khóa lại, chỉ cần mở comment dòng dưới và xóa dòng let isLocked = false;
                 // let isLocked = isDaLuu && chuKy.trim() !== '';
                 let isLocked = false;
-                                
+                
 
                 let gvTkb = dongDuLieu ? String(dongDuLieu['Mã GV']).trim().toLowerCase().normalize('NFC') : '';
                 let quyenNhapThuCong = false;
@@ -961,17 +961,24 @@ async function luuSoDauBaiSangMayChu() {
                 let chuKyGV = getVal(dong.querySelector('td[data-loai="chuKy"]'));
                 let buoi = dong.getAttribute('data-buoi') || 'Sáng';
 
-                // Đối chiếu với bộ nhớ RAM [NÂNG CẤP TỌA ĐỘ 6 TRỤC ĐỂ ĐỊNH VỊ TUYỆT ĐỐI]
+                // =====================================================================
+                // [NÂNG CẤP BẢN LỀ - FRONTEND]: ÁNH XẠ CHUẨN 6 TRỤC
+                // =====================================================================
+                let chuanHoaThu = String(thuHienTai).trim().toLowerCase();
+                let chuanHoaBuoi = String(buoi).trim().toLowerCase();
+                let chuanHoaLop = String(lopChon).trim().toUpperCase();
+                let chuanHoaNgay = String(ngayHienTai).trim().toLowerCase();
+
                 let indexTrongRam = duLieuTKBGopDaMap.findIndex(d => 
-                    String(d['Tuần']).trim() == tuanSo && 
-                    String(d['Mã Lớp']).trim().toUpperCase() === lopChon.toUpperCase() && 
-                    String(d['Thứ']).trim() === thuHienTai && 
-                    String(d['Buổi']).trim().toLowerCase() === buoi.toLowerCase() &&
-                    String(d['Tiết']).trim() == tiet &&
-                    (String(d['Ngày']).trim() === ngayHienTai || String(d['Ngày']).trim() === '') // Khớp ngày tuyệt đối
+                    parseInt(String(d['Tuần']).replace(/\D/g, '')) === tuanSo && 
+                    String(d['Mã Lớp']).trim().toUpperCase() === chuanHoaLop && 
+                    String(d['Thứ']).trim().toLowerCase() === chuanHoaThu && 
+                    (String(d['Ngày']).trim().toLowerCase() === chuanHoaNgay || chuanHoaNgay === '') &&
+                    String(d['Buổi']).trim().toLowerCase() === chuanHoaBuoi &&
+                    String(d['Tiết']).trim() === tiet
                 );
 
-                // [FIX LỖI]: Giới hạn kiểm tra quyền chữ ký chỉ dành cho những tiết người dùng vừa sửa đổi hoặc tiết mới.
+                // Kiểm tra quyền chữ ký
                 if (chuKyGV !== '' && (isThayDoi || !isDaLuu)) {
                     if (!quyenQuanTri && indexTrongRam !== -1) {
                         let gvTkb = String(duLieuTKBGopDaMap[indexTrongRam]['Mã GV']).trim().toLowerCase().normalize('NFC');
@@ -984,6 +991,7 @@ async function luuSoDauBaiSangMayChu() {
                     }
                 }
 
+                // Điền tên bài tự động nếu thiếu
                 if (chuKyGV !== '' && tuanSo < tuanHeThong && tenBai === '') {
                     canThiTietThieuTenBai = true;
                     let matchKhoi = lopChon.match(/\d+/);
@@ -1010,22 +1018,20 @@ async function luuSoDauBaiSangMayChu() {
                     soDongCoThayDoi++;
                     danhSachThongBao.push(`- ${thuHienTai} (${buoi}), Tiết ${tiet}: ${mon}`);
                     
-                    // Tuyệt đối không tự ý ghép nối tạo mã mới nếu dữ liệu đã tồn tại.
-                    // Tìm bản ghi gốc trong RAM (duLieuTKBGopDaMap) để lấy lại Mã nguyên bản
-                    let maLuuTruNguyenBan = '';
-                    if (indexTrongRam !== -1 && duLieuTKBGopDaMap[indexTrongRam]['Mã Lưu Trữ']) {
-                         maLuuTruNguyenBan = duLieuTKBGopDaMap[indexTrongRam]['Mã Lưu Trữ'];
-                    } else {
-                         maLuuTruNguyenBan = `${tuanSo}_${lopChon}_${thuHienTai}_${buoi}_${tiet}`;
-                    }
+                    // =====================================================================
+                    // [NÂNG CẤP]: MÃ LƯU TRỮ ĐỊNH DANH ĐẦY ĐỦ 6 TRỤC
+                    // =====================================================================
+                    let chuCaiDauThu = chuanHoaThu.charAt(0).toUpperCase() + chuanHoaThu.slice(1);
+                    let chuCaiDauBuoi = chuanHoaBuoi.charAt(0).toUpperCase() + chuanHoaBuoi.slice(1);
+                    let maLuuTruDinhDanh = `${tuanSo}_${chuanHoaLop}_${chuCaiDauThu}_${ngayHienTai}_${chuCaiDauBuoi}_${tiet}`;
                     
                     duLieuQuetDuoc.push({
-                        maLuuTru: maLuuTruNguyenBan, // Trả lại y nguyên mã cũ đã định vị cho Server
+                        maLuuTru: maLuuTruDinhDanh, 
                         tuan: tuanSo, 
-                        maLop: lopChon,
-                        thu: thuHienTai, 
+                        maLop: chuanHoaLop,
+                        thu: chuCaiDauThu, 
                         ngay: ngayHienTai, 
-                        buoi: buoi, 
+                        buoi: chuCaiDauBuoi, 
                         tiet: tiet,
                         mon: mon, 
                         tietPPCT: tietPPCT, 
@@ -1038,7 +1044,7 @@ async function luuSoDauBaiSangMayChu() {
 
                     // Cập nhật giá trị sửa vào bộ nhớ tạm (RAM)
                     if (indexTrongRam !== -1) {
-                        duLieuTKBGopDaMap[indexTrongRam]['Mã Lưu Trữ'] = maLuuTruNguyenBan; 
+                        duLieuTKBGopDaMap[indexTrongRam]['Mã Lưu Trữ'] = maLuuTruDinhDanh; 
                         duLieuTKBGopDaMap[indexTrongRam]['ChuyenCan_Thuc'] = chuyenCan;
                         duLieuTKBGopDaMap[indexTrongRam]['TietPPCT_Thuc'] = tietPPCT;
                         duLieuTKBGopDaMap[indexTrongRam]['TenBai_Thuc'] = tenBai;
@@ -1076,10 +1082,8 @@ async function luuSoDauBaiSangMayChu() {
         if (ketQua.trangThai === 'thanh_cong') {
             alert(`✅ Đã chốt thành công các cập nhật của Sổ đầu bài Lớp ${lopChon} - Tuần ${tuanSo}!`);
             
-            // Xóa cờ cảnh báo rủi ro mất dữ liệu
             coThayDoiChuaLuu_SDB = false; 
             
-            // Cập nhật lại trạng thái gốc của RAM (Đã lưu)
             duLieuTKBGopDaMap.forEach(d => { 
                 if (d.TrangThaiThayDoi) { 
                     d.DaLuu = true; 
@@ -1087,7 +1091,6 @@ async function luuSoDauBaiSangMayChu() {
                 } 
             });
             
-            // SỬ DỤNG HÀM CẬP NHẬT NGẦM TẠI CHỖ ĐỂ TỰ ĐỘNG ĐỔI BĂNG THÔNG BÁO VÀ KHÓA Ô UI
             if (typeof capNhatSoDauBaiNgamLenLuoi === 'function') {
                 capNhatSoDauBaiNgamLenLuoi(tuanChon, lopChon);
             }
@@ -1172,7 +1175,7 @@ function dongBoTenBaiHoc() {
                                 oTenBai.classList.add('text-emerald-700', 'font-bold');
                             }
                         } else {
-                            if (theTextarea && theTextarea.value.trim() === '') {
+                            if (theTextarea && theTextarea.value.trim() === '' && !theTextarea.disabled) {
                                 theTextarea.value = baiDayChuan;
                                 document.activeElement.blur(); 
                                 theTextarea.style.height = 'auto';
@@ -1273,20 +1276,19 @@ function xuatWordSoDauBai() {
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head><meta charset='utf-8'><title>Sổ Đầu Bài</title>
         <style>
-            @page WordSection1 { size: 841.9pt 595.3pt; mso-page-orientation: landscape; margin: 1.0in 1.0in 1.0in 1.0in; }
+            @page WordSection1 { size: 841.9pt 595.3pt; mso-page-orientation: landscape; margin: 0.8in 0.8in 0.8in 0.8in; }
             div.WordSection1 { page: WordSection1; }
-            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-family: "Times New Roman", Times, serif; font-size: 13pt; }
-            th, td { border: 1px solid black; padding: 5px; }
-            th { text-align: center; font-weight: bold; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-family: "Times New Roman", Times, serif; font-size: 12pt; }
+            th, td { border: 1px solid black; padding: 6px; }
+            th { text-align: center; font-weight: bold; background-color: #f1f5f9; }
             .text-center { text-align: center; }
-            .italic { font-style: italic; }
             
-            /* ĐÃ SỬA: Bố cục CSS phân chia làm 3 cột bằng nhau để dàn đều trên Word */
-            .flex { display: table; width: 100%; margin-bottom: 10px; }
+            /* Bố cục CSS phân chia làm 3 cột bằng nhau để dàn đều trên Word */
+            .flex { display: table; width: 100%; margin-bottom: 15px; font-family: "Times New Roman", Times, serif; }
             .justify-between span { display: table-cell; vertical-align: middle; width: 33.33%; }
-            .justify-between span:nth-child(1) { text-align: left; font-weight: bold; font-size: 13pt; }
-            .justify-between span:nth-child(2) { text-align: center; font-style: italic; font-size: 11pt; color: #475569; }
-            .justify-between span:last-child { text-align: right; font-weight: bold; font-size: 13pt; }
+            .justify-between span:nth-child(1) { text-align: left; font-weight: bold; font-size: 14pt; text-transform: uppercase; }
+            .justify-between span:nth-child(2) { text-align: center; font-style: italic; font-size: 12pt; }
+            .justify-between span:last-child { text-align: right; font-weight: bold; font-size: 14pt; text-transform: uppercase; }
         </style>
         </head><body><div class='WordSection1'>
     `;
@@ -1295,13 +1297,42 @@ function xuatWordSoDauBai() {
     let canhBaoNode = noiDungClone.querySelector('.border-red-500');
     if (canhBaoNode) canhBaoNode.remove();
 
-    let cacInputGoc = vungHienThi.querySelectorAll('input');
-    let cacInputClone = noiDungClone.querySelectorAll('input');
-    cacInputGoc.forEach((input, idx) => {
-        if (cacInputClone[idx]) cacInputClone[idx].setAttribute('value', input.value);
+    // 1. Quét và ép toàn bộ các ô Nhập liệu (input, select, textarea) thành Văn bản Word
+    let cacTagGoc = vungHienThi.querySelectorAll('input, textarea, select');
+    let cacTagClone = noiDungClone.querySelectorAll('input, textarea, select');
+    cacTagGoc.forEach((tag, idx) => {
+        if (cacTagClone[idx]) {
+            let val = tag.value ? tag.value.trim() : "";
+            // Xóa sạch rác hệ thống
+            if (val === "" || val === "-Chọn-" || val === "--") {
+                val = "";
+            }
+            // Chuyển ký tự Enter (\n) trong Textarea thành thẻ <br> để Word hiển thị đúng nhiều dòng
+            val = val.replace(/\n/g, "<br>");
+            cacTagClone[idx].outerHTML = `<span style="font-family: 'Times New Roman', serif;">${val}</span>`;
+        }
     });
 
-   let htmlContent = preHtml + noiDungClone.innerHTML + "</div></body></html>";
+    // 2. Can thiệp sâu vào Cột THỨ để ép thẻ <br> chuẩn xác cho MS Word
+    let cacCellThu = noiDungClone.querySelectorAll('td[rowspan]');
+    cacCellThu.forEach(cell => {
+        // Lấy chữ thuần túy trong ô (VD: THỨ 228/09/2026)
+        let textTrongCell = cell.innerText || cell.textContent;
+        
+        // Dùng Regex tách chuẩn xác [2-7] và chèn thẻ <br> của HTML
+        let fixText = textTrongCell.replace(/(THỨ\s*[2-7]|CHỦ NHẬT)\s*(\d{2}\/\d{2}\/\d{4})/gi, "$1<br><span style='font-size: 11pt; font-weight: normal;'>$2</span>");
+        
+        cell.innerHTML = fixText;
+        cell.style.textAlign = "center";
+        cell.style.verticalAlign = "middle";
+    });
+
+    // 3. Xóa các class Tailwind CSS dư thừa để bảng Word sạch sẽ và không bị loạn định dạng
+    noiDungClone.querySelectorAll('table, th, td, tr').forEach(el => {
+        el.removeAttribute('class');
+    });
+
+    let htmlContent = preHtml + noiDungClone.innerHTML + "</div></body></html>";
     let blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
     let link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -1360,7 +1391,6 @@ async function xuatExcelSoDauBai() {
         cacBang.forEach(khungBang => {
             let rowHeader1 = worksheet.getRow(rowIndex);
             
-            // [ĐÃ SỬA]: Lấy riêng text của từng thẻ span thông qua các class đánh dấu
             let txtLop = khungBang.querySelector('.header-lop') ? khungBang.querySelector('.header-lop').innerText : '';
             let txtTuan = khungBang.querySelector('.header-tuan') ? khungBang.querySelector('.header-tuan').innerText : '';
             
@@ -1382,8 +1412,34 @@ async function xuatExcelSoDauBai() {
             rows.forEach((tr, idx) => {
                 let rData = [];
                 tr.querySelectorAll('th, td').forEach(cell => {
-                    let input = cell.querySelector('input');
-                    rData.push(input ? input.value : cell.innerText);
+                    let theNhap = cell.querySelector('input, select, textarea');
+                    let giaTriCell = "";
+                    
+                    // Ưu tiên đọc dữ liệu người dùng gõ
+                    if (theNhap) {
+                        giaTriCell = theNhap.value;
+                    } else {
+                        giaTriCell = cell.innerText;
+                    }
+                    
+                    // Xử lý và làm sạch dữ liệu
+                    if (giaTriCell && typeof giaTriCell === 'string') {
+                        giaTriCell = giaTriCell.trim();
+                        // 1. Xóa rác hệ thống (Chữ "-Chọn-")
+                        if (giaTriCell === "-Chọn-" || giaTriCell === "--") {
+                            giaTriCell = "";
+                        }
+                        
+                        // 2. Ép Regex tách riêng chữ Thứ và Ngày xuống dòng an toàn
+                        giaTriCell = giaTriCell.replace(/(THỨ\s*[2-7]|CHỦ NHẬT)\s*(\d{2}\/\d{2}\/\d{4})/gi, "$1\n$2");
+                        
+                        // 3. Chống Crash Excel do nhận diện nhầm dấu (+, -, =) thành công thức toán học
+                        if (/^[=+\-@]/.test(giaTriCell)) {
+                            giaTriCell = "'" + giaTriCell;
+                        }
+                    }
+                    
+                    rData.push(giaTriCell || "");
                 });
 
                 if(idx > 0 && rData.length < 9) rData.unshift(''); 
@@ -1410,14 +1466,16 @@ async function xuatExcelSoDauBai() {
 
         worksheet.eachRow((row, rowNumber) => {
             let val = row.getCell(1).value;
-            if (val && typeof val === 'string' && val.startsWith('THỨ ') && val !== 'THỨ') {
+            let valUpper = (val && typeof val === 'string') ? val.toUpperCase() : '';
+            // Gộp ô (Merge Cells) cho cột THỨ
+            if (valUpper && (valUpper.startsWith('THỨ ') || valUpper.startsWith('CHỦ NHẬT')) && valUpper !== 'THỨ') {
                 let rowsToMerge = 0;
                 while(worksheet.getCell(rowNumber + rowsToMerge + 1, 1).value === '') {
                     if(worksheet.getCell(rowNumber + rowsToMerge + 1, 2).value === null) break;
                     rowsToMerge++;
                 }
                 if (rowsToMerge > 0) worksheet.mergeCells(`A${rowNumber}:A${rowNumber + rowsToMerge}`);
-                row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+                row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
             }
         });
 
@@ -1531,7 +1589,6 @@ window.nangCapSelectThanhInput = function(selectId, placeholderText) {
         inputEl = document.createElement('input');
         inputEl.type = 'text';
         inputEl.id = 'input_' + selectId;
-        // Thêm pr-7 để chữ không đè vào icon mũi tên, text-center để đẹp mắt hơn
         inputEl.className = 'w-full px-2 py-1.5 pr-7 text-xs border border-slate-400 rounded shadow-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors bg-white font-bold text-slate-800 placeholder-slate-400 cursor-pointer text-center';
         inputEl.placeholder = placeholderText;
         inputEl.autocomplete = 'off';
