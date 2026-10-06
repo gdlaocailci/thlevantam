@@ -1532,7 +1532,7 @@ window.nangCapSelectThanhInput = function(selectId, placeholderText) {
         inputEl.type = 'text';
         inputEl.id = 'input_' + selectId;
         // Thêm pr-7 để chữ không đè vào icon mũi tên, text-center để đẹp mắt hơn
-        inputEl.className = 'w-full px-3 py-1.5 pr-7 border border-slate-400 rounded shadow-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors bg-white font-bold text-slate-800 placeholder-slate-400 cursor-pointer text-center';
+        inputEl.className = 'w-full px-2 py-1.5 pr-7 text-sm border border-slate-400 rounded shadow-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors bg-white font-bold text-slate-800 placeholder-slate-400 cursor-pointer text-center';
         inputEl.placeholder = placeholderText;
         inputEl.autocomplete = 'off';
 
