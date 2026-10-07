@@ -1,4 +1,11 @@
 <style>
+  /* SỬA LỖI: Tràn chữ ở cột Mã HS do chuỗi ký tự quá dài không có khoảng trắng */
+  .ma-ho-so-cell {
+      word-break: break-all;
+      overflow-wrap: break-word;
+      white-space: normal;
+      padding: 0 5px; /* Thêm khoảng lề nhỏ để chữ không sát mép cột */
+  }
   /* NÂNG CẤP: Giao diện cho ô tìm kiếm Combobox */
   input[list] {
       cursor: pointer;
