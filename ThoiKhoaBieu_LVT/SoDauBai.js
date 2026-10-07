@@ -1585,8 +1585,8 @@ function napDropdownSoDauBai() {
     if (inTuan) { inTuan.disabled = false; inTuan.classList.remove('cursor-wait'); }
     if (inLop) { inLop.disabled = false; inLop.classList.remove('cursor-wait'); }
 
-    nangCapSelectThanhInput('chonTuanSo', 'Tìm/Nhập Tuần...');
-    nangCapSelectThanhInput('chonLopSo', 'Tìm/Nhập Lớp...');
+    nangCapSelectThanhInput('chonTuanSo', 'Chọn Tuần...');
+    nangCapSelectThanhInput('chonLopSo', 'Chọn Lớp...');
 
     // ĐỒNG BỘ GIAO DIỆN: Ép thẻ Input hiển thị lại đúng chữ dựa trên value vừa phục hồi
     if (typeof dongBoHienThiTuSelect === 'function') {
