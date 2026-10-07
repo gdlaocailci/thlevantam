@@ -953,10 +953,22 @@ function xuatMaTranBang(danhSachTiet) {
             let inCotBuoi = true;
 
             for (let tiet = 1; tiet <= soDongCuaBuoi; tiet++) {
+                // =========================================================================
+                // NÂNG CẤP: ĐỒNG BỘ ĐỘ ĐẬM NÉT KẺ BẢNG CHO UI TKB (Màu đen tuyền sắc nét)
+                // =========================================================================
+                let isCuoiBuoi = (tiet === soDongCuaBuoi);
+                let kieuVienNgang = isCuoiBuoi ? "solid" : "dashed";
+                let doDayVienNgang = isCuoiBuoi ? "2px" : "1px";
+                let maMauVien = "#000000"; // Đổi sang mã màu đen tuyền để các nét kẻ cực kỳ rõ ràng và sắc nét
+                
+                // CSS Nòng cốt: Tắt border-top để tránh đè nét, viền dưới tự động chuyển nét đứt/liền và đậm 2px khi hết buổi
+                let styleVienChung = `border-right: 1px solid ${maMauVien} !important; border-bottom: ${doDayVienNgang} ${kieuVienNgang} ${maMauVien} !important; border-top: none !important;`;
+
                 bufferHTML.push(`<tr class="bg-white hover:bg-slate-50 transition-colors duration-150 group" style="font-family:'Times New Roman',Times,serif;">`);
                 
                 if (inCotThu) { 
-                    bufferHTML.push(`<td rowspan="${soDongCuaThu}" class="text-center align-middle border-b border-l border-r border-slate-300" style="position: sticky; left: 0; z-index: 40; background-color: #ffffff;">
+                    // Cột "THỨ" gộp dòng nên luôn giữ viền liền xung quanh và viền dưới đậm 2px
+                    bufferHTML.push(`<td rowspan="${soDongCuaThu}" class="text-center align-middle" style="position: sticky; left: 0; z-index: 40; background-color: #ffffff; border-left: 1px solid ${maMauVien} !important; border-right: 1px solid ${maMauVien} !important; border-bottom: 2px solid ${maMauVien} !important; border-top: none !important;">
                                     <div class="font-extrabold text-slate-900">${thu}</div>
                                     <div class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5 mt-1 inline-block">${thongTinNgay.hienThi}</div>
                                   </td>`); 
@@ -964,7 +976,8 @@ function xuatMaTranBang(danhSachTiet) {
                 }
                 
                 if (inCotBuoi) { 
-                    bufferHTML.push(`<td rowspan="${soDongCuaBuoi}" class="text-center font-bold align-middle text-slate-800 border-b border-r border-slate-300" style="position: sticky; left: 85px; z-index: 40; background-color: #ffffff;">${buoi}</td>`); 
+                    // Cột "BUỔI" gộp dòng của buổi đó nên giữ viền dưới đậm 2px
+                    bufferHTML.push(`<td rowspan="${soDongCuaBuoi}" class="text-center font-bold align-middle text-slate-800" style="position: sticky; left: 85px; z-index: 40; background-color: #ffffff; border-right: 1px solid ${maMauVien} !important; border-bottom: 2px solid ${maMauVien} !important; border-top: none !important;">${buoi}</td>`); 
                     inCotBuoi = false; 
                 }
 
@@ -982,7 +995,8 @@ function xuatMaTranBang(danhSachTiet) {
                 bufferHTML.push(`<td id="uiThang_${thu}_${buoi}_${tiet}" data-ngay="${thongTinNgay.ngayDayDu}" class="hidden text-center font-bold text-red-600 align-middle">${valThang}</td>`);
                 bufferHTML.push(`<td id="uiNam_${thu}_${buoi}_${tiet}" class="hidden text-center font-bold text-red-600 align-middle">${valNam}</td>`);
                 
-                bufferHTML.push(`<td id="oTiet_${thu}_${buoi}_${tiet}" class="text-center font-bold text-slate-800 align-middle border-b border-r border-slate-300" style="position: sticky; left: 145px; z-index: 40; background-color: #ffffff; box-shadow: 3px 0 5px -2px rgba(0,0,0,0.15);">
+                // Cột "TIẾT" nhận styleVienChung
+                bufferHTML.push(`<td id="oTiet_${thu}_${buoi}_${tiet}" class="text-center font-bold text-slate-800 align-middle" style="position: sticky; left: 145px; z-index: 40; background-color: #ffffff; box-shadow: 3px 0 5px -2px rgba(0,0,0,0.15); ${styleVienChung}">
                                 <div class="text-base leading-none mt-1">${tiet}</div>
                                 <div class="vung-canh-bao-gv mt-0.5"></div>
                               </td>`);
@@ -1003,8 +1017,9 @@ function xuatMaTranBang(danhSachTiet) {
                     let dropdownMon = taoTuyChonDong(thongSoHocVu.DANH_SACH_MON_HOC, monGoc, textClass, idMon, true, 'mon', duocSuaLopNay);
                     let dropdownGV = taoTuyChonDong(thongSoHocVu.DANH_SACH_GIAO_VIEN, gvGoc, textClass, idGv, true, 'gv', duocSuaLopNay);
 
-                    bufferHTML.push(`<td data-cotlop="${lop}" class="text-center p-0 align-middle ${bgLop} border-b border-r border-slate-300 transition-all duration-300">${dropdownMon}</td>`);
-                    bufferHTML.push(`<td data-cotlop="${lop}" class="text-center p-0 align-middle ${bgLop} border-b border-r border-slate-300 transition-all duration-300">${dropdownGV}</td>`);
+                    // Các cột Môn và GV nhận styleVienChung (Gỡ bỏ class border cũ của Tailwind)
+                    bufferHTML.push(`<td data-cotlop="${lop}" class="text-center p-0 align-middle ${bgLop} transition-all duration-300" style="${styleVienChung}">${dropdownMon}</td>`);
+                    bufferHTML.push(`<td data-cotlop="${lop}" class="text-center p-0 align-middle ${bgLop} transition-all duration-300" style="${styleVienChung}">${dropdownGV}</td>`);
                 });
                 bufferHTML.push(`</tr>`);
             }
