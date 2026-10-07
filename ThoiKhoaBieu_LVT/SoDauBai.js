@@ -1467,6 +1467,10 @@ async function xuatExcelSoDauBai() {
                 let thuocBuoi = tr.getAttribute('data-buoi') || '';
                 let tietHienTai = parseInt(rData[1]); // rData[1] luôn là số tiết học
 
+                // NÂNG CẤP: ĐỊNH DẠNG NÉT KẺ BẢNG EXCEL (Nét đứt ngang giữa các tiết, nét liền dọc)
+                let thuocBuoi = tr.getAttribute('data-buoi') || '';
+                let tietHienTai = parseInt(rData[1]); // rData[1] luôn là số tiết học
+
                 row.eachCell({ includeEmpty: true }, function(cell, colNumber) {
                     if (idx === 0) {
                         // Dòng tiêu đề bảng (THỨ, TIẾT, MÔN...) luôn kẻ nét liền 4 cạnh
