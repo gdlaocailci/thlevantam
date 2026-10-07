@@ -850,24 +850,38 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                     }
                 }
 
+                // =========================================================================
+                // NÂNG CẤP LẦN 3: ÉP TRÌNH DUYỆT VẼ NÉT ĐỨT (CHỐNG XUNG ĐỘT CSS)
+                // =========================================================================
+                // 1. Xác định tiết cuối cùng của mỗi buổi để đóng nét liền ngang
+                let isCuoiBuoi = (tiet === buoiObj.dsTiet[buoiObj.dsTiet.length - 1]);
+                let kieuVienNgang = isCuoiBuoi ? "solid" : "dashed";
+                
+                // 2. CSS Nòng cốt: Tắt border-top (none) để ô bên dưới không đè nét liền lên nét đứt của ô bên trên
+                let styleVien = `border-left: 1px solid #6b7280 !important; border-right: 1px solid #6b7280 !important; border-bottom: 1px ${kieuVienNgang} #6b7280 !important; border-top: none !important;`;
+                
+                // 3. Khôi phục viền phân cách ranh giới Sáng - Chiều
                 let isRowDauChieu = (buoiObj.id === 'Chieu' && tiet === 1);
-                let cssRow = isRowDauChieu ? "border-t-2 border-t-gray-400" : "";
+                let cssRow = isRowDauChieu ? "border-t-2 border-t-gray-500" : "";
 
                 htmlBang += `<tr class="hover:bg-slate-50 transition-colors duration-150 group ${cssRow}" data-buoi="${buoiObj.dataBuoi}" data-daluu="${isDaLuu}" data-thaydoi="false">`;
+                
                 if (!daInCotThu) {
-                    htmlBang += `<td class="border border-gray-500 text-center font-bold uppercase leading-tight bg-white group-hover:bg-slate-50" rowspan="${tongDongTrongNgay}">${hienThiThu}</td>`;
+                    // Cột "THỨ" gộp dòng nên luôn giữ khung viền liền 4 cạnh
+                    htmlBang += `<td class="text-center font-bold uppercase leading-tight bg-white group-hover:bg-slate-50" style="border: 1px solid #6b7280 !important;" rowspan="${tongDongTrongNgay}">${hienThiThu}</td>`;
                     daInCotThu = true;
                 }
 
+                // Chú ý: Đã gỡ bỏ toàn bộ class "border..." của Tailwind, giao toàn quyền cho biến styleVien
                 htmlBang += `
-                    <td class="border border-gray-500 text-center p-1 bg-white group-hover:bg-slate-50" title="Buổi ${buoiObj.dataBuoi}" data-loai="tietSDB">${tiet}</td>
-                    <td class="border border-gray-500 text-center p-1 bg-white group-hover:bg-slate-50 align-middle" data-loai="chuyenCan">${theChuyenCan}</td>
-                    <td class="border border-gray-500 p-1 font-bold text-center text-slate-900 bg-white group-hover:bg-slate-50" data-loai="mon">${monHoc}</td>
-                    <td class="border border-gray-500 p-1 bg-white group-hover:bg-slate-50 align-middle" data-loai="tiet">${theTietPPCT}</td>
-                    <td class="border border-gray-500 p-1 ${cssTenBai} bg-white group-hover:bg-slate-50 align-middle" style="white-space: normal; word-wrap: break-word;" data-loai="tenBai" data-islocked="${isLocked}" data-coquyensua="${quyenNhapThuCong}">${theTenBai}</td>
-                    <td class="border border-gray-500 p-1 bg-white group-hover:bg-slate-50 align-middle" style="white-space: normal; word-wrap: break-word;" data-loai="nhanXet">${theNhanXet}</td>
-                    <td class="border border-gray-500 p-1 bg-white group-hover:bg-slate-50 align-middle text-center" data-loai="xepLoai">${theXepLoai}</td>
-                    <td class="border border-gray-500 p-1 bg-white group-hover:bg-slate-50 align-middle text-center" data-loai="chuKy">${theChuKy}</td>
+                    <td class="text-center p-1 bg-white group-hover:bg-slate-50" style="${styleVien}" title="Buổi ${buoiObj.dataBuoi}" data-loai="tietSDB">${tiet}</td>
+                    <td class="text-center p-1 bg-white group-hover:bg-slate-50 align-middle" style="${styleVien}" data-loai="chuyenCan">${theChuyenCan}</td>
+                    <td class="p-1 font-bold text-center text-slate-900 bg-white group-hover:bg-slate-50" style="${styleVien}" data-loai="mon">${monHoc}</td>
+                    <td class="p-1 bg-white group-hover:bg-slate-50 align-middle" style="${styleVien}" data-loai="tiet">${theTietPPCT}</td>
+                    <td class="p-1 ${cssTenBai} bg-white group-hover:bg-slate-50 align-middle" style="white-space: normal; word-wrap: break-word; ${styleVien}" data-loai="tenBai" data-islocked="${isLocked}" data-coquyensua="${quyenNhapThuCong}">${theTenBai}</td>
+                    <td class="p-1 bg-white group-hover:bg-slate-50 align-middle" style="white-space: normal; word-wrap: break-word; ${styleVien}" data-loai="nhanXet">${theNhanXet}</td>
+                    <td class="p-1 bg-white group-hover:bg-slate-50 align-middle text-center" style="${styleVien}" data-loai="xepLoai">${theXepLoai}</td>
+                    <td class="p-1 bg-white group-hover:bg-slate-50 align-middle text-center" style="${styleVien}" data-loai="chuKy">${theChuKy}</td>
                 </tr>`;
             });
         });
@@ -1452,8 +1466,38 @@ async function xuatExcelSoDauBai() {
                     row.alignment = { vertical: 'middle', horizontal: 'center' };
                 }
 
+                // NÂNG CẤP: ĐỊNH DẠNG NÉT KẺ BẢNG EXCEL (Nét đứt ngang giữa các tiết, nét liền dọc)
+                let thuocBuoi = tr.getAttribute('data-buoi') || '';
+                let tietHienTai = parseInt(rData[1]); // rData[1] luôn là số tiết học
+
                 row.eachCell({ includeEmpty: true }, function(cell, colNumber) {
-                    cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                    if (idx === 0) {
+                        // Dòng tiêu đề bảng (THỨ, TIẾT, MÔN...) luôn kẻ nét liền 4 cạnh
+                        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                    } else {
+                        // Xét viền ngang cho các dòng nội dung tiết học
+                        let kieuVienTren = (tietHienTai === 1) ? 'thin' : 'dashed'; // Bắt đầu buổi -> nét liền
+                        let kieuVienDuoi = 'dashed'; // Mặc định giữa các tiết -> nét đứt
+                        
+                        // Xác định tiết cuối cùng của mỗi buổi để đóng nét liền
+                        if ((thuocBuoi === 'Sáng' && tietHienTai === 5) || (thuocBuoi === 'Chiều' && tietHienTai === 4)) {
+                            kieuVienDuoi = 'thin'; 
+                        }
+                        
+                        if (colNumber === 1) {
+                            // Cột THỨ sẽ gộp ô (Merge Cells) nên thiết lập nét liền
+                            cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                        } else {
+                            // Các cột còn lại: Nét dọc luôn liền ('thin'), nét ngang đứt ('dashed') hoặc liền tùy vị trí
+                            cell.border = { 
+                                top: {style: kieuVienTren}, 
+                                left: {style:'thin'}, 
+                                bottom: {style: kieuVienDuoi}, 
+                                right: {style:'thin'} 
+                            };
+                        }
+                    }
+
                     if([1, 2, 3, 4, 5, 8, 9].includes(colNumber)) cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
                     else cell.alignment = { vertical: 'middle', wrapText: true };
                     if (colNumber === 2) cell.numFmt = '@'; 
