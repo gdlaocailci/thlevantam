@@ -851,22 +851,21 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                 }
 
                 // =========================================================================
-                // NÂNG CẤP LẦN 5: ĐỒNG BỘ ĐỘ ĐẬM VÀ MÀU ĐEN TUYỀN CHO UI SỔ ĐẦU BÀI
+                // NÂNG CẤP LẦN 4: ĐỒNG BỘ ĐỘ ĐẬM NÉT KẺ BẢNG (Hết buổi và Hết thứ đều đậm 2px)
                 // =========================================================================
                 // 1. Xác định tiết cuối cùng của mỗi buổi (Sáng hoặc Chiều)
                 let isCuoiBuoi = (tiet === buoiObj.dsTiet[buoiObj.dsTiet.length - 1]);
                 let kieuVienNgang = isCuoiBuoi ? "solid" : "dashed";
                 let doDayVienNgang = isCuoiBuoi ? "2px" : "1px";
-                let maMauVien = "#000000"; // Đổi sang màu đen tuyền
                 
-                // 2. CSS Nòng cốt: Tắt border-top để tránh xung đột, viền dưới tự động chuyển nét đứt/liền và đậm 2px
-                let styleVien = `border-left: 1px solid ${maMauVien} !important; border-right: 1px solid ${maMauVien} !important; border-bottom: ${doDayVienNgang} ${kieuVienNgang} ${maMauVien} !important; border-top: none !important;`;
+                // 2. CSS Nòng cốt: Tắt border-top để tránh xung đột, viền dưới đậm 2px nếu hết buổi hoặc hết thứ
+                let styleVien = `border-left: 1px solid #6b7280 !important; border-right: 1px solid #6b7280 !important; border-bottom: ${doDayVienNgang} ${kieuVienNgang} #6b7280 !important; border-top: none !important;`;
                 
                 htmlBang += `<tr class="hover:bg-slate-50 transition-colors duration-150 group" data-buoi="${buoiObj.dataBuoi}" data-daluu="${isDaLuu}" data-thaydoi="false">`;
                 
                 if (!daInCotThu) {
-                    // Cột "THỨ" gộp toàn bộ dòng trong ngày, bo viền đen 4 cạnh và đáy 2px
-                    htmlBang += `<td class="text-center font-bold uppercase leading-tight bg-white group-hover:bg-slate-50" style="border: 1px solid ${maMauVien} !important; border-bottom: 2px solid ${maMauVien} !important;" rowspan="${tongDongTrongNgay}">${hienThiThu}</td>`;
+                    // Cột "THỨ" gộp toàn bộ dòng trong ngày, do đó viền dưới cùng cũng phải ép đậm 2px để liền mạch với dòng hết thứ
+                    htmlBang += `<td class="text-center font-bold uppercase leading-tight bg-white group-hover:bg-slate-50" style="border: 1px solid #6b7280 !important; border-bottom: 2px solid #6b7280 !important;" rowspan="${tongDongTrongNgay}">${hienThiThu}</td>`;
                     daInCotThu = true;
                 }
 
@@ -1462,10 +1461,6 @@ async function xuatExcelSoDauBai() {
                     row.font = { bold: true, name: 'Times New Roman' };
                     row.alignment = { vertical: 'middle', horizontal: 'center' };
                 }
-
-                // NÂNG CẤP: ĐỊNH DẠNG NÉT KẺ BẢNG EXCEL (Nét đứt ngang giữa các tiết, nét liền dọc)
-                let thuocBuoi = tr.getAttribute('data-buoi') || '';
-                let tietHienTai = parseInt(rData[1]); // rData[1] luôn là số tiết học
 
                 // NÂNG CẤP: ĐỊNH DẠNG NÉT KẺ BẢNG EXCEL (Nét đứt ngang giữa các tiết, nét liền dọc)
                 let thuocBuoi = tr.getAttribute('data-buoi') || '';
