@@ -851,28 +851,25 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                 }
 
                 // =========================================================================
-                // NÂNG CẤP LẦN 3: ÉP TRÌNH DUYỆT VẼ NÉT ĐỨT (CHỐNG XUNG ĐỘT CSS)
+                // NÂNG CẤP LẦN 5: ĐỒNG BỘ ĐỘ ĐẬM VÀ MÀU ĐEN TUYỀN CHO UI SỔ ĐẦU BÀI
                 // =========================================================================
-                // 1. Xác định tiết cuối cùng của mỗi buổi để đóng nét liền ngang
+                // 1. Xác định tiết cuối cùng của mỗi buổi (Sáng hoặc Chiều)
                 let isCuoiBuoi = (tiet === buoiObj.dsTiet[buoiObj.dsTiet.length - 1]);
                 let kieuVienNgang = isCuoiBuoi ? "solid" : "dashed";
+                let doDayVienNgang = isCuoiBuoi ? "2px" : "1px";
+                let maMauVien = "#000000"; // Đổi sang màu đen tuyền
                 
-                // 2. CSS Nòng cốt: Tắt border-top (none) để ô bên dưới không đè nét liền lên nét đứt của ô bên trên
-                let styleVien = `border-left: 1px solid #6b7280 !important; border-right: 1px solid #6b7280 !important; border-bottom: 1px ${kieuVienNgang} #6b7280 !important; border-top: none !important;`;
+                // 2. CSS Nòng cốt: Tắt border-top để tránh xung đột, viền dưới tự động chuyển nét đứt/liền và đậm 2px
+                let styleVien = `border-left: 1px solid ${maMauVien} !important; border-right: 1px solid ${maMauVien} !important; border-bottom: ${doDayVienNgang} ${kieuVienNgang} ${maMauVien} !important; border-top: none !important;`;
                 
-                // 3. Khôi phục viền phân cách ranh giới Sáng - Chiều
-                let isRowDauChieu = (buoiObj.id === 'Chieu' && tiet === 1);
-                let cssRow = isRowDauChieu ? "border-t-2 border-t-gray-500" : "";
-
-                htmlBang += `<tr class="hover:bg-slate-50 transition-colors duration-150 group ${cssRow}" data-buoi="${buoiObj.dataBuoi}" data-daluu="${isDaLuu}" data-thaydoi="false">`;
+                htmlBang += `<tr class="hover:bg-slate-50 transition-colors duration-150 group" data-buoi="${buoiObj.dataBuoi}" data-daluu="${isDaLuu}" data-thaydoi="false">`;
                 
                 if (!daInCotThu) {
-                    // Cột "THỨ" gộp dòng nên luôn giữ khung viền liền 4 cạnh
-                    htmlBang += `<td class="text-center font-bold uppercase leading-tight bg-white group-hover:bg-slate-50" style="border: 1px solid #6b7280 !important;" rowspan="${tongDongTrongNgay}">${hienThiThu}</td>`;
+                    // Cột "THỨ" gộp toàn bộ dòng trong ngày, bo viền đen 4 cạnh và đáy 2px
+                    htmlBang += `<td class="text-center font-bold uppercase leading-tight bg-white group-hover:bg-slate-50" style="border: 1px solid ${maMauVien} !important; border-bottom: 2px solid ${maMauVien} !important;" rowspan="${tongDongTrongNgay}">${hienThiThu}</td>`;
                     daInCotThu = true;
                 }
 
-                // Chú ý: Đã gỡ bỏ toàn bộ class "border..." của Tailwind, giao toàn quyền cho biến styleVien
                 htmlBang += `
                     <td class="text-center p-1 bg-white group-hover:bg-slate-50" style="${styleVien}" title="Buổi ${buoiObj.dataBuoi}" data-loai="tietSDB">${tiet}</td>
                     <td class="text-center p-1 bg-white group-hover:bg-slate-50 align-middle" style="${styleVien}" data-loai="chuyenCan">${theChuyenCan}</td>
