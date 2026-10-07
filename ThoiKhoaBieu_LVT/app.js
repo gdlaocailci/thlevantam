@@ -1443,14 +1443,46 @@ async function xuatExcel() {
             if (currentRow - 1 > startRowThu) worksheet.mergeCells(startRowThu, 1, currentRow - 1, 1); 
         });
 
+        // =========================================================================
+        // NÂNG CẤP: ĐỊNH DẠNG NÉT KẺ BẢNG EXCEL TKB (Màu đen, Nét đứt tiết, Nét liền buổi)
+        // =========================================================================
         worksheet.eachRow({ includeEmpty: true }, function(row, rowNumber) {
-            row.eachCell({ includeEmpty: true }, function(cell) {
-                cell.border = { top: {style:'thin', color: {argb:'FF718096'}}, left: {style:'thin', color: {argb:'FF718096'}}, bottom: {style:'thin', color: {argb:'FF718096'}}, right: {style:'thin', color: {argb:'FF718096'}} };
+            // Lấy thông tin Buổi và Tiết từ các cột cố định (Cột 2, Cột 3)
+            let buoi = row.getCell(2).value ? row.getCell(2).value.toString().trim() : "";
+            let tiet = parseInt(row.getCell(3).value) || 0;
+
+            row.eachCell({ includeEmpty: true }, function(cell, colNumber) {
                 cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                cell.font = { name: 'Times New Roman', size: 12 };
+                
                 if (rowNumber <= 2) {
+                    // Dòng Header: Viền đen liền, nét đáy đậm (medium) để chia tách với nội dung
+                    cell.border = { 
+                        top: {style:'thin', color: {argb:'FF000000'}}, 
+                        left: {style:'thin', color: {argb:'FF000000'}}, 
+                        bottom: {style:'medium', color: {argb:'FF000000'}}, 
+                        right: {style:'thin', color: {argb:'FF000000'}} 
+                    };
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-                    cell.font = { name: 'Times New Roman', size: 12, bold: true, color: {argb:'FF0F172A'} };
+                    cell.font = { name: 'Times New Roman', size: 12, bold: true, color: {argb:'FF000000'} };
+                } else {
+                    cell.font = { name: 'Times New Roman', size: 12 };
+                    
+                    // Xác định tiết học để nội suy nét kẻ
+                    let isCuoiBuoi = false;
+                    if (buoi === "Sáng" && tiet === gioiHanSang) isCuoiBuoi = true;
+                    if (buoi === "Chiều" && tiet === gioiHanChieu) isCuoiBuoi = true;
+
+                    // Tiết đầu tiên của buổi dùng nét liền đậm (medium), các tiết giữa dùng nét đứt (dashed)
+                    let kieuVienTren = (tiet === 1) ? 'medium' : 'dashed';
+                    let kieuVienDuoi = isCuoiBuoi ? 'medium' : 'dashed';
+
+                    // Cột dọc luôn luôn là nét liền (thin). Viền ngang sẽ tự động điều chỉnh theo vị trí tiết
+                    cell.border = {
+                        top: {style: kieuVienTren, color: {argb:'FF000000'}},
+                        left: {style:'thin', color: {argb:'FF000000'}},
+                        bottom: {style: kieuVienDuoi, color: {argb:'FF000000'}},
+                        right: {style:'thin', color: {argb:'FF000000'}}
+                    };
                 }
             });
         });
