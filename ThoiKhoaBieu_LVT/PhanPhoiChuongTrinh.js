@@ -77,11 +77,19 @@ function taoKhungGiaoDienPPCT() {
             <div class="bg-white border border-gray-300 shadow-sm p-3 rounded flex flex-wrap items-end gap-4 mb-4 flex-none">
                 <div class="flex flex-col w-24">
                     <label class="text-[11px] text-gray-500 uppercase font-bold mb-1">Tuần học</label>
-                    <input type="number" id="locTuanUI" min="1" max="52" value="1" class="w-full px-2 py-1.5 border border-blue-300 rounded outline-none focus:ring-2 focus:ring-blue-500 font-extrabold text-blue-900 bg-blue-50 text-center">
+                    <input type="number" id="locTuanUI" min="1" max="52" value="1" 
+                           onfocus="this.dataset.oldValue = this.value; this.value = '';" 
+                           onblur="if(this.value === '') this.value = this.dataset.oldValue;" 
+                           onchange="this.blur()" 
+                           class="w-full px-2 py-1.5 border border-blue-300 rounded outline-none focus:ring-2 focus:ring-blue-500 font-extrabold text-blue-900 bg-blue-50 text-center">
                 </div>
                 <div class="flex flex-col w-32">
                     <label class="text-[11px] text-gray-500 uppercase font-bold mb-1">Lớp</label>
-                    <input type="text" id="locLopPPCT" list="listLopPPCT" onchange="tuDongTinhKhoiLop()" class="w-full px-2 py-1.5 border border-blue-300 rounded outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-900 bg-blue-50" placeholder="Chọn lớp">
+                    <input type="text" id="locLopPPCT" list="listLopPPCT" 
+                           onfocus="this.dataset.oldValue = this.value; this.value = '';" 
+                           onblur="if(this.value === '') this.value = this.dataset.oldValue;" 
+                           onchange="tuDongTinhKhoiLop(); this.blur();" 
+                           class="w-full px-2 py-1.5 border border-blue-300 rounded outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-900 bg-blue-50 text-center" placeholder="Chọn lớp">
                     <datalist id="listLopPPCT"></datalist>
                 </div>
                 <div class="flex flex-col w-24">
@@ -90,7 +98,11 @@ function taoKhungGiaoDienPPCT() {
                 </div>
                 <div class="flex flex-col w-48">
                     <label class="text-[11px] text-gray-500 uppercase font-bold mb-1">Môn học</label>
-                    <input type="text" id="locMonPPCT" list="listMonPPCT" class="w-full px-2 py-1.5 border border-blue-300 rounded outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-900 bg-blue-50" placeholder="Chọn môn">
+                    <input type="text" id="locMonPPCT" list="listMonPPCT" 
+                           onfocus="this.dataset.oldValue = this.value; this.value = '';" 
+                           onblur="if(this.value === '') this.value = this.dataset.oldValue;" 
+                           onchange="this.blur()" 
+                           class="w-full px-2 py-1.5 border border-blue-300 rounded outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-900 bg-blue-50 text-center" placeholder="Chọn môn">
                     <datalist id="listMonPPCT"></datalist>
                 </div>
                <button onclick="taiDuLieuTkbVaPpct()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-6 rounded shadow transition duration-200 text-sm ml-auto flex items-center gap-2 h-[34px]">
@@ -102,13 +114,13 @@ function taoKhungGiaoDienPPCT() {
                 <table class="bang-excel w-full text-center border-collapse">
                     <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm border-b-2 border-slate-400">
                         <tr>
-                            <th class="py-2.5 px-2 border border-slate-400 w-28">Thứ / Ngày</th>
-                            <th class="py-2.5 px-2 border border-slate-400 w-20">Buổi</th>
+                            <th class="py-2.5 px-2 border border-slate-400 w-26">Thứ / Ngày</th>
+                            <th class="py-2.5 px-2 border border-slate-400 w-18">Buổi</th>
                             <th class="py-2.5 px-2 border border-slate-400 w-12">Tiết</th>
                             <th class="py-2.5 px-2 border border-slate-400 w-32">Môn</th>
-                            <th class="py-2.5 px-2 border border-slate-400 w-24">Tiết PPCT</th>
-                            <th class="py-2.5 px-4 border border-slate-400 text-center min-w-[250px]">Tên bài dạy</th>
-                            <th class="py-2.5 px-4 border border-slate-400 text-center min-w-[200px]">Điều chỉnh/Bổ sung/Tích hợp</th>
+                            <th class="py-2.5 px-2 border border-slate-400 w-20">Tiết PPCT</th>
+                            <th class="py-2.5 px-4 border border-slate-400 text-center min-w-[260px]">Tên bài dạy</th>
+                            <th class="py-2.5 px-4 border border-slate-400 text-center min-w-[220px]">Điều chỉnh/Bổ sung/Tích hợp</th>
                         </tr>
                     </thead>
                     <tbody id="vungDuLieuLichPPCT">
