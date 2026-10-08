@@ -1,6 +1,30 @@
 // =========================================================================
 // KHỐI 1: KIỂM SOÁT ĐĂNG NHẬP VÀ BỘ MÁY TỊNH TIẾN SỔ ĐẦU BÀI
 // =========================================================================
+// =========================================================================
+// [NÂNG CẤP]: HÀM CHUẨN HÓA ĐỒNG NHẤT DẤU TIẾNG VIỆT ĐỂ PHÂN QUYỀN CHÍNH XÁC
+// Khắc phục triệt để lỗi nhận diện sai do kiểu gõ (Thuý - Thúy, Thoả - Thỏa)
+// =========================================================================
+window.chuanHoaDinhDanhGiaoVien = function(tenGV) {
+    if (!tenGV) return '';
+    // Xóa khoảng trắng, đưa về chữ thường và ép về chuẩn Unicode dựng sẵn (NFC)
+    let tenChuan = String(tenGV).trim().toLowerCase().normalize('NFC');
+    
+    // Bộ từ điển ép kiểu gõ cũ (dấu ở âm đệm) sang kiểu gõ chuẩn mới (dấu ở âm chính)
+    const tuDienDau = {
+        'òa': 'oà', 'óa': 'oá', 'ỏa': 'oả', 'õa': 'oã', 'ọa': 'oạ',
+        'òe': 'oè', 'óe': 'oé', 'ỏe': 'oẻ', 'õe': 'oẽ', 'ọe': 'oẹ',
+        'ùy': 'uỳ', 'úy': 'uý', 'ủy': 'uỷ', 'ũy': 'uỹ', 'ụy': 'uỵ'
+    };
+    
+    for (let [kieuCu, kieuMoi] of Object.entries(tuDienDau)) {
+        // Thay thế toàn bộ các từ gõ sai quy chuẩn trong tên
+        tenChuan = tenChuan.replace(new RegExp(kieuCu, 'g'), kieuMoi);
+    }
+    
+    return tenChuan;
+};
+
 let daTaiDuLieuSoDauBai = false;
 let dangTaiDuLieuSoDauBai = false;
 let duLieuTKBGopDaMap = [];
@@ -686,10 +710,10 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     }
 
     let tapHopMonDay = new Set();
-    let maGvDangNhapLC = madinhdanhGV.trim().toLowerCase().normalize('NFC');
+    let maGvDangNhapLC = window.chuanHoaDinhDanhGiaoVien(madinhdanhGV);
     
     tkbTuanNay.forEach(dong => {
-        let gvTkb = String(dong['Mã GV']).trim().toLowerCase().normalize('NFC');
+        let gvTkb = window.chuanHoaDinhDanhGiaoVien(dong['Mã GV']);
         let monHoc = String(dong['Môn Học']).trim();
         if (monHoc !== '') {
             let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
@@ -787,7 +811,7 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                 let isLocked = false;
                 
 
-                let gvTkb = dongDuLieu ? String(dongDuLieu['Mã GV']).trim().toLowerCase().normalize('NFC') : '';
+                let gvTkb = dongDuLieu ? window.chuanHoaDinhDanhGiaoVien(dongDuLieu['Mã GV']) : '';
                 let quyenNhapThuCong = false;
                 
                 if (quyenQuanTri) {
@@ -991,7 +1015,7 @@ async function luuSoDauBaiSangMayChu() {
                 // Kiểm tra quyền chữ ký
                 if (chuKyGV !== '' && (isThayDoi || !isDaLuu)) {
                     if (!quyenQuanTri && indexTrongRam !== -1) {
-                        let gvTkb = String(duLieuTKBGopDaMap[indexTrongRam]['Mã GV']).trim().toLowerCase().normalize('NFC');
+                        let gvTkb = window.chuanHoaDinhDanhGiaoVien(duLieuTKBGopDaMap[indexTrongRam]['Mã GV']);
                         let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
                         let coQuyen = tapHopGvTkb.includes(maGvDangNhapLC) || tapHopGvTkb.some(g => maGvDangNhapLC.includes(g) && g.length > 2);
                         if (!coQuyen) {
@@ -2057,7 +2081,7 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
                     // let isLockedMoi = isDaLuuMoi && chuKyMoi.trim() !== '';
                     let isLockedMoi = false;
 
-                    let gvTkb = String(dongDuLieuMoi['Mã GV']).trim().toLowerCase().normalize('NFC');
+                    let gvTkb = window.chuanHoaDinhDanhGiaoVien(dongDuLieuMoi['Mã GV']);
                     let quyenNhapThuCong = false;
                     if (quyenQuanTri) {
                         quyenNhapThuCong = true;
