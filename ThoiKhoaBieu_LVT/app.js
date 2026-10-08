@@ -2142,3 +2142,39 @@ function hienThiThongBaoTaiNgam(dangTai) {
         theThongBao.classList.add('translate-y-20', 'opacity-0');
     }
 }
+// =========================================================================
+// HÀM BỔ SUNG: XỬ LÝ PHÓNG TO / THU NHỎ CỬA SỔ MODAL
+// Vị trí: Thay thế hàm toggleToanManHinhModal bị lỗi trong app.js
+// =========================================================================
+window.toggleToanManHinhModal = function(idModal, nutBam) {
+    let modal = document.getElementById(idModal);
+    if (!modal) return;
+    
+    // Bắt trực tiếp thẻ div con đầu tiên (hộp chứa nội dung) thay vì dò theo class
+    let hopNoiDung = modal.firstElementChild;
+    if (!hopNoiDung) return;
+
+    // Kiểm tra trạng thái hiện tại (nếu có w-full nghĩa là đang toàn màn hình)
+    let dangToanManHinh = hopNoiDung.classList.contains('w-full');
+
+    if (dangToanManHinh) {
+        // Trạng thái: Thu nhỏ về mặc định
+        hopNoiDung.classList.remove('w-full', 'h-full', 'max-h-screen', 'rounded-none');
+        
+        // Trả lại các class kích thước gốc (chia riêng chiều cao cho từng modal nếu cần)
+        let chieuCaoGoc = idModal === 'modalThongKeGV' ? 'max-h-[85vh]' : 'max-h-[80vh]';
+        hopNoiDung.classList.add('w-11/12', 'md:w-3/4', 'lg:w-1/2', chieuCaoGoc, 'rounded-xl');
+        
+        // Trả lại icon phóng to
+        nutBam.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
+        nutBam.title = "Phóng to toàn màn hình";
+    } else {
+        // Trạng thái: Phóng to toàn màn hình
+        hopNoiDung.classList.remove('w-11/12', 'md:w-3/4', 'lg:w-1/2', 'max-h-[80vh]', 'max-h-[85vh]', 'rounded-xl');
+        hopNoiDung.classList.add('w-full', 'h-full', 'max-h-screen', 'rounded-none');
+        
+        // Đổi sang icon thu nhỏ
+        nutBam.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>`;
+        nutBam.title = "Thu nhỏ";
+    }
+};
