@@ -9,34 +9,42 @@ document.addEventListener('DOMContentLoaded', () => {
     taoMenuPhanPhoiChuongTrinh();
     taoKhungGiaoDienPPCT();
     
-    // Liên tục lắng nghe trạng thái đăng nhập để phân quyền Admin
+    // Liên tục lắng nghe trạng thái đăng nhập để phân quyền Admin / Quản lý PPCT
     setInterval(() => {
-        if (typeof quyenSuaChua !== 'undefined') {
-            let nhomNut = document.getElementById('nhomNutCongCuPPCT');
-            if (nhomNut) {
-                nhomNut.style.display = quyenSuaChua ? 'flex' : 'none';
-            }
+        let nhomNut = document.getElementById('nhomNutCongCuPPCT');
+        if (nhomNut) {
+            let coQuyen = (typeof quyenSuaChua !== 'undefined' && quyenSuaChua) || 
+                          (typeof quyenChiTiet !== 'undefined' && quyenChiTiet.menu && quyenChiTiet.menu.includes('menuPhanPhoiChuongTrinh'));
+            nhomNut.style.display = coQuyen ? 'flex' : 'none';
         }
     }, 1000);
 });
 
 function taoMenuPhanPhoiChuongTrinh() {
-    const menuThongKe = document.getElementById('menuThongKe');
-    if (menuThongKe && !document.getElementById('menuPhanPhoiChuongTrinh')) {
-        const menuPPCT = document.createElement('a');
-        menuPPCT.id = 'menuPhanPhoiChuongTrinh';
-        menuPPCT.onclick = moTabPhanPhoiChuongTrinh;
-        menuPPCT.className = 'flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group';
-        menuPPCT.innerHTML = `
-            <svg class="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity flex-none text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                <line x1="10" y1="6" x2="16" y2="6"></line>
-                <line x1="10" y1="10" x2="16" y2="10"></line>
-            </svg>
-            <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px]">Phân phối Chương trình</span>
-        `;
-        menuThongKe.insertAdjacentElement('afterend', menuPPCT);
+    if (!document.getElementById('menuPhanPhoiChuongTrinh')) {
+        const nav = document.querySelector('nav');
+        if (nav) {
+            const menuPPCT = document.createElement('a');
+            menuPPCT.id = 'menuPhanPhoiChuongTrinh';
+            menuPPCT.onclick = moTabPhanPhoiChuongTrinh;
+            menuPPCT.style.display = 'none';
+            menuPPCT.className = 'flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group';
+            menuPPCT.innerHTML = `
+                <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    <line x1="10" y1="6" x2="16" y2="6"></line>
+                    <line x1="10" y1="10" x2="16" y2="10"></line>
+                </svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">7. Phân phối Chương trình</span>
+            `;
+            const menuSGK = document.getElementById('menuDanhMucSGK');
+            if (menuSGK) {
+                menuSGK.insertAdjacentElement('afterend', menuPPCT);
+            } else {
+                nav.appendChild(menuPPCT);
+            }
+        }
     }
 }
 
@@ -114,13 +122,13 @@ function taoKhungGiaoDienPPCT() {
                 <table class="bang-excel w-full text-center border-collapse">
                     <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm border-b-2 border-slate-400">
                         <tr>
-                            <th class="py-2.5 px-2 border border-slate-400 w-26">Thứ / Ngày</th>
-                            <th class="py-2.5 px-2 border border-slate-400 w-18">Buổi</th>
+                            <th class="py-2.5 px-2 border border-slate-400 w-28">Thứ / Ngày</th>
+                            <th class="py-2.5 px-2 border border-slate-400 w-20">Buổi</th>
                             <th class="py-2.5 px-2 border border-slate-400 w-12">Tiết</th>
                             <th class="py-2.5 px-2 border border-slate-400 w-32">Môn</th>
-                            <th class="py-2.5 px-2 border border-slate-400 w-20">Tiết PPCT</th>
-                            <th class="py-2.5 px-4 border border-slate-400 text-center min-w-[260px]">Tên bài dạy</th>
-                            <th class="py-2.5 px-4 border border-slate-400 text-center min-w-[220px]">Điều chỉnh/Bổ sung/Tích hợp</th>
+                            <th class="py-2.5 px-2 border border-slate-400 w-24">Tiết PPCT</th>
+                            <th class="py-2.5 px-4 border border-slate-400 text-center min-w-[250px]">Tên bài dạy</th>
+                            <th class="py-2.5 px-4 border border-slate-400 text-center min-w-[200px]">Điều chỉnh/Bổ sung/Tích hợp</th>
                         </tr>
                     </thead>
                     <tbody id="vungDuLieuLichPPCT">
@@ -217,10 +225,15 @@ function moTabPhanPhoiChuongTrinh() {
     }
 
     // 3. Ẩn tất cả các khung giao diện hiện tại
-    ['khungTKB', 'khungThongKe', 'khungPhanCong', 'khungKhungChuongTrinh', 'khungDanhMucGV', 'khungCaiDat', 'khungDanhMucLop'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.classList.remove('flex', 'block'); el.classList.add('hidden'); }
-    });
+    let vungChinh = document.getElementById('vungHienThiChinh');
+    if (vungChinh) {
+        Array.from(vungChinh.children).forEach(el => {
+            if (el.tagName === 'DIV' && el.id !== 'khungNoiDungModal' && el.id !== 'khungPhanPhoiChuongTrinh') {
+                el.classList.add('hidden');
+                el.classList.remove('block', 'flex');
+            }
+        });
+    }
     
     // [ĐÃ SỬA THEO YÊU CẦU]: Ẩn toàn bộ khu vực thanh công cụ TKB (Khu vực viền đỏ)
     const thanhCongCu = document.getElementById('thanhCongCuTKB');
@@ -358,7 +371,7 @@ async function taiDuLieuTkbVaPpct() {
         // 3. KỊCH BẢN 2: LẦN ĐẦU TIÊN TRUY CẬP -> HIỂN THỊ LOADING TOÀN MÀN HÌNH
         tbody.innerHTML = `<tr><td colspan="7" class="text-center py-10 text-blue-600 font-bold reactbits-fade-in">
             <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
-            Đang trích xuất Lịch giảng dạy và Phân phối chương trình...
+            Đang trích xuất Thời khoá biểu và Phân phối chương trình...
         </td></tr>`;
         nutXacNhan.disabled = true;
     }
