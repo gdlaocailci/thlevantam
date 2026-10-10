@@ -4,6 +4,7 @@ let quyenChiTiet = { menu: [], nut: [], lop: [] };
 let duLieuTkbHienTai = []; 
 let tuanDangXem = 1; 
 let ngayDauTuanUI = '';
+
 // =========================================================================
 // HÀM BỔ SUNG: BỘ CÁCH LY DỮ LIỆU ĐA TÊN MIỀN (MULTI-TENANT ISOLATION)
 // =========================================================================
@@ -19,6 +20,7 @@ window.layKhoaCachLy = function(keyBase) {
     }
     return keyBase + '_' + prefix;
 };
+
 // =========================================================================
 // HÀM BỔ SUNG: SINH DANH SÁCH THỨ ĐỘNG THEO NGÀY CỦA UI (CHỈ TỚI THỨ 7)
 // =========================================================================
@@ -91,57 +93,93 @@ async function fetchVoiCoCheThuLai(url, tuyChon = {}, soLanThu = 3, thoiGianCho 
 }
 
 // =========================================================================
-// KHỐI QUẢN LÝ GIAO DIỆN & PHÂN QUYỀN TRUNG TÂM
+// HÀM BỔ TRỢ: LẤY QUYỀN CÔNG KHAI TỪ THÔNG SỐ HỌC VỤ HOẶC MA TRẬN PHÂN QUYỀN
 // =========================================================================
-function kiemSoatGiaoDien() {
-    const menuDuocCap = (quyenChiTiet && quyenChiTiet.menu) ? quyenChiTiet.menu : [];
-    const nutDuocCap = (quyenChiTiet && quyenChiTiet.nut) ? quyenChiTiet.nut : [];
-    const lopDuocCap = (quyenChiTiet && quyenChiTiet.lop) ? quyenChiTiet.lop : [];
-
-    const dsNut = ['btnLuuTuan', 'btnLuuCoDinh', 'btnKhoiPhuc', 'btnXepTuDong', 'btnKiemTra', 'btnNhapExcelTKB', 'btnDongBoChuan', 'btnLuuSua'];
-    
-    dsNut.forEach(idNut => {
-        let nut = document.getElementById(idNut);
-        if (nut) {
-            let duocPhep = quyenSuaChua || nutDuocCap.includes(idNut);
-            if (idNut === 'btnLuuSua' || idNut === 'btnLuuTuan') {
-                if (quyenSuaChua || nutDuocCap.includes(idNut) || lopDuocCap.length > 0) duocPhep = true;
+window.layQuyenCongKhaiHienTai = function() {
+    if (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.QUYEN_CONG_KHAI) {
+        return thongSoHocVu.QUYEN_CONG_KHAI;
+    }
+    if (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.MA_TRAN_PHAN_QUYEN) {
+        for (let k in thongSoHocVu.MA_TRAN_PHAN_QUYEN) {
+            let kLC = k.toLowerCase();
+            if (kLC === '*' || kLC.includes('công khai') || kLC.includes('congkhai')) {
+                return thongSoHocVu.MA_TRAN_PHAN_QUYEN[k];
             }
-            if (duocPhep) { nut.style.display = 'flex'; nut.disabled = false; } 
-            else { nut.style.display = 'none'; nut.disabled = true; }
         }
-    });
+    }
+    return { menu: [], nut: [], lop: [] };
+};
 
-    const dsMenuQuanTri = ['menuCaiDat', 'menuDanhMucGV', 'menuDanhMucLop', 'menuPhanCong', 'menuKhungChuongTrinh', 'menuDanhMucSGK'];
-    let coMenuQuanTriDuocMo = false;
+// =========================================================================
+// KHỐI QUẢN LÝ GIAO DIỆN & PHÂN QUYỀN TRUNG TÂM (CHỐNG ĐỆ QUY TUYỆT ĐỐI)
+// =========================================================================
+let _dangKiemSoatGiaoDien = false;
 
-    dsMenuQuanTri.forEach(idMenu => {
-        let menu = document.getElementById(idMenu);
-        if (menu) {
-            let duocXem = quyenSuaChua || menuDuocCap.includes(idMenu);
-            menu.style.display = duocXem ? 'flex' : 'none'; 
-            if (duocXem) coMenuQuanTriDuocMo = true;
+function kiemSoatGiaoDien() {
+    if (_dangKiemSoatGiaoDien) return;
+    _dangKiemSoatGiaoDien = true;
+    try {
+        const quyenCongKhai = window.layQuyenCongKhaiHienTai();
+        const menuCongKhai = quyenCongKhai.menu || [];
+        const nutCongKhai = quyenCongKhai.nut || [];
+        const lopCongKhai = quyenCongKhai.lop || [];
+
+        const menuDuocCap = (quyenChiTiet && quyenChiTiet.menu) ? quyenChiTiet.menu : [];
+        const nutDuocCap = (quyenChiTiet && quyenChiTiet.nut) ? quyenChiTiet.nut : [];
+        const lopDuocCap = (quyenChiTiet && quyenChiTiet.lop) ? quyenChiTiet.lop : [];
+
+        const dsNut = ['btnLuuTuan', 'btnLuuCoDinh', 'btnKhoiPhuc', 'btnXepTuDong', 'btnKiemTra', 'btnNhapExcelTKB', 'btnDongBoChuan', 'btnLuuSua', 'btnKhoaTKB', 'btnKhoaSoDauBai'];
+        
+        dsNut.forEach(idNut => {
+            let nut = document.getElementById(idNut);
+            if (nut) {
+                let duocPhep = quyenSuaChua || nutDuocCap.includes(idNut) || nutCongKhai.includes(idNut);
+                if (idNut === 'btnLuuSua' || idNut === 'btnLuuTuan') {
+                    if (quyenSuaChua || nutDuocCap.includes(idNut) || lopDuocCap.length > 0 || nutCongKhai.includes(idNut)) duocPhep = true;
+                }
+                if (duocPhep) { nut.style.display = 'flex'; nut.disabled = false; } 
+                else { nut.style.display = 'none'; nut.disabled = true; }
+            }
+        });
+
+        const dsMenuQuanTri = ['menuCaiDat', 'menuDanhMucGV', 'menuDanhMucLop', 'menuKhungChuongTrinh', 'menuPhanCong', 'menuDanhMucSGK', 'menuPhanPhoiChuongTrinh', 'menuPhanQuyen'];
+        let coMenuQuanTriDuocMo = false;
+
+        dsMenuQuanTri.forEach(idMenu => {
+            let menu = document.getElementById(idMenu);
+            if (menu) {
+                let duocXem = quyenSuaChua || menuDuocCap.includes(idMenu) || menuCongKhai.includes(idMenu);
+                menu.style.display = duocXem ? 'flex' : 'none'; 
+                if (duocXem) coMenuQuanTriDuocMo = true;
+            }
+        });
+
+        let nhanHT = document.getElementById('nhanHeThong');
+        if (nhanHT) nhanHT.style.display = coMenuQuanTriDuocMo ? 'flex' : 'none';
+
+        let btnTuanTruoc = document.getElementById('btnTuanTruoc');
+        let btnTuanTiep = document.getElementById('btnTuanTiep');
+        let inputNgay = document.getElementById('chonNgayDauTuan');
+        let coQuyenChuyenTuan = quyenSuaChua || nutDuocCap.includes('btnChuyenTuan') || nutCongKhai.includes('btnChuyenTuan');
+
+        if (coQuyenChuyenTuan) {
+            if (btnTuanTruoc) btnTuanTruoc.style.display = 'block'; 
+            if (btnTuanTiep) btnTuanTiep.style.display = 'block'; 
+            if (inputNgay) { inputNgay.disabled = false; inputNgay.classList.remove('cursor-not-allowed', 'opacity-80'); }
+        } else {
+            if (btnTuanTruoc) btnTuanTruoc.style.display = 'none'; 
+            if (btnTuanTiep) btnTuanTiep.style.display = 'none'; 
+            if (inputNgay) { inputNgay.disabled = true; inputNgay.classList.add('cursor-not-allowed', 'opacity-80'); }
         }
-    });
 
-    let nhanHT = document.getElementById('nhanHeThong');
-    if (nhanHT) nhanHT.style.display = coMenuQuanTriDuocMo ? 'flex' : 'none';
-
-    let btnTuanTruoc = document.getElementById('btnTuanTruoc');
-    let btnTuanTiep = document.getElementById('btnTuanTiep');
-    let inputNgay = document.getElementById('chonNgayDauTuan');
-    let coQuyenChuyenTuan = quyenSuaChua || nutDuocCap.includes('btnChuyenTuan');
-
-    if (coQuyenChuyenTuan) {
-        if (btnTuanTruoc) btnTuanTruoc.style.display = 'block'; 
-        if (btnTuanTiep) btnTuanTiep.style.display = 'block'; 
-        if (inputNgay) { inputNgay.disabled = false; inputNgay.classList.remove('cursor-not-allowed', 'opacity-80'); }
-    } else {
-        if (btnTuanTruoc) btnTuanTruoc.style.display = 'none'; 
-        if (btnTuanTiep) btnTuanTiep.style.display = 'none'; 
-        if (inputNgay) { inputNgay.disabled = true; inputNgay.classList.add('cursor-not-allowed', 'opacity-80'); }
+        if (typeof capNhatHienThiPhanQuyen === 'function') {
+            capNhatHienThiPhanQuyen();
+        }
+    } finally {
+        _dangKiemSoatGiaoDien = false;
     }
 }
+window.kiemSoatGiaoDien = kiemSoatGiaoDien;
 
 // =========================================================================
 // KHỐI XỬ LÝ CHUYỂN TUẦN VÀ NGÀY THÁNG (ĐỊNH TUYẾN 3 LUỒNG)
@@ -1006,7 +1044,7 @@ function xuatMaTranBang(danhSachTiet) {
                     const duLieuO = mapDuLieu.get(cellKey); 
                     const duocSuaLopNay = mapQuyenSuaLop.get(lop); 
                     
-                    let monGoc = duLieuO ? duLieuO.monHoc : ""; let gvGoc = duLieuO ? duLieuO.maGv : "";
+                    let monGoc = (duLieuO && duLieuO.monHoc) ? String(duLieuO.monHoc) : ((duLieuO && duLieuO.mon) ? String(duLieuO.mon) : ""); let gvGoc = (duLieuO && duLieuO.maGv) ? String(duLieuO.maGv) : "";
 
                     let bgLop = 'bg-white'; let textClass = 'text-slate-900';
                     if (monGoc.includes('CẤN LỊCH')) { bgLop = 'bg-yellow-400'; textClass = 'text-red-700 font-extrabold'; } 
@@ -1443,7 +1481,7 @@ async function xuatExcel() {
             if (currentRow - 1 > startRowThu) worksheet.mergeCells(startRowThu, 1, currentRow - 1, 1); 
         });
 
-        // =========================================================================
+      // =========================================================================
         // NÂNG CẤP: ĐỊNH DẠNG NÉT KẺ BẢNG EXCEL TKB (Màu đen, Nét đứt tiết, Nét liền buổi)
         // =========================================================================
         worksheet.eachRow({ includeEmpty: true }, function(row, rowNumber) {
