@@ -852,7 +852,7 @@ function xuatMaTranBang(danhSachTiet) {
     
     // [TRUNG THÀNH DỮ LIỆU]: Hợp nhất danh sách lớp hiện tại với danh sách lớp quá khứ để không bị ẩn dữ liệu
     let cacLopTrongData = duLieuTiet.map(t => t.maLop).filter(Boolean);
-    const mangLopGoc = [...new Set([...(thongSoHocVu.DANH_SACH_LOP || []), ...cacLopTrongData])].sort();
+    const mangLopGoc = [...new Set([...(thongSoHocVu.DANH_SACH_LOP || []), ...cacLopTrongData])];
     
     const dsLopDuocQuyen = (quyenChiTiet && quyenChiTiet.lop) ? quyenChiTiet.lop : [];
     const tapLopDuocQuyen = new Set(dsLopDuocQuyen);
