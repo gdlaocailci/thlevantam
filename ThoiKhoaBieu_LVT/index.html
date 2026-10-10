@@ -80,16 +80,6 @@
                 <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px]">Báo cáo Thống kê</span>
             </a>
 
-            <a id="menuPhanPhoiChuongTrinh" onclick="moTabPhanPhoiChuongTrinh()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
-                <svg class="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity flex-none text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                    <line x1="10" y1="6" x2="16" y2="6"></line>
-                    <line x1="10" y1="10" x2="16" y2="10"></line>
-                </svg>
-                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px]">Phân phối Chương trình</span>
-            </a>
-
             <a id="menuSoDauBai" onclick="kichHoatTab('menuSoDauBai', 'khungSoDauBai', false)" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
                 <svg class="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity flex-none text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path><path d="M9 7h6"></path><path d="M9 11h6"></path></svg>
                 <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px]">Sổ đầu bài (Điện tử)</span>
@@ -130,6 +120,29 @@
                 <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                 <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">6. Danh mục SGK</span>
             </a>
+
+            <a id="menuPhanPhoiChuongTrinh" onclick="moTabPhanPhoiChuongTrinh()" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    <line x1="10" y1="6" x2="16" y2="6"></line>
+                    <line x1="10" y1="10" x2="16" y2="10"></line>
+                </svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">7. Phân phối Chương trình</span>
+            </a>
+
+            <a id="menuPhanQuyen" onclick="moTabPhanQuyenChuyenDung()" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M8 11l3 3 5-5"></path></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">8. Phân quyền Hệ thống</span>
+            </a>
+
+            <a id="menuKiemTraSoDauBai" onclick="moTabKiemTraSoDauBai()" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+        <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">9. Kiểm tra sổ đầu bài</span>
+    </a>
         </nav>
 
         
@@ -242,6 +255,16 @@
 
                 <!-- CÁC NÚT THAO TÁC QUẢN TRỊ (Bổ sung nút Lưu Sửa) -->
                     <div class="flex flex-wrap justify-center sm:justify-end gap-2 w-full xl:w-auto font-sans flex-none">
+
+                        <button id="btnKhoaTKB" onclick="thaoTacKhoaMoTKB()" style="display: none;" 
+                            class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded-lg whitespace-nowrap" 
+                             title="Khóa/Mở khóa chỉnh sửa Thời khóa biểu tuần này">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                            <span id="textNutKhoaTKB">Khóa TKB Tuần</span>
+                        </button>
+                        
                         <button id="btnKhoiPhuc" onclick="luuDuLieu(event, 'khoiphuc')" style="display: none;" class="bg-red-700 hover:bg-red-800 text-white font-extrabold px-3 py-1.5 text-sm shadow transition duration-200 items-center gap-1.5 rounded-lg whitespace-nowrap" title="Chuyển sang tuần tiếp theo">
                             Tuần tiếp theo...
                         </button>
@@ -442,6 +465,14 @@
                         
                         <!-- Nhóm 2: Cụm nút thao tác -->
                         <div class="flex items-center gap-2">
+                            <button id="btnKhoaSoDauBai" onclick="thaoTacKhoaMoSoDauBai()" 
+                                    class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2 text-xs shadow transition duration-200 rounded flex items-center gap-1.5" 
+                                    title="Khóa/Mở khóa toàn bộ sổ đầu bài của Tuần này trên toàn trường">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                <span id="textNutKhoaSo">Khóa sổ Tuần</span>
+                            </button>
                             <button id="btnDongBoTenBai" onclick="dongBoTenBaiHoc()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2 text-xs shadow transition duration-200 rounded flex items-center gap-1.5" title="Kéo Tên bài học từ PPCT dựa trên Tiết trên màn hình">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                                 Đồng bộ Tên Bài
@@ -707,6 +738,7 @@
     <script src="QuanLyDanhMucSGK.js"></script>
     <script src="SoDauBai.js"></script>
     <script src="PhanQuyenAdmin.js"></script>
+    <script src="KiemTraSoDauBai.js"></script>
    <script>
  async function thucThiLamMoiNgam() {
         let vungHienThi = document.getElementById('vungHienThiSoDauBai');
