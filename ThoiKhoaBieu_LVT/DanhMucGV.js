@@ -18,7 +18,7 @@ async function taiDuLieuDanhMucGV() {
                     toChuyenMon: duLieuS[i][2] || '',
                     dinhMuc: duLieuS[i][3] || '',
                     trangThai: duLieuS[i][4] || 'Đang công tác',
-                    hopThu: duLieuS[i][5] || '' // [NÂNG CẤP]: Đọc dữ liệu Hộp thư từ Cột F (index 5)
+                    hopThu: duLieuS[i][5] || ''
                 });
             }
         }
@@ -49,7 +49,6 @@ function veBangDanhMucGV() {
             <td class="p-0 border border-gray-300"><input type="text" value="${gv.maGv}" onchange="capNhatGv(${index}, 'maGv', this.value)" class="w-full h-full min-h-[30px] px-2 outline-none bg-transparent text-center font-bold text-blue-900"></td>
             <td class="p-0 border border-gray-300"><input type="text" value="${gv.hoTen}" onchange="capNhatGv(${index}, 'hoTen', this.value)" class="w-full h-full min-h-[30px] px-2 outline-none bg-transparent text-left font-semibold text-slate-800"></td>
             
-            <!-- [NÂNG CẤP]: Cột Hộp thư điện tử -->
             <td class="p-0 border border-gray-300"><input type="text" value="${gv.hopThu}" onchange="capNhatGv(${index}, 'hopThu', this.value)" class="w-full h-full min-h-[30px] px-2 outline-none bg-transparent text-left font-semibold text-indigo-700 placeholder-indigo-200" placeholder="...@gmail.com"></td>
             
             <td class="p-0 border border-gray-300"><input type="text" value="${gv.toChuyenMon}" onchange="capNhatGv(${index}, 'toChuyenMon', this.value)" class="w-full h-full min-h-[30px] px-2 outline-none bg-transparent text-center"></td>
@@ -87,7 +86,6 @@ function capNhatGv(index, truong, giaTri) {
 }
 
 function themDongGiaoVienMoi() { 
-    // [NÂNG CẤP]: Khởi tạo đối tượng có thêm thuộc tính hopThu
     duLieuDanhMucGV.push({ maGv: '', hoTen: '', hopThu: '', toChuyenMon: 'Tiểu học', dinhMuc: '', trangThai: 'Đang công tác' }); 
     veBangDanhMucGV(); 
 }
@@ -108,14 +106,13 @@ function dichChuyenGv(index, huong) {
 
 async function luuDuLieuDanhMucGVSangMayChu() {
     const btn = document.querySelector('#khungDanhMucGV button[onclick="luuDuLieuDanhMucGVSangMayChu()"]');
-    let textGoc = btn.innerHTML;
-    btn.innerHTML = `Đang lưu...`; btn.disabled = true;
+    let textGoc = btn ? btn.innerHTML : '';
+    if (btn) { btn.innerHTML = `Đang lưu...`; btn.disabled = true; }
 
     try {
         let mangGhi = [TIEU_DE_DM_GV]; 
         duLieuDanhMucGV.forEach(gv => {
             if (gv.maGv.trim() !== '') {
-                // [NÂNG CẤP]: Đẩy cột Hộp thư vào vị trí Index 5 (Khớp với Cột F trên Sheet)
                 mangGhi.push([gv.maGv, gv.hoTen, gv.toChuyenMon, gv.dinhMuc, gv.trangThai, gv.hopThu]);
             }
         });
@@ -124,24 +121,59 @@ async function luuDuLieuDanhMucGVSangMayChu() {
         const phanHoi = await fetch(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { method: 'POST', body: JSON.stringify(payload) });
         const ketQua = await phanHoi.json();
         
-        if (ketQua.trangThai === 'Thành công') { alert("Đã đồng bộ Danh mục Giáo viên lên hệ thống an toàn!"); } 
+        if (ketQua.trangThai === 'Thành công') { 
+            // [NÂNG CẤP ĐỒNG BỘ TỨC THÌ VÀO Ô CHỌN TKB]:
+            // Gán trực tiếp Mã GV Cột A (không lấy Họ tên Cột B) vào thongSoHocVu & localStorage
+            if (typeof thongSoHocVu !== 'undefined') {
+                let dsGvMoi = [];
+                duLieuDanhMucGV.forEach(gv => {
+                    let ma = String(gv.maGv || '').trim();
+                    if (ma && ma !== '---' && dsGvMoi.indexOf(ma) === -1) {
+                        dsGvMoi.push(ma);
+                    }
+                });
+                thongSoHocVu.DANH_SACH_GIAO_VIEN = dsGvMoi;
+
+                if (!thongSoHocVu.DINH_MUC_GIAO_VIEN) thongSoHocVu.DINH_MUC_GIAO_VIEN = {};
+                duLieuDanhMucGV.forEach(gv => {
+                    let ma = String(gv.maGv || '').trim();
+                    if (ma) {
+                        thongSoHocVu.DINH_MUC_GIAO_VIEN[ma] = parseInt(gv.dinhMuc, 10) || 0;
+                    }
+                });
+
+                if (typeof layKhoaCachLy === 'function') {
+                    localStorage.setItem(layKhoaCachLy('SmartTKB_CauHinh'), JSON.stringify(thongSoHocVu));
+                }
+            }
+
+            // Gọi hàm cập nhật datalist Giáo viên và bộ lọc trên giao diện Thời khóa biểu
+            if (typeof window.capNhatDatalistTKB === 'function') {
+                window.capNhatDatalistTKB();
+            }
+
+            // Đồng bộ ngầm bổ sung từ máy chủ để bảo đảm toàn vẹn
+            if (typeof window.dongBoDanhMucMonVaGiaoVien === 'function') {
+                window.dongBoDanhMucMonVaGiaoVien(false);
+            }
+
+            alert("Đã đồng bộ Danh mục Giáo viên lên hệ thống và cập nhật vào ô chọn Thời khóa biểu thành công!"); 
+        } 
         else { alert("Lỗi từ máy chủ: " + ketQua.thongBao); }
     } catch(loi) { alert("Lỗi kết nối mạng hoặc máy chủ."); } 
-    finally { btn.innerHTML = textGoc; btn.disabled = false; }
+    finally { if (btn) { btn.innerHTML = textGoc; btn.disabled = false; } }
 }
 
 function xuatExcelDanhMucGV() {
     if (typeof XLSX === 'undefined') { alert("Thư viện Excel chưa sẵn sàng."); return; }
     let mangXuat = [TIEU_DE_DM_GV];
     duLieuDanhMucGV.forEach(gv => { 
-        // [NÂNG CẤP]: Bổ sung cột Hộp thư vào mảng xuất Excel
         mangXuat.push([gv.maGv, gv.hoTen, gv.toChuyenMon, gv.dinhMuc, gv.trangThai, gv.hopThu]); 
     });
     
     let wb = XLSX.utils.book_new();
     let ws = XLSX.utils.aoa_to_sheet(mangXuat);
     
-    // Căn chỉnh độ rộng cho 6 cột
     ws['!cols'] = [{wch: 10}, {wch: 25}, {wch: 20}, {wch: 15}, {wch: 20}, {wch: 35}];
     XLSX.utils.book_append_sheet(wb, ws, "DM_GIAOVIEN");
     XLSX.writeFile(wb, "DanhMucGiaoVien.xlsx");
@@ -193,7 +225,7 @@ function nhapExcelDanhMucGV(e) {
                         toChuyenMon: row[2] ? String(row[2]).trim() : 'Tiểu học',
                         dinhMuc: dinhMuc,
                         trangThai: row[4] ? String(row[4]).trim() : 'Đang công tác',
-                        hopThu: row[5] ? String(row[5]).trim() : '' // [NÂNG CẤP]: Đọc dữ liệu Hộp thư từ Cột F (index 5) file Excel
+                        hopThu: row[5] ? String(row[5]).trim() : ''
                     });
                 }
             }
