@@ -107,7 +107,6 @@ function moTabKhungChuongTrinh() {
     }
 
     // [LÕI NÂNG CẤP]: CƠ CHẾ CACHE THÔNG MINH
-    // Chỉ kết nối máy chủ Google nếu mảng dữ liệu rỗng. Nếu đã có, bung UI ngay lập tức!
     if (duLieuBangKCT && duLieuBangKCT.length > 0) {
         veBangKhungChuongTrinh();
     } else {
@@ -189,7 +188,6 @@ function veBangKhungChuongTrinh() {
         return;
     }
 
-    // [LÕI NÂNG CẤP]: Gộp toàn bộ HTML vào 1 biến duy nhất để Render một lần, chấm dứt giật lag
     let chuoiTbody = '';
 
     duLieuBangKCT.forEach((dong, indexDong) => {
@@ -203,7 +201,7 @@ function veBangKhungChuongTrinh() {
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
                     </button>
                     <button onclick="xoaDongKhungChuongTrinh(${indexDong})" class="p-1 bg-slate-100 hover:bg-red-200 rounded border border-gray-300 shadow-sm text-red-600" title="Xóa môn">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                 </div>
             </td>
@@ -222,7 +220,6 @@ function veBangKhungChuongTrinh() {
     });
 
     tbody.innerHTML = chuoiTbody;
-
     tinhTongTietKCT();
 }
 
@@ -234,7 +231,7 @@ function capNhatGiaTriKCT(indexDong, truong, giaTri) { duLieuBangKCT[indexDong][
 function capNhatSoTietKCT(indexDong, indexCot, giaTri) {
     let soTiet = parseInt(giaTri, 10);
     duLieuBangKCT[indexDong].soTiet[indexCot] = isNaN(soTiet) ? '' : soTiet;
-    tinhTongTietKCT(); // Tính lại tổng tiết thời gian thực khi ô số liệu thay đổi
+    tinhTongTietKCT();
 }
 
 function tinhTongTietKCT() {
@@ -321,10 +318,6 @@ function xuatExcelKCT() {
     XLSX.writeFile(wb, `KhungChuongTrinh_KCT.xlsx`);
 }
 
-// ==========================================
-// 5. CHỨC NĂNG TẢI EXCEL (.XLSX) QUA SHEETJS (NÂNG CẤP)
-// Nguyên tắc: Chỉ xử lý trên UI, không gọi API để tránh lag
-// ==========================================
 function nhapExcelKCT(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -336,19 +329,16 @@ function nhapExcelKCT(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            // Đọc dữ liệu thô vào bộ đệm
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             
-            // Ép kiểu mảng 2 chiều, điền chuỗi rỗng nếu ô bị khuyết
             const rowsArr = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
             if (rowsArr.length < 2) { 
                 alert("Bảng Excel trống hoặc thiếu dữ liệu tiêu đề."); 
                 return; 
             }
             
-            // Trích xuất mảng lớp từ dòng tiêu đề của file tải lên
             const fileClasses = [];
             const firstRow = rowsArr[0];
             for (let i = 2; i < firstRow.length; i++) {
@@ -356,37 +346,33 @@ function nhapExcelKCT(event) {
             }
             
             const newData = [];
-            // Thuật toán O(N) quét các dòng dữ liệu môn học
             for (let i = 1; i < rowsArr.length; i++) {
                 const cells = rowsArr[i];
                 if (!cells || cells.length < 1) continue;
                 
                 const monHoc = cells[0] !== undefined ? String(cells[0]).trim() : '';
-                if (!monHoc) continue; // Khử nhiễu các dòng trống
+                if (!monHoc) continue;
                 
                 const uuTien = cells[1] !== undefined ? String(cells[1]).trim() : '';
                 
-                // Ánh xạ 1:1 chính xác tọa độ lớp trên Excel với danhSachLopKCT trên hệ thống
                 const mappedSoTiet = danhSachLopKCT.map(lop => {
                     const idx = fileClasses.indexOf(lop);
                     const rawValue = idx !== -1 ? cells[idx + 2] : '';
                     const parsedValue = parseInt(rawValue, 10);
-                    return isNaN(parsedValue) ? '' : parsedValue; // Đảm bảo kiểu số học chuẩn
+                    return isNaN(parsedValue) ? '' : parsedValue;
                 });
                 
                 newData.push({ monHoc: monHoc, uuTien: uuTien, soTiet: mappedSoTiet });
             }
             
-            // 1. Cập nhật biến toàn cục
             duLieuBangKCT = newData;
-            // 2. Kích hoạt vẽ lại giao diện ngay lập tức
             veBangKhungChuongTrinh();
             
             alert("Đã hiển thị dữ liệu từ file Excel! Đồng chí vui lòng kiểm tra UI và nhấn nút 'Lưu Khung CT' để đồng bộ lên máy chủ.");
         } catch (loi) {
             alert("Lỗi đọc dữ liệu tệp XLSX: " + loi.message);
         } finally {
-            event.target.value = ''; // Giải phóng input để tải lại cùng 1 tệp nếu cần
+            event.target.value = '';
         }
     };
     reader.readAsArrayBuffer(file);
@@ -420,7 +406,44 @@ async function luuDuLieuKhungChuongTrinh(event) {
         const ketQua = await phanHoi.json();
         
         if (ketQua.trangThai === 'Thành công') {
-            alert('Đã đồng bộ Khung chương trình lên máy chủ thành công!');
+            // [NÂNG CẤP ĐỒNG BỘ TỨC THÌ VÀO Ô CHỌN TKB]:
+            // Gán trực tiếp danh sách môn học mới và khung chương trình vào thongSoHocVu & localStorage
+            if (typeof thongSoHocVu !== 'undefined') {
+                let dsMonMoi = [];
+                (duLieuBangKCT || []).forEach(d => {
+                    let m = String(d.monHoc || '').trim();
+                    if (m && m !== '---' && m.toLowerCase() !== 'môn học' && dsMonMoi.indexOf(m) === -1) {
+                        dsMonMoi.push(m);
+                    }
+                });
+                thongSoHocVu.DANH_SACH_MON_HOC = dsMonMoi;
+
+                if (!thongSoHocVu.KHUNG_CHUONG_TRINH) thongSoHocVu.KHUNG_CHUONG_TRINH = {};
+                (duLieuBangKCT || []).forEach(d => {
+                    let m = String(d.monHoc || '').trim();
+                    if (!m) return;
+                    (danhSachLopKCT || []).forEach((lop, idx) => {
+                        if (!thongSoHocVu.KHUNG_CHUONG_TRINH[lop]) thongSoHocVu.KHUNG_CHUONG_TRINH[lop] = {};
+                        thongSoHocVu.KHUNG_CHUONG_TRINH[lop][m] = parseInt(d.soTiet[idx], 10) || 0;
+                    });
+                });
+
+                if (typeof layKhoaCachLy === 'function') {
+                    localStorage.setItem(layKhoaCachLy('SmartTKB_CauHinh'), JSON.stringify(thongSoHocVu));
+                }
+            }
+
+            // Gọi hàm cập nhật datalist Môn học trên giao diện Thời khóa biểu
+            if (typeof window.capNhatDatalistTKB === 'function') {
+                window.capNhatDatalistTKB();
+            }
+
+            // Đồng bộ ngầm bổ sung từ máy chủ để bảo đảm toàn vẹn
+            if (typeof window.dongBoDanhMucMonVaGiaoVien === 'function') {
+                window.dongBoDanhMucMonVaGiaoVien(false);
+            }
+
+            alert('Đã đồng bộ Khung chương trình lên máy chủ và cập nhật vào ô chọn Thời khóa biểu thành công!');
         } else {
             alert('Lỗi từ máy chủ: ' + (ketQua.thongBao || 'Không xác định.'));
         }
