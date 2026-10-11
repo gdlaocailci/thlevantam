@@ -258,6 +258,117 @@ function capNhatNgayDauTuan() {
 }
 
 // =========================================================================
+// =========================================================================
+// KHỐI ĐỒNG BỘ DANH MỤC MÔN HỌC & NGƯỜI DẠY (GIÁO VIÊN) VÀO Ô CHỌN TKB
+// =========================================================================
+window.capNhatDatalistTKB = function() {
+    if (!thongSoHocVu) return;
+
+    // 1. Cập nhật Datalist Môn học
+    let dlMon = document.getElementById('datalistChung_Mon');
+    if (!dlMon) {
+        dlMon = document.createElement('datalist');
+        dlMon.id = 'datalistChung_Mon';
+        document.body.appendChild(dlMon);
+    }
+    let dsMon = thongSoHocVu.DANH_SACH_MON_HOC || [];
+    let htmlMon = '<option value="---">'; // Lựa chọn xóa môn
+    let daCoMon = new Set();
+    dsMon.forEach(m => {
+        let tenMon = String(m || '').trim();
+        if (tenMon && tenMon !== '---' && !daCoMon.has(tenMon.toLowerCase())) {
+            daCoMon.add(tenMon.toLowerCase());
+            htmlMon += `<option value="${tenMon}">`;
+        }
+    });
+    dlMon.innerHTML = htmlMon;
+
+    // 2. Cập nhật Datalist Giáo viên
+    let dlGv = document.getElementById('datalistChung_GV');
+    if (!dlGv) {
+        dlGv = document.createElement('datalist');
+        dlGv.id = 'datalistChung_GV';
+        document.body.appendChild(dlGv);
+    }
+    let dsGv = thongSoHocVu.DANH_SACH_GIAO_VIEN || [];
+    let htmlGv = '<option value="---">'; // Lựa chọn xóa GV
+    let daCoGv = new Set();
+    dsGv.forEach(g => {
+        let tenGv = String(g || '').trim();
+        if (tenGv && tenGv !== '---' && !daCoGv.has(tenGv.toLowerCase())) {
+            daCoGv.add(tenGv.toLowerCase());
+            htmlGv += `<option value="${tenGv}">`;
+        }
+    });
+    dlGv.innerHTML = htmlGv;
+
+    // 3. Bổ sung màu phân biệt nếu có giáo viên mới
+    if (typeof bangMauPhanBiet !== 'undefined' && Array.isArray(dsGv)) {
+        if (typeof mauGiaoVien === 'undefined' || !mauGiaoVien) mauGiaoVien = {};
+        dsGv.forEach((gv, idx) => {
+            if (!mauGiaoVien[gv]) {
+                mauGiaoVien[gv] = bangMauPhanBiet[idx % bangMauPhanBiet.length];
+            }
+        });
+    }
+
+    // 4. Cập nhật bộ lọc Giáo viên trên thanh công cụ TKB
+    if (typeof napDuLieuBoLocGiaoVien === 'function') {
+        napDuLieuBoLocGiaoVien();
+    }
+};
+
+window.dongBoDanhMucMonVaGiaoVien = async function(hienThongBao = false) {
+    try {
+        const KEY_CH = layKhoaCachLy('SmartTKB_CauHinh');
+        const urlCauHinh = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layCauHinh&_noCache=${Date.now()}`;
+        const phanHoi = await fetchVoiCoCheThuLai(urlCauHinh);
+        const thongSoMoi = await phanHoi.json();
+        
+        if (thongSoMoi && thongSoMoi.trangThai !== 'loi_he_thong') {
+            thongSoHocVu = thongSoMoi;
+            localStorage.setItem(KEY_CH, JSON.stringify(thongSoHocVu));
+            
+            // Tái tạo ngay lập tức datalist Môn học và Giáo viên
+            window.capNhatDatalistTKB();
+            
+            if (hienThongBao) {
+                let soMon = (thongSoHocVu.DANH_SACH_MON_HOC || []).length;
+                let soGv = (thongSoHocVu.DANH_SACH_GIAO_VIEN || []).length;
+                alert(`✅ Đồng bộ thành công!\n- Môn học: ${soMon} môn\n- Giáo viên: ${soGv} người\nĐã cập nhật vào toàn bộ ô chọn của Thời khóa biểu.`);
+            }
+            return true;
+        }
+    } catch (e) {
+        console.error("Lỗi đồng bộ danh mục:", e);
+        if (hienThongBao) alert("⚠️ Lỗi đồng bộ danh mục từ máy chủ: " + e.message);
+    }
+    return false;
+};
+
+// [TỰ ĐỘNG ĐỒNG BỘ]: Bắt sự kiện khi lưu Khung chương trình, Danh mục giáo viên, hoặc Danh mục lớp
+(function() {
+    if (window._daCaiDatHookDongBoDanhMuc) return;
+    window._daCaiDatHookDongBoDanhMuc = true;
+    
+    const fetchGoc = window.fetch;
+    window.fetch = async function(...args) {
+        const phanHoi = await fetchGoc.apply(this, args);
+        try {
+            const bodyYeuCau = args[1] && args[1].body ? String(args[1].body) : '';
+            if (bodyYeuCau.includes('luuBanGhiKhungChuongTrinh') || bodyYeuCau.includes('luuDanhMucGV') || bodyYeuCau.includes('luuDanhMucLop')) {
+                // Tự động đồng bộ ngay vào TKB sau khi lưu thành công
+                setTimeout(() => {
+                    if (typeof window.dongBoDanhMucMonVaGiaoVien === 'function') {
+                        window.dongBoDanhMucMonVaGiaoVien(false);
+                    }
+                }, 800);
+            }
+        } catch(e) {}
+        return phanHoi;
+    };
+})();
+
 // KHỐI 1: KHỞI TẠO TỨC THÌ (LAZY LOADING CAO CẤP)
 // =========================================================================
 async function khoiTaoGiaoDien() {
@@ -322,6 +433,9 @@ async function khoiTaoGiaoDien() {
         
         thongSoHocVu = thongSoMoi;
         localStorage.setItem(KEY_CH, JSON.stringify(thongSoHocVu)); 
+        if (typeof window.capNhatDatalistTKB === 'function') {
+            window.capNhatDatalistTKB();
+        } 
         
         tuanDangXem = parseInt(thongSoHocVu.TUAN_HIEN_TAI) || 1;
         if (hienThiTuan) {
@@ -834,21 +948,24 @@ function xuatMaTranBang(danhSachTiet) {
     const tableEl = document.querySelector('.bang-excel');
     if (tableEl) { tableEl.style.borderCollapse = 'separate'; tableEl.style.borderSpacing = '0'; }
 
-   // Xóa và tạo mới datalist Môn học để luôn cập nhật dữ liệu mới nhất
-    let oldDlMon = document.getElementById('datalistChung_Mon');
-    if (oldDlMon) oldDlMon.remove();
-    let dlMon = document.createElement('datalist'); dlMon.id = 'datalistChung_Mon';
-    dlMon.innerHTML += `<option value="---">`; // <-- Bổ sung tùy chọn Xóa
-    (thongSoHocVu.DANH_SACH_MON_HOC || []).forEach(m => { dlMon.innerHTML += `<option value="${m}">`; });
-    document.body.appendChild(dlMon);
+    // [ĐỒNG BỘ TOÀN DIỆN]: Gọi hàm chuẩn hóa và cập nhật datalist Môn học & Giáo viên
+    if (typeof window.capNhatDatalistTKB === 'function') {
+        window.capNhatDatalistTKB();
+    } else {
+        let oldDlMon = document.getElementById('datalistChung_Mon');
+        if (oldDlMon) oldDlMon.remove();
+        let dlMon = document.createElement('datalist'); dlMon.id = 'datalistChung_Mon';
+        dlMon.innerHTML += `<option value="---">`;
+        (thongSoHocVu.DANH_SACH_MON_HOC || []).forEach(m => { dlMon.innerHTML += `<option value="${m}">`; });
+        document.body.appendChild(dlMon);
 
-    // Xóa và tạo mới datalist Giáo viên để luôn cập nhật dữ liệu mới nhất
-    let oldDlGv = document.getElementById('datalistChung_GV');
-    if (oldDlGv) oldDlGv.remove();
-    let dlGv = document.createElement('datalist'); dlGv.id = 'datalistChung_GV';
-    dlGv.innerHTML += `<option value="---">`; // <-- Bổ sung tùy chọn Xóa
-    (thongSoHocVu.DANH_SACH_GIAO_VIEN || []).forEach(g => { dlGv.innerHTML += `<option value="${g}">`; });
-    document.body.appendChild(dlGv);
+        let oldDlGv = document.getElementById('datalistChung_GV');
+        if (oldDlGv) oldDlGv.remove();
+        let dlGv = document.createElement('datalist'); dlGv.id = 'datalistChung_GV';
+        dlGv.innerHTML += `<option value="---">`;
+        (thongSoHocVu.DANH_SACH_GIAO_VIEN || []).forEach(g => { dlGv.innerHTML += `<option value="${g}">`; });
+        document.body.appendChild(dlGv);
+    }
 
     const duLieuTiet = danhSachTiet || [];
     
@@ -1224,8 +1341,14 @@ window.kichHoatTab = function(idMenu, idKhung, hienThanhCongCuTKB) {
            let khungDich = document.getElementById(idKhung);
             if (khungDich) {
                 khungDich.classList.remove('hidden');
-                if (idKhung === 'khungTKB') khungDich.classList.add('block');
-                else khungDich.classList.add('flex');
+                if (idKhung === 'khungTKB') {
+                    khungDich.classList.add('block');
+                    // [ĐỒNG BỘ TỨC THÌ KHI VỀ TKB]: Cập nhật ngay datalist và nạp ngầm cấu hình mới nhất
+                    if (typeof window.capNhatDatalistTKB === 'function') window.capNhatDatalistTKB();
+                    if (typeof window.dongBoDanhMucMonVaGiaoVien === 'function') window.dongBoDanhMucMonVaGiaoVien(false);
+                } else {
+                    khungDich.classList.add('flex');
+                }
             }
 
             let thanhCongCu = document.getElementById('thanhCongCuTKB');
@@ -1923,12 +2046,30 @@ window.dongModalThongKeGV = function() {
     modal.classList.remove('flex');
 };
 
-window.dongBoChuanHoaDuLieuUI = function() {
+window.dongBoChuanHoaDuLieuUI = async function() {
+    let btn = document.getElementById('btnDongBoChuan');
+    let textGoc = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-1"></div> Đang đồng bộ...`;
+        btn.disabled = true;
+    }
+
+    try {
+        // [NÂNG CẤP CHỐNG LỖI CỐT LÕI]: Chủ động tải lại Danh mục Môn học & Giáo viên mới nhất từ máy chủ
+        // để chắc chắn mọi thay đổi từ Khung chương trình và Danh mục GV được nạp trước khi chuẩn hóa
+        if (typeof window.dongBoDanhMucMonVaGiaoVien === 'function') {
+            await window.dongBoDanhMucMonVaGiaoVien(false);
+        }
+    } catch (eDongBo) {
+        console.warn("Không thể tải cấu hình mới trước khi chuẩn hóa:", eDongBo);
+    }
+
     const dsMonGoc = thongSoHocVu.DANH_SACH_MON_HOC || [];
     const dsGvGoc = thongSoHocVu.DANH_SACH_GIAO_VIEN || [];
 
     if (dsMonGoc.length === 0 && dsGvGoc.length === 0) {
-        alert("⚠️ Lỗi hệ thống: Chưa nạp được Danh mục Môn học và Giáo viên. Vui lòng tải lại trang (F5)!");
+        if (btn) { btn.innerHTML = textGoc; btn.disabled = false; }
+        alert("⚠️ Lỗi hệ thống: Chưa nạp được Danh mục Môn học và Giáo viên. Vui lòng kiểm tra lại kết nối mạng!");
         return;
     }
 
@@ -1998,6 +2139,9 @@ window.dongBoChuanHoaDuLieuUI = function() {
     if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
         kiemTraTrungGiaoVienToanBang();
     }
+
+    if (btn) { btn.innerHTML = textGoc; btn.disabled = false; }
+    if (typeof window.capNhatDatalistTKB === 'function') window.capNhatDatalistTKB();
 
     if (demSuaLoi > 0 || danhSachLoiChiTiet.length > 0) {
         let thongBao = `Báo cáo Đồng bộ:\n- Đã nắn chỉnh: ${demSuaLoi} ô (Xanh).\n- Cảnh báo rác: ${danhSachLoiChiTiet.length} ô (Đỏ).\n`;
