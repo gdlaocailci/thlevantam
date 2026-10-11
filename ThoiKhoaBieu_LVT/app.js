@@ -367,9 +367,11 @@ async function khoiTaoGiaoDien() {
 
 window.kichHoatTaiNgamCacPhanHeKhac = function() {
     setTimeout(() => {
-        if (typeof taiDuLieuSoDauBaiTuMayChu === 'function') taiDuLieuSoDauBaiTuMayChu();
+        // [CẬP NHẬT NGẦM THỜI KHÓA BIỂU]: Đồng bộ ngầm TKB tuần hiện tại từ máy chủ để đảm bảo dữ liệu luôn mới nhất
+        if (typeof taiDuLieuTKB === 'function') taiDuLieuTKB(true, 'TKB_HIEN_TAI', false);
+
+        // Nạp ngầm thống kê và khung chương trình (không đọc PPCT, PHAN_CONG, SGK khi khởi động để tăng tốc)
         if (typeof taiCayDanhMucThongKe === 'function' && (!window.cayDanhMucThongKe || Object.keys(window.cayDanhMucThongKe).length === 0)) taiCayDanhMucThongKe();
-        if (typeof taiDuLieuPhanCongTuMayChu === 'function' && (!window.danhSachGV || window.danhSachGV.length === 0)) taiDuLieuPhanCongTuMayChu();
         if (typeof taiDuLieuKhungChuongTrinhTuMayChu === 'function' && (!window.duLieuBangKCT || window.duLieuBangKCT.length === 0)) taiDuLieuKhungChuongTrinhTuMayChu();
     }, 1500);
 };
@@ -1725,12 +1727,11 @@ async function luuSuaCucBoTKB(event) {
             let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
             
             let indexTrongRam = duLieuTkbHienTai.findIndex(t => 
-                String(t.tuan).trim() === String(tuanDangXem).trim() &&
-                String(t.thu).trim() === thu && 
-                String(t.buoi).trim() === buoi && 
-                String(t.tiet).trim() === String(tiet) && 
-                String(t.maLop).trim() === lop &&
-                (String(t.ngay).trim() === thongTinNgay.ngayDayDu || String(t.ngay).trim() === '') 
+                parseInt(String(t.tuan).replace(/\D/g, ''), 10) === parseInt(String(tuanDangXem).replace(/\D/g, ''), 10) &&
+                String(t.maLop).trim().toUpperCase() === lop.trim().toUpperCase() &&
+                String(t.thu).trim().toLowerCase() === thu.trim().toLowerCase() &&
+                String(t.buoi).trim().toLowerCase() === buoi.trim().toLowerCase() &&
+                String(t.tiet).trim() === String(tiet).trim()
             );
 
             let maTietNguyenBan = '';
@@ -1740,7 +1741,7 @@ async function luuSuaCucBoTKB(event) {
                 maTietNguyenBan = `${namHocDung}_${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`;
             }
             
-            let tietGoc = duLieuTkbHienTai.find(t => String(t.maTiet).trim() === maTietNguyenBan);
+            let tietGoc = indexTrongRam !== -1 ? duLieuTkbHienTai[indexTrongRam] : duLieuTkbHienTai.find(t => String(t.maTiet).trim() === maTietNguyenBan);
             let monGoc = tietGoc ? (tietGoc.monHoc || "").trim() : "";
             let gvGoc = tietGoc ? (tietGoc.maGv || "").trim() : "";
             
@@ -1788,8 +1789,18 @@ async function luuSuaCucBoTKB(event) {
         else { 
             alert("Đã cập nhật các thay đổi vào Thời khóa biểu Hiện tại!");
             dsThayDoi.forEach(tietMoi => {
-                let idx = duLieuTkbHienTai.findIndex(t => t.maTiet === tietMoi.maTiet);
-                if (idx !== -1) duLieuTkbHienTai[idx] = tietMoi; else duLieuTkbHienTai.push(tietMoi);
+                let idx = duLieuTkbHienTai.findIndex(t => 
+                    parseInt(String(t.tuan).replace(/\D/g, ''), 10) === parseInt(String(tietMoi.tuan).replace(/\D/g, ''), 10) &&
+                    String(t.maLop).trim().toUpperCase() === String(tietMoi.maLop).trim().toUpperCase() &&
+                    String(t.thu).trim().toLowerCase() === String(tietMoi.thu).trim().toLowerCase() &&
+                    String(t.buoi).trim().toLowerCase() === String(tietMoi.buoi).trim().toLowerCase() &&
+                    String(t.tiet).trim() === String(tietMoi.tiet).trim()
+                );
+                if (idx !== -1) {
+                    duLieuTkbHienTai[idx] = { ...duLieuTkbHienTai[idx], ...tietMoi };
+                } else {
+                    duLieuTkbHienTai.push(tietMoi);
+                }
             });
             
             document.querySelectorAll('td[data-thaydoi="true"]').forEach(td => {
@@ -1799,6 +1810,8 @@ async function luuSuaCucBoTKB(event) {
             });
 
             localStorage.setItem(layKhoaCachLy('SmartTKB_DuLieuTuan'), JSON.stringify(duLieuTkbHienTai));
+            localStorage.setItem(layKhoaCachLy('KhoaDongBo_TKB'), Date.now().toString());
+            if (typeof window.lamSachBoNhoSoDauBai === 'function') window.lamSachBoNhoSoDauBai();
         }
     } catch (loi) { alert("Có sự cố trong quá trình kết nối đến máy chủ."); } 
     finally { btn.innerHTML = textGoc; btn.disabled = false; }
