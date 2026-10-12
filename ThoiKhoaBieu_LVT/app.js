@@ -130,6 +130,7 @@ function kiemSoatGiaoDien() {
 
         const dsNut = ['btnLuuTuan', 'btnLuuCoDinh', 'btnKhoiPhuc', 'btnXepTuDong', 'btnKiemTra', 'btnNhapExcelTKB', 'btnDongBoChuan', 'btnLuuSua', 'btnKhoaTKB', 'btnKhoaSoDauBai'];
         
+        let coNutTkbHienThi = false;
         dsNut.forEach(idNut => {
             let nut = document.getElementById(idNut);
             if (nut) {
@@ -137,10 +138,22 @@ function kiemSoatGiaoDien() {
                 if (idNut === 'btnLuuSua' || idNut === 'btnLuuTuan') {
                     if (quyenSuaChua || nutDuocCap.includes(idNut) || lopDuocCap.length > 0 || nutCongKhai.includes(idNut)) duocPhep = true;
                 }
-                if (duocPhep) { nut.style.display = 'flex'; nut.disabled = false; } 
-                else { nut.style.display = 'none'; nut.disabled = true; }
+                if (duocPhep) { 
+                    nut.style.display = 'flex'; 
+                    nut.disabled = false; 
+                    if (idNut !== 'btnKhoaSoDauBai') coNutTkbHienThi = true;
+                } else { 
+                    nut.style.display = 'none'; 
+                    nut.disabled = true; 
+                }
             }
         });
+
+        // [NÂNG CẤP MENU 3 GẠCH]: Kiểm soát hiển thị nút Menu 3 gạch Thao tác TKB
+        let vungMenuTkb = document.getElementById('vungMenuThaoTacTKB');
+        if (vungMenuTkb) {
+            vungMenuTkb.style.display = (quyenSuaChua || coNutTkbHienThi) ? 'block' : 'none';
+        }
 
         const dsMenuQuanTri = ['menuCaiDat', 'menuDanhMucGV', 'menuDanhMucLop', 'menuKhungChuongTrinh', 'menuPhanCong', 'menuDanhMucSGK', 'menuPhanPhoiChuongTrinh', 'menuPhanQuyen'];
         let coMenuQuanTriDuocMo = false;
@@ -258,6 +271,48 @@ function capNhatNgayDauTuan() {
 }
 
 // =========================================================================
+// =========================================================================
+// KHỐI ĐIỀU KHIỂN MENU 3 GẠCH NGANG THAO TÁC THỜI KHÓA BIỂU
+// =========================================================================
+window.toggleMenuThaoTacTKB = function(event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    const dropdown = document.getElementById('dropdownMenuThaoTacTKB');
+    if (!dropdown) return;
+    
+    const isHidden = dropdown.classList.contains('hidden') || dropdown.style.display === 'none' || window.getComputedStyle(dropdown).display === 'none';
+    
+    if (isHidden) {
+        dropdown.classList.remove('hidden');
+        dropdown.classList.add('flex');
+        dropdown.style.display = 'flex';
+    } else {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('flex');
+        dropdown.style.display = 'none';
+    }
+};
+
+window.dongMenuThaoTacTKB = function() {
+    const dropdown = document.getElementById('dropdownMenuThaoTacTKB');
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+        dropdown.classList.remove('flex');
+        dropdown.style.display = 'none';
+    }
+};
+
+document.addEventListener('click', function(e) {
+    const vungMenu = document.getElementById('vungMenuThaoTacTKB');
+    if (vungMenu && !vungMenu.contains(e.target)) {
+        if (typeof window.dongMenuThaoTacTKB === 'function') {
+            window.dongMenuThaoTacTKB();
+        }
+    }
+});
+
 // =========================================================================
 // KHỐI ĐỒNG BỘ DANH MỤC MÔN HỌC & NGƯỜI DẠY (GIÁO VIÊN) VÀO Ô CHỌN TKB
 // =========================================================================
@@ -481,11 +536,9 @@ async function khoiTaoGiaoDien() {
 
 window.kichHoatTaiNgamCacPhanHeKhac = function() {
     setTimeout(() => {
-        // [CẬP NHẬT NGẦM THỜI KHÓA BIỂU]: Đồng bộ ngầm TKB tuần hiện tại từ máy chủ để đảm bảo dữ liệu luôn mới nhất
-        if (typeof taiDuLieuTKB === 'function') taiDuLieuTKB(true, 'TKB_HIEN_TAI', false);
-
-        // Nạp ngầm thống kê và khung chương trình (không đọc PPCT, PHAN_CONG, SGK khi khởi động để tăng tốc)
+        if (typeof taiDuLieuSoDauBaiTuMayChu === 'function') taiDuLieuSoDauBaiTuMayChu();
         if (typeof taiCayDanhMucThongKe === 'function' && (!window.cayDanhMucThongKe || Object.keys(window.cayDanhMucThongKe).length === 0)) taiCayDanhMucThongKe();
+        if (typeof taiDuLieuPhanCongTuMayChu === 'function' && (!window.danhSachGV || window.danhSachGV.length === 0)) taiDuLieuPhanCongTuMayChu();
         if (typeof taiDuLieuKhungChuongTrinhTuMayChu === 'function' && (!window.duLieuBangKCT || window.duLieuBangKCT.length === 0)) taiDuLieuKhungChuongTrinhTuMayChu();
     }, 1500);
 };
