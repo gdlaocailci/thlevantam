@@ -1458,9 +1458,14 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
 
     setTimeout(() => {
         let cacOVanBan = vungHienThi.querySelectorAll('textarea');
+        // Tối ưu hóa: Loại bỏ Layout Thrashing bằng cách tách pha style reset và đọc scrollHeight
         cacOVanBan.forEach(ta => {
             ta.style.height = 'auto';
-            ta.style.height = (ta.scrollHeight) + 'px';
+        });
+        requestAnimationFrame(() => {
+            cacOVanBan.forEach(ta => {
+                ta.style.height = (ta.scrollHeight) + 'px';
+            });
         });
 
         // Chỉ gắn sự kiện bắt thay đổi khi tuần CHƯA BỊ KHÓA
@@ -2880,6 +2885,37 @@ async function thaoTacKhoaMoSoDauBai() {
         return alert("Vui lòng chọn Tuần học trước khi thực hiện thao tác Khóa/Mở sổ!");
     }
 
+    // =========================================================================
+    // [CHẶN TỨC THÌ 0ms]: Kiểm tra quyền trực tiếp tại Client, chặn ngay nếu không có quyền
+    // Tuyệt đối không bật icon xoay spinner, không hỏi confirm, không gửi yêu cầu lên máy chủ
+    // =========================================================================
+    let theChotQuyen = document.getElementById('theChotQuyenSDB');
+    let quyenQuanTriSDB = coToanQuyenSDB || (theChotQuyen && typeof theChotQuyen.getAttribute === 'function' ? (theChotQuyen.getAttribute('data-quantri') === 'true' || theChotQuyen.getAttribute('data-quantri') === true) : false);
+
+    let coQuyenKhoaSo = quyenQuanTriSDB ||
+                        (typeof quyenSuaChua !== 'undefined' && quyenSuaChua) ||
+                        (typeof window.quyenSuaChua !== 'undefined' && window.quyenSuaChua) ||
+                        (typeof quyenChiTiet !== 'undefined' && quyenChiTiet.nut && quyenChiTiet.nut.includes('btnKhoaSoDauBai')) ||
+                        (typeof window.quyenChiTiet !== 'undefined' && window.quyenChiTiet.nut && window.quyenChiTiet.nut.includes('btnKhoaSoDauBai')) ||
+                        (typeof layQuyenCongKhaiHienTai === 'function' && layQuyenCongKhaiHienTai().nut && layQuyenCongKhaiHienTai().nut.includes('btnKhoaSoDauBai')) ||
+                        (typeof window.layQuyenCongKhaiHienTai === 'function' && window.layQuyenCongKhaiHienTai().nut && window.layQuyenCongKhaiHienTai().nut.includes('btnKhoaSoDauBai'));
+
+    if (!coQuyenKhoaSo) {
+        alert("⛔ TỪ CHỐI TRUY CẬP:\nTài khoản của đồng chí chưa được cấp quyền Khóa / Mở khóa Sổ đầu bài trong Ma trận phân quyền!");
+        return;
+    }
+
+    let emailNguoiDung = (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc !== '') 
+        ? window.dinhDanhGiaoVienToanCuc 
+        : (typeof window.emailGiaoVienToanCuc !== 'undefined' && window.emailGiaoVienToanCuc !== '' 
+            ? window.emailGiaoVienToanCuc 
+            : (typeof maGvDangNhapHeThong !== 'undefined' ? maGvDangNhapHeThong : ''));
+
+    if (!emailNguoiDung) {
+        alert("⚠️ Vui lòng đăng nhập tài khoản trước khi thực hiện thao tác Khóa / Mở khóa Sổ đầu bài!");
+        return;
+    }
+
     let tuanSo = parseInt(String(tuanChon).replace(/\D/g, ''), 10);
     let daBiKhoa = window.kiemTraTuanDaKhoa(tuanChon);
     let hanhDongMoi = !daBiKhoa; // true: Khóa, false: Mở
@@ -2901,11 +2937,6 @@ async function thaoTacKhoaMoSoDauBai() {
     }
 
     try {
-        let emailNguoiDung = (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc !== '') 
-    ? window.dinhDanhGiaoVienToanCuc 
-    : (typeof window.emailGiaoVienToanCuc !== 'undefined' && window.emailGiaoVienToanCuc !== '' 
-        ? window.emailGiaoVienToanCuc 
-        : (typeof maGvDangNhapHeThong !== 'undefined' ? maGvDangNhapHeThong : ''));
         let payload = {
             thaoTac: 'khoaMoSoDauBai',
             tuan: tuanSo,
@@ -2917,7 +2948,7 @@ async function thaoTacKhoaMoSoDauBai() {
         const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, {
             method: 'POST',
             body: JSON.stringify(payload)
-        });
+        }, 2, 15000); // Giới hạn tối đa 2 lần thử, timeout 15s chống treo đợi lâu
 
         const ketQua = await phanHoi.json();
 
@@ -2937,10 +2968,10 @@ async function thaoTacKhoaMoSoDauBai() {
             // Vẽ lại giao diện ngay tức thì
             thucThiKetXuatSoDauBaiLenLuoi();
         } else {
-            alert("Thao tác thất bại: " + (ketQua.thongBao || "Lỗi không xác định."));
+            alert("⛔ Thao tác thất bại: " + (ketQua.thongBao || "Lỗi không xác định từ máy chủ."));
         }
     } catch (loi) {
-        alert("Lỗi kết nối máy chủ: " + loi.message);
+        alert("⚠️ Lỗi kết nối máy chủ: " + loi.message);
     } finally {
         if (btn) {
             btn.innerHTML = textGoc;
