@@ -4,7 +4,7 @@
 // 1. Tự động gắn Menu "9. Kiểm tra sổ đầu bài" vào vùng Hệ thống & Ma trận Phân quyền
 // 2. Bộ lọc: Năm học, Từ tuần đến tuần (vừa gõ vừa chọn kể cả khi đang có dữ liệu)
 // 3. Bảng dữ liệu: Tuần | Lớp (chỉ lớp chưa hoàn thiện) | Tiết học & Môn | Lý do chưa hoàn thành
-// 4. Lọc tìm nhanh tối ưu: Chỉ lọc khi THOÁT CHUỘT (blur) hoặc bấm ENTER,
+// 4. Lọc tìm nhanh tối ưu: Chỉ lọc khi THOÁT CHUỘT (blur), bấm ENTER hoặc bấm KÍNH LÚP,
 //    loại bỏ hoàn toàn hiện tượng giật lag khi gõ từng ký tự!
 // =========================================================================
 
@@ -144,24 +144,26 @@ function taoKhungGiaoDienKiemTraSDB() {
 
             <!-- NÚT THỰC THI KIỂM TRA -->
             <button onclick="thucThiKiemTraSoDauBai()" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-1.5 px-6 rounded shadow transition duration-200 text-sm flex items-center gap-2 h-[34px] ml-1">
-                <svg class="w-4 h-4 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 Kiểm tra
             </button>
 
-            <!-- Ô TÌM KIẾM NHANH TRÊN KẾT QUẢ (CHỈ LỌC KHI THOÁT CHUỘT HOẶC ENTER ĐỂ CHỐNG GIẬT LAG) -->
+            <!-- Ô TÌM KIẾM NHANH TRÊN KẾT QUẢ -->
             <div class="flex-1 min-w-[220px] ml-auto">
                 <div class="flex justify-between items-center mb-1">
                     <label class="text-[11px] text-gray-500 uppercase font-extrabold">Tìm nhanh kết quả</label>
                     <span class="text-[10px] text-blue-600 font-semibold italic">(Click ra ngoài hoặc ấn Enter để lọc)</span>
                 </div>
-                <div class="relative">
+                <div class="relative flex items-center">
+                    <button onclick="locKetQuaNhanhKTSDB()" class="absolute left-2.5 top-2 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer" title="Bấm để tìm kiếm ngay">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
                     <input type="text" id="timNhanhKTSDB" 
                            onchange="locKetQuaNhanhKTSDB()" 
                            onblur="locKetQuaNhanhKTSDB()" 
-                           onkeydown="if(event.key === 'Enter') { this.blur(); }" 
+                           onkeydown="if(event.key === 'Enter') { event.preventDefault(); this.blur(); locKetQuaNhanhKTSDB(); }" 
                            placeholder="Nhập lớp, môn, GV (VD: 1a1)..." 
                            class="w-full pl-8 pr-7 py-1.5 border border-slate-300 rounded text-xs font-semibold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white placeholder-slate-400">
-                    <svg class="w-4 h-4 absolute left-2.5 top-2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     
                     <!-- NÚT XOÁ NHANH TÌM KIẾM -->
                     <button id="btnXoaTimKTSDB" onclick="xoaTimNhanhKTSDB()" style="display: none;" class="absolute right-2 top-2 text-slate-400 hover:text-red-500 transition-colors" title="Xóa từ khóa tìm kiếm">
@@ -174,7 +176,7 @@ function taoKhungGiaoDienKiemTraSDB() {
         <!-- THẺ THỐNG KÊ NHANH TỔNG HỢP -->
         <div id="theThongKeTongHop_KTSDB" class="mb-3 hidden"></div>
 
-        <!-- BẢNG KẾT QUẢ DỮ LIỆU (TỐI ƯU HÓA GPU VÀ CUỘN MƯỢT KHI DỮ LIỆU KHỔNG LỒ) -->
+        <!-- BẢNG KẾT QUẢ DỮ LIỆU -->
         <div id="khungCuonBangKTSDB" style="transform: translateZ(0); will-change: scroll-position; -webkit-overflow-scrolling: touch;" class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative rounded">
             <table id="bangKiemTraSDB" class="bang-excel w-full text-center border-collapse">
                 <thead class="sticky top-0 z-20 bg-slate-200 text-slate-900 shadow-sm border-b-2 border-slate-400" style="font-family:'Times New Roman',Times,serif;">
@@ -197,7 +199,7 @@ function taoKhungGiaoDienKiemTraSDB() {
             </table>
         </div>
 
-        <!-- THANH PHÂN TRANG THÔNG MINH (CHỐNG NGHẼN KHI DỮ LIỆU HÀNG NGHÌN TIẾT) -->
+        <!-- THANH PHÂN TRANG THÔNG MINH -->
         <div id="thanhPhanTrangKTSDB" class="mt-2.5 p-2.5 bg-white border border-gray-300 shadow-sm rounded-lg flex flex-wrap items-center justify-between gap-3 text-xs flex-none">
             <div class="flex items-center gap-2">
                 <span class="font-extrabold text-slate-600">Quy mô trang:</span>
@@ -315,7 +317,7 @@ function taoBoLocVuaGoVuaChon_KTSDB(config) {
                class="w-full px-2.5 py-1.5 pr-7 text-xs border border-blue-400 rounded shadow-sm outline-none focus:ring-2 focus:ring-blue-600 transition-colors bg-white font-extrabold text-blue-900 placeholder-slate-400 cursor-pointer text-center" 
                placeholder="${placeholder || 'Chọn...'}">
         <div class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-blue-500">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            <svg class="w-4 h-4 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </div>
         <ul id="${idList}" class="absolute z-[999] w-full mt-1 max-h-56 overflow-y-auto overscroll-contain bg-white border border-blue-400 rounded-md shadow-2xl hidden divide-y divide-slate-100 left-0 text-left"></ul>
     `;
@@ -828,7 +830,6 @@ const _thuTuThuKTSDB = { "Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5,
 function taoHtmlCacLopTrongTrangKTSDB(cacDonViTrongTrang) {
     if (!cacDonViTrongTrang || cacDonViTrongTrang.length === 0) return '';
 
-    // Nhóm lại theo Tuần để Rowspan cột Tuần hiển thị chuẩn xác
     let mapTheoTuan = {};
     cacDonViTrongTrang.forEach(item => {
         if (!mapTheoTuan[item.tuan]) mapTheoTuan[item.tuan] = [];
@@ -865,10 +866,9 @@ function taoHtmlCacLopTrongTrangKTSDB(cacDonViTrongTrang) {
                 let isCuoiCungCuaLop = (index === soDongCuaLop - 1);
                 let vienDayLop = isCuoiCungCuaLop ? 'border-b-2 border-slate-500' : 'border-b border-gray-300';
 
-                // Bỏ transition-colors trên tr để triệt tiêu hoàn toàn giật lag khi cuộn chuột qua hàng ngàn dòng
                 buffer.push(`<tr class="dong-du-lieu-ktsdb bg-white hover:bg-slate-50 ${vienDayLop}" data-lop="${lop}" data-mon="${item.monHoc}" data-gv="${item.maGv}">`);
 
-                // 1. CỘT TUẦN (Rowspan trong phạm vi trang)
+                // 1. CỘT TUẦN
                 if (!daInCotTuan) {
                     buffer.push(`
                         <td rowspan="${tongDongCuaTuan}" class="text-center align-top font-extrabold text-blue-900 bg-slate-100 border-r-2 border-b-2 border-slate-500 p-2.5">
@@ -880,7 +880,7 @@ function taoHtmlCacLopTrongTrangKTSDB(cacDonViTrongTrang) {
                     daInCotTuan = true;
                 }
 
-                // 2. CỘT LỚP (Rowspan trọn vẹn theo từng lớp)
+                // 2. CỘT LỚP
                 if (!daInCotLop) {
                     buffer.push(`
                         <td rowspan="${soDongCuaLop}" class="text-center align-top font-black text-slate-800 bg-purple-50/30 border-r border-b-2 border-slate-500 p-2.5">
@@ -948,7 +948,7 @@ function taoHtmlCacLopTrongTrangKTSDB(cacDonViTrongTrang) {
     return buffer.join('');
 }
 
-// [GIẢI PHÁP ĐỘT PHÁ TRIỆT TIÊU 100% ĐƠ TRÌNH DUYỆT]: Phân trang thông minh cho tập dữ liệu lớn
+// Phân trang thông minh cho tập dữ liệu lớn
 function renderBangKetQuaKTSDB(baoCao, tuTuan, denTuan) {
     const tbody = document.getElementById('vungDuLieuKiemTraSDB');
     if (!tbody) return;
@@ -969,7 +969,6 @@ function renderBangKetQuaKTSDB(baoCao, tuTuan, denTuan) {
         return;
     }
 
-    // Chuẩn hóa danh sách các đơn vị Lượt lớp
     let danhSachDonVi = [];
     let tongTiet = 0;
     danhSachTuanCoLoi.forEach(t => {
@@ -985,7 +984,6 @@ function renderBangKetQuaKTSDB(baoCao, tuTuan, denTuan) {
     _quanLyPhanTrangKTSDB.tongSoTiet = tongTiet;
     _quanLyPhanTrangKTSDB.trangHienTai = 1;
 
-    // Tính toán phân trang và kết xuất trang đầu tiên
     tinhToanVaRenderTrangHienTaiKTSDB();
 }
 
@@ -1000,7 +998,6 @@ function tinhToanVaRenderTrangHienTaiKTSDB() {
     let tongTrang = 1;
 
     if (kichThuocTrang === 'tuan') {
-        // Phân trang theo từng Tuần học
         let setTuan = Array.from(new Set(danhSachDonViLop.map(d => d.tuan))).sort((a, b) => a - b);
         tongTrang = Math.max(1, setTuan.length);
         if (trangHienTai > tongTrang) trangHienTai = tongTrang;
@@ -1010,7 +1007,6 @@ function tinhToanVaRenderTrangHienTaiKTSDB() {
         let tuanDangXem = setTuan[trangHienTai - 1];
         cacDonViTrongTrang = danhSachDonViLop.filter(d => d.tuan === tuanDangXem);
     } else {
-        // Phân trang theo số lượng lượt lớp (5, 10, 20...)
         let pageSize = parseInt(kichThuocTrang, 10) || 10;
         tongTrang = Math.max(1, Math.ceil(tongSoDonVi / pageSize));
         if (trangHienTai > tongTrang) trangHienTai = tongTrang;
@@ -1024,18 +1020,14 @@ function tinhToanVaRenderTrangHienTaiKTSDB() {
 
     _quanLyPhanTrangKTSDB.tongSoTrang = tongTrang;
 
-    // Đếm số tiết trên trang đang vẽ
     let soTietTrangNay = 0;
     cacDonViTrongTrang.forEach(d => { soTietTrangNay += d.dsTiet.length; });
 
-    // Kết xuất HTML trong tích tắc (chỉ vẽ đúng ~150-300 dòng, không bao giờ quá tải)
     tbody.innerHTML = taoHtmlCacLopTrongTrangKTSDB(cacDonViTrongTrang);
 
-    // Cuộn nhẹ về đỉnh bảng
     let khungCuon = document.getElementById('khungCuonBangKTSDB');
     if (khungCuon) khungCuon.scrollTop = 0;
 
-    // Cập nhật các chỉ số trên thanh phân trang
     capNhatUIThanhPhanTrangKTSDB(soTietTrangNay, tongSoTiet, tongSoDonVi, cacDonViTrongTrang.length);
 }
 
@@ -1102,6 +1094,153 @@ window.doiKichThuocTrangKTSDB = function(val) {
     _quanLyPhanTrangKTSDB.trangHienTai = 1;
     tinhToanVaRenderTrangHienTaiKTSDB();
 };
+
+// =========================================================================
+// [KHẮC PHỤC TRIỆT ĐỂ]: ĐIỀU HƯỚNG XEM SĐB, TÌM KIẾM THEO DỮ LIỆU & XOÁ TÌM KIẾM
+// =========================================================================
+window.chuyenHuongXemSDB = function(tuan, lop) {
+    if (typeof kichHoatTab === 'function') {
+        kichHoatTab('menuSoDauBai', 'khungSoDauBai', false);
+    }
+    
+    setTimeout(() => {
+        let selTuan = document.getElementById('chonTuanSo');
+        let selLop = document.getElementById('chonLopSo');
+        
+        if (selTuan) {
+            selTuan.value = String(tuan);
+            if (typeof dongBoHienThiTuSelect === 'function') dongBoHienThiTuSelect('chonTuanSo');
+        }
+        if (selLop) {
+            selLop.value = String(lop);
+            if (typeof dongBoHienThiTuSelect === 'function') dongBoHienThiTuSelect('chonLopSo');
+        }
+
+        if (typeof ketXuatSoDauBaiLenLuoi === 'function') {
+            ketXuatSoDauBaiLenLuoi();
+        }
+    }, 150);
+};
+
+window.locKetQuaNhanhKTSDB = function() {
+    let input = document.getElementById('timNhanhKTSDB');
+    if (!input) return;
+
+    let tuKhoaGoc = input.value.trim();
+    let tuKhoa = tuKhoaGoc.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+    // 1. Chống chạy lặp lại nếu từ khoá không thay đổi khi thoát chuột
+    if (tuKhoa === tuKhoaCu_KTSDB) return;
+    tuKhoaCu_KTSDB = tuKhoa;
+
+    // 2. Bật/tắt nút xoá nhanh (dấu X)
+    let btnXoa = document.getElementById('btnXoaTimKTSDB');
+    if (btnXoa) {
+        btnXoa.style.display = (tuKhoa !== '') ? 'block' : 'none';
+    }
+
+    if (!duLieuBaoCaoHienTai_KTSDB || Object.keys(duLieuBaoCaoHienTai_KTSDB).length === 0) return;
+
+    // 3. Nếu người dùng xoá trắng ô tìm kiếm -> Khôi phục lại toàn bộ dữ liệu gốc
+    if (tuKhoa === '') {
+        let tongTietGoc = 0;
+        let thieuTenGoc = 0, chuaNXGoc = 0, chuaKyGoc = 0;
+        let setLopGoc = new Set();
+
+        Object.keys(duLieuBaoCaoHienTai_KTSDB).forEach(tuan => {
+            Object.keys(duLieuBaoCaoHienTai_KTSDB[tuan]).forEach(lop => {
+                let ds = duLieuBaoCaoHienTai_KTSDB[tuan][lop];
+                tongTietGoc += ds.length;
+                setLopGoc.add(tuan + '_' + lop);
+                ds.forEach(t => {
+                    t.lyDo.forEach(ld => {
+                        if (ld.ma === 'TEN_BAI') thieuTenGoc++;
+                        if (ld.ma === 'NHAN_XET') chuaNXGoc++;
+                        if (ld.ma === 'CHU_KY') chuaKyGoc++;
+                    });
+                });
+            });
+        });
+
+        renderThongKeTongHop(boLocHienTai_KTSDB.tuTuan, boLocHienTai_KTSDB.denTuan, setLopGoc.size, tongTietGoc, thieuTenGoc, chuaNXGoc, chuaKyGoc);
+        renderBangKetQuaKTSDB(duLieuBaoCaoHienTai_KTSDB, boLocHienTai_KTSDB.tuTuan, boLocHienTai_KTSDB.denTuan);
+        return;
+    }
+
+    // 4. Lọc dữ liệu trên đối tượng báo cáo gốc và tái cấu trúc lại
+    let baoCaoDaLoc = {};
+    let tongTietKhop = 0;
+    let tapHopLopKhop = new Set();
+    let thieuTenKhop = 0, chuaNXKhop = 0, chuaKyKhop = 0;
+
+    let tuKhoaKoDau = tuKhoa.replace(/\s+/g, '');
+
+    Object.keys(duLieuBaoCaoHienTai_KTSDB).forEach(tuan => {
+        let tuanObj = duLieuBaoCaoHienTai_KTSDB[tuan];
+        Object.keys(tuanObj).forEach(lop => {
+            let dsTiet = tuanObj[lop];
+            
+            // Điều kiện khớp linh hoạt: Tên Lớp, Tên Môn, Tên Giáo viên, Thứ, Tiết hoặc Lý do
+            let dsTietKhop = dsTiet.filter(tiet => {
+                let textLop = (tiet.lop || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+                let textMon = (tiet.monHoc || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+                let textGv = (tiet.maGv || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+                let textThu = (tiet.thu || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+                let textLyDo = (tiet.lyDo || []).map(l => l.text).join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                let textToanBo = textLop + ' ' + textMon + ' ' + textGv + ' ' + textThu + ' ' + (tiet.buoi || '') + ' tiet ' + (tiet.tiet || '') + ' ' + textLyDo + ' ' + (tiet.ngay || '') + ' tuan ' + tuan;
+
+                let lopKoDau = textLop.replace(/\s+/g, '');
+                let gvKoDau = textGv.replace(/\s+/g, '');
+                let monKoDau = textMon.replace(/\s+/g, '');
+
+                return textToanBo.includes(tuKhoa) || 
+                       textLop.includes(tuKhoa) || 
+                       lopKoDau.includes(tuKhoaKoDau) || 
+                       textGv.includes(tuKhoa) || 
+                       gvKoDau.includes(tuKhoaKoDau) || 
+                       textMon.includes(tuKhoa) || 
+                       monKoDau.includes(tuKhoaKoDau);
+            });
+
+            if (dsTietKhop.length > 0) {
+                if (!baoCaoDaLoc[tuan]) baoCaoDaLoc[tuan] = {};
+                baoCaoDaLoc[tuan][lop] = dsTietKhop;
+
+                tongTietKhop += dsTietKhop.length;
+                tapHopLopKhop.add(tuan + '_' + lop);
+                
+                dsTietKhop.forEach(t => {
+                    t.lyDo.forEach(ld => {
+                        if (ld.ma === 'TEN_BAI') thieuTenKhop++;
+                        if (ld.ma === 'NHAN_XET') chuaNXKhop++;
+                        if (ld.ma === 'CHU_KY') chuaKyKhop++;
+                    });
+                });
+            }
+        });
+    });
+
+    // 5. Cập nhật lại số liệu thống kê phản ánh đúng kết quả tìm kiếm
+    renderThongKeTongHop(boLocHienTai_KTSDB.tuTuan, boLocHienTai_KTSDB.denTuan, tapHopLopKhop.size, tongTietKhop, thieuTenKhop, chuaNXKhop, chuaKyKhop);
+
+    // 6. Kết xuất lại bảng HTML: Rowspan và Phân trang được tính lại chuẩn xác theo đúng số dòng tìm được
+    renderBangKetQuaKTSDB(baoCaoDaLoc, boLocHienTai_KTSDB.tuTuan, boLocHienTai_KTSDB.denTuan);
+};
+
+// Hàm xoá nhanh từ khoá tìm kiếm và hoàn tác bảng ngay lập tức
+window.xoaTimNhanhKTSDB = function() {
+    let input = document.getElementById('timNhanhKTSDB');
+    if (input) {
+        input.value = '';
+        tuKhoaCu_KTSDB = '';
+        locKetQuaNhanhKTSDB();
+        input.focus();
+    }
+};
+
+// =========================================================================
+// KHỐI 7: XUẤT EXCEL & IN ẤN BÁO CÁO CHUYÊN NGHIỆP
+// =========================================================================
 window.xuatExcelKiemTraSoDauBai = async function() {
     let baoCao = (typeof duLieuBaoCaoDangHienThi_KTSDB !== 'undefined' && Object.keys(duLieuBaoCaoDangHienThi_KTSDB).length > 0)
         ? duLieuBaoCaoDangHienThi_KTSDB 
@@ -1197,7 +1336,6 @@ window.inBaoCaoKiemTraSoDauBai = function() {
     let denTuan = boLocHienTai_KTSDB.denTuan;
     let namHoc = boLocHienTai_KTSDB.namHoc;
 
-    // Tính tổng số tiết vi phạm
     let danhSachTuan = Object.keys(baoCao).map(Number).sort((a, b) => a - b);
     let tongTiet = 0;
     danhSachTuan.forEach(t => {
@@ -1206,15 +1344,11 @@ window.inBaoCaoKiemTraSoDauBai = function() {
         });
     });
 
-    // Xác định chế độ in: Mặc định in 1.000 dòng nếu dữ liệu lớn
-    let cheDoIn = '1000'; // '1000', 'trang', hoặc 'tatca'
+    let cheDoIn = '1000';
 
     if (tongTiet <= 1000) {
-        // Dữ liệu từ 1.000 tiết trở xuống: In toàn bộ ngay lập tức không cần hỏi
         cheDoIn = 'tatca';
     } else {
-        // Dữ liệu lớn khổng lồ (> 1.000 tiết như trường hợp 4.608 tiết):
-        // Hỏi người dùng với giá trị mặc định là 1 (In 1.000 dòng theo đúng nhu cầu)
         let luaChon = prompt(
             `Hệ thống phát sinh ${tongTiet} tiết vi phạm (khoảng ${Math.ceil(tongTiet / 35)} trang giấy).\n\n` +
             `Chọn phạm vi in:\n` +
@@ -1225,11 +1359,11 @@ window.inBaoCaoKiemTraSoDauBai = function() {
             "1"
         );
 
-        if (luaChon === null) return; // Người dùng ấn Hủy
+        if (luaChon === null) return;
         let luaChonChuan = luaChon.trim();
         if (luaChonChuan === '2') cheDoIn = 'trang';
         else if (luaChonChuan === '3') cheDoIn = 'tatca';
-        else cheDoIn = '1000'; // Mặc định là 1.000 dòng
+        else cheDoIn = '1000';
     }
 
     let rowsHTML = [];
@@ -1238,7 +1372,6 @@ window.inBaoCaoKiemTraSoDauBai = function() {
     let moTaPhamVi = '';
 
     if (cheDoIn === 'trang' && typeof _quanLyPhanTrangKTSDB !== 'undefined') {
-        // 1. Chế độ in trang đang xem
         moTaPhamVi = '(Phạm vi trang đang xem)';
         let { danhSachDonViLop, trangHienTai, kichThuocTrang } = _quanLyPhanTrangKTSDB;
         let cacDonViTrongTrang = [];
@@ -1285,7 +1418,6 @@ window.inBaoCaoKiemTraSoDauBai = function() {
         });
 
     } else if (cheDoIn === '1000') {
-        // 2. Chế độ in 1.000 dòng (~30 lớp trọn vẹn, không cắt nửa chừng lớp nào)
         let daLay = 0;
         let soLopLay = 0;
         for (let tuan of danhSachTuan) {
@@ -1328,7 +1460,6 @@ window.inBaoCaoKiemTraSoDauBai = function() {
         moTaPhamVi = `(Bản in nâng cấp: ${tongTietIn} tiết của ${soLopLay} lượt lớp đầu tiên / Tổng ${tongTiet} tiết)`;
 
     } else {
-        // 3. In toàn bộ dữ liệu dưới dạng bảng phẳng siêu nhẹ chống treo
         moTaPhamVi = `(Toàn bộ ${tongTiet} tiết toàn trường)`;
         danhSachTuan.forEach(tuan => {
             let cacLop = Object.keys(baoCao[tuan]).sort();
