@@ -152,7 +152,7 @@ function taoKhungGiaoDienKiemTraSDB() {
             <div class="flex-1 min-w-[220px] ml-auto">
                 <div class="flex justify-between items-center mb-1">
                     <label class="text-[11px] text-gray-500 uppercase font-extrabold">Tìm nhanh kết quả</label>
-                    <span class="text-[10px] text-blue-600 font-semibold italic">(Click ra ngoài hoặc ấn Enter để lọc)</span>
+                    <span class="text-[10px] text-blue-600 font-semibold italic">(Enter để lọc. Dùng * để lọc đồng đẳng, VD: 1a1*)</span>
                 </div>
                 <div class="relative flex items-center">
                     <button onclick="locKetQuaNhanhKTSDB()" class="absolute left-2.5 top-2 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer" title="Bấm để tìm kiếm ngay">
@@ -162,7 +162,7 @@ function taoKhungGiaoDienKiemTraSDB() {
                            onchange="locKetQuaNhanhKTSDB()" 
                            onblur="locKetQuaNhanhKTSDB()" 
                            onkeydown="if(event.key === 'Enter') { event.preventDefault(); this.blur(); locKetQuaNhanhKTSDB(); }" 
-                           placeholder="Nhập lớp, môn, GV (VD: 1a1)..." 
+                           placeholder="Nhập lớp, môn, GV (VD: 1a1, 1a1*)..." title="Gõ 1a1 để lọc chính xác lớp 1A1; Gõ 1a1* hoặc 1a* để lọc đồng đẳng" 
                            class="w-full pl-8 pr-7 py-1.5 border border-slate-300 rounded text-xs font-semibold outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white placeholder-slate-400">
                     
                     <!-- NÚT XOÁ NHANH TÌM KIẾM -->
@@ -1122,6 +1122,100 @@ window.chuyenHuongXemSDB = function(tuan, lop) {
     }, 150);
 };
 
+// =========================================================================
+// [KHẮC PHỤC TRIỆT ĐỂ]: TÌM KIẾM CHÍNH XÁC & LỌC ĐỒNG ĐẲNG VỚI KÝ TỰ *
+// =========================================================================
+// Hàm kiểm tra khớp ký tự đại diện wildcard (*) cho tính năng lọc đồng đẳng
+function khopWildcard_KTSDB(chuoi, mau) {
+    if (!mau || mau === '*') return true;
+    if (!chuoi) return false;
+
+    // Nếu người dùng lọc khối lớp dạng 1 chữ số có sao (ví dụ: 1*, 2*)
+    // thì không khớp các khối 2 chữ số như 10, 11, 12
+    let matchKhoi = mau.match(/^([1-9])\*(.*)$/);
+    if (matchKhoi) {
+        let khoi = matchKhoi[1];
+        let duoi = matchKhoi[2];
+        let regexStr = '^' + khoi + '(?![0-9])' + (duoi ? '.*' : '.*') + '$';
+        return new RegExp(regexStr, 'i').test(chuoi);
+    }
+
+    let parts = mau.split('*');
+    let escaped = parts.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    let regexStr = '^' + escaped.join('.*') + '$';
+    let re = new RegExp(regexStr, 'i');
+    return re.test(chuoi);
+}
+
+// Hàm kiểm tra một từ/cụm từ tìm kiếm với thông tin tiết học
+function kiemTraKhopTuKhoaKTSDB(tuKhoa, tiet) {
+    if (!tuKhoa) return true;
+    let tu = tuKhoa.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    if (!tu) return true;
+    let tuKoDau = tu.replace(/\s+/g, '');
+    let tuKhongLop = tuKoDau.replace(/^(lop|lớp)/, '');
+    let coDauSao = tu.includes('*');
+
+    let textLop = (tiet.lop || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    let lopKoDau = textLop.replace(/\s+/g, '');
+
+    // 1. Kiểm tra LỚP:
+    // - Nếu có dấu * -> Lọc đồng đẳng (ví dụ: 1a1*, 1a*, 1*)
+    // - Nếu KHÔNG có dấu * -> Khắc phục chính xác (gõ 1a1 chỉ ra đúng 1a1, KHÔNG ra 1a11, 1a12...)
+    if (coDauSao) {
+        if (khopWildcard_KTSDB(lopKoDau, tuKoDau) || (tuKhongLop && khopWildcard_KTSDB(lopKoDau, tuKhongLop))) {
+            return true;
+        }
+    } else {
+        if (lopKoDau === tuKoDau || (tuKhongLop && lopKoDau === tuKhongLop)) {
+            return true;
+        }
+    }
+
+    // 2. Kiểm tra các trường thông tin khác (Môn học, Giáo viên phụ trách, Lý do, Thời điểm)
+    let textMon = (tiet.monHoc || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    let monKoDau = textMon.replace(/\s+/g, '');
+    let textGv = (tiet.maGv || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    let gvKoDau = textGv.replace(/\s+/g, '');
+    let textThu = (tiet.thu || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    let textBuoi = (tiet.buoi || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    let textTiet = String(tiet.tiet || '').trim();
+    let textNgay = (tiet.ngay || '').trim();
+    let textTuan = String(tiet.tuan || '').trim();
+    let textLyDo = (tiet.lyDo || []).map(l => l.text).join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    if (coDauSao) {
+        if (khopWildcard_KTSDB(monKoDau, tuKoDau) || khopWildcard_KTSDB(textMon, tu)) return true;
+        if (khopWildcard_KTSDB(gvKoDau, tuKoDau) || khopWildcard_KTSDB(textGv, tu)) return true;
+        if (khopWildcard_KTSDB(textLyDo, tu)) return true;
+        if (khopWildcard_KTSDB(textThu, tu) || khopWildcard_KTSDB('tiet ' + textTiet, tu) || khopWildcard_KTSDB('tuan ' + textTuan, tu)) return true;
+    } else {
+        if (textMon.includes(tu) || monKoDau.includes(tuKoDau)) return true;
+        if (textGv.includes(tu) || gvKoDau.includes(tuKoDau)) return true;
+        if (textLyDo.includes(tu)) return true;
+        if (textThu.includes(tu) || textBuoi.includes(tu) || ('tiet ' + textTiet).includes(tu) || textTiet === tu) return true;
+        if (textNgay.includes(tu) || ('tuan ' + textTuan).includes(tu)) return true;
+    }
+
+    return false;
+}
+
+// Hàm kiểm tra một dòng tiết học có khớp từ khóa tìm kiếm hay không (hỗ trợ cả cụm từ và đa từ khóa)
+function kiemTraDongKhopKTSDB(tiet, tuKhoaChuan) {
+    if (!tuKhoaChuan) return true;
+
+    // Ưu tiên kiểm tra toàn bộ chuỗi tìm kiếm trước
+    if (kiemTraKhopTuKhoaKTSDB(tuKhoaChuan, tiet)) return true;
+
+    // Nếu chuỗi chứa nhiều từ cách nhau bởi dấu cách (ví dụ: "1a1 toán", "1a1* chưa ký")
+    let cacTu = tuKhoaChuan.split(/\s+/).filter(Boolean);
+    if (cacTu.length > 1) {
+        return cacTu.every(t => kiemTraKhopTuKhoaKTSDB(t, tiet));
+    }
+
+    return false;
+}
+
 window.locKetQuaNhanhKTSDB = function() {
     let input = document.getElementById('timNhanhKTSDB');
     if (!input) return;
@@ -1173,34 +1267,13 @@ window.locKetQuaNhanhKTSDB = function() {
     let tapHopLopKhop = new Set();
     let thieuTenKhop = 0, chuaNXKhop = 0, chuaKyKhop = 0;
 
-    let tuKhoaKoDau = tuKhoa.replace(/\s+/g, '');
-
     Object.keys(duLieuBaoCaoHienTai_KTSDB).forEach(tuan => {
         let tuanObj = duLieuBaoCaoHienTai_KTSDB[tuan];
         Object.keys(tuanObj).forEach(lop => {
             let dsTiet = tuanObj[lop];
             
-            // Điều kiện khớp linh hoạt: Tên Lớp, Tên Môn, Tên Giáo viên, Thứ, Tiết hoặc Lý do
-            let dsTietKhop = dsTiet.filter(tiet => {
-                let textLop = (tiet.lop || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-                let textMon = (tiet.monHoc || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-                let textGv = (tiet.maGv || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-                let textThu = (tiet.thu || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-                let textLyDo = (tiet.lyDo || []).map(l => l.text).join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                let textToanBo = textLop + ' ' + textMon + ' ' + textGv + ' ' + textThu + ' ' + (tiet.buoi || '') + ' tiet ' + (tiet.tiet || '') + ' ' + textLyDo + ' ' + (tiet.ngay || '') + ' tuan ' + tuan;
-
-                let lopKoDau = textLop.replace(/\s+/g, '');
-                let gvKoDau = textGv.replace(/\s+/g, '');
-                let monKoDau = textMon.replace(/\s+/g, '');
-
-                return textToanBo.includes(tuKhoa) || 
-                       textLop.includes(tuKhoa) || 
-                       lopKoDau.includes(tuKhoaKoDau) || 
-                       textGv.includes(tuKhoa) || 
-                       gvKoDau.includes(tuKhoaKoDau) || 
-                       textMon.includes(tuKhoa) || 
-                       monKoDau.includes(tuKhoaKoDau);
-            });
+            // Điều kiện khớp: Tên Lớp (chính xác hoặc lọc đồng đẳng với *), Tên Môn, Tên GV, Thứ, Tiết, Lý do
+            let dsTietKhop = dsTiet.filter(tiet => kiemTraDongKhopKTSDB(tiet, tuKhoa));
 
             if (dsTietKhop.length > 0) {
                 if (!baoCaoDaLoc[tuan]) baoCaoDaLoc[tuan] = {};
