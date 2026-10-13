@@ -1,7 +1,6 @@
 // =========================================================================
-// KHỐI QUẢN LÝ MA TRẬN PHÂN QUYỀN HỆ THỐNG (BẢN CHUẨN ĐỒNG BỘ)
-// Chỉ tập trung: Quản lý Menu Hệ thống, Nút TKB và Khóa Sổ Đầu Bài Tuần
-// Đã loại bỏ hoàn toàn tính năng Khóa TKB theo yêu cầu
+// KHỐI QUẢN LÝ MA TRẬN PHÂN QUYỀN HỆ THỐNG (BẢN CHUẨN ĐỒNG BỘ TOÀN DIỆN)
+// Quản lý Menu Hệ thống, Nút TKB (gồm Khóa TKB Tuần) và Khóa Sổ Đầu Bài Tuần
 // =========================================================================
 
 let duLieuBangPhanQuyen = [];
@@ -27,11 +26,12 @@ const DANH_SACH_NUT_CHUC_NANG = [
     { id: 'btnKiemTra', ten: 'Định Mức tiết' },
     { id: 'btnChuyenTuan', ten: 'Mũi tên Chuyển tuần' },
     { id: 'btnLuuSua', ten: 'Lưu Sửa' },
+    { id: 'btnKhoaTKB', ten: 'Khóa TKB Tuần' },
     { id: 'btnKhoaSoDauBai', ten: 'Khóa Sổ đầu bài Tuần' }
 ];
 
 // =========================================================================
-// HÀM KIỂM SOÁT HIỂN THỊ MENU 7, 8 VÀ NÚT KHÓA SỔ ĐẦU BÀI (CHỐNG ĐỆ QUY TUYỆT ĐỐI)
+// HÀM KIỂM SOÁT HIỂN THỊ MENU 7, 8 VÀ NÚT KHÓA TKB, KHÓA SỔ ĐẦU BÀI (CHỐNG ĐỆ QUY)
 // =========================================================================
 let _dangCapNhatPhanQuyen = false;
 
@@ -69,7 +69,16 @@ function capNhatHienThiPhanQuyen() {
             nhanHT.style.display = 'flex';
         }
 
-        // 3. Kiểm soát hiển thị Nút Khóa Sổ Đầu Bài Tuần
+        // 3a. Kiểm soát hiển thị Nút Khóa TKB Tuần (vùng quyền Admin / Ma trận)
+        let btnKhoaTKB = document.getElementById('btnKhoaTKB');
+        if (btnKhoaTKB) {
+            let duocBamKhoaTKB = coQuyenQuanTri || 
+                                 (typeof quyenChiTiet !== 'undefined' && quyenChiTiet.nut && quyenChiTiet.nut.includes('btnKhoaTKB')) ||
+                                 nutCongKhai.includes('btnKhoaTKB');
+            btnKhoaTKB.style.display = duocBamKhoaTKB ? 'flex' : 'none';
+        }
+
+        // 3b. Kiểm soát hiển thị Nút Khóa Sổ Đầu Bài Tuần
         let btnKhoaSo = document.getElementById('btnKhoaSoDauBai');
         if (btnKhoaSo) {
             let duocBamKhoaSo = coQuyenQuanTri || 
@@ -219,7 +228,7 @@ function khoiTaoDOMPhanQuyen() {
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4 flex-none">
                     <div>
                         <h2 class="text-xl font-extrabold text-blue-900 uppercase">MA TRẬN PHÂN QUYỀN HỆ THỐNG</h2>
-                        <p class="text-xs text-slate-500 font-semibold mt-0.5">Quản lý quyền Menu, Nút chức năng TKB và chế độ Công khai (Toàn trường)</p>
+                        <p class="text-xs text-slate-500 font-semibold mt-0.5">Quản lý quyền Menu, Nút chức năng TKB (gồm Khóa TKB), Khóa Sổ đầu bài và chế độ Công khai</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <!-- Nút 1-Click chuyển đổi công khai nhanh cho Menu PPCT -->
@@ -333,14 +342,26 @@ async function taiDuLieuPhanQuyenTuMayChu() {
 }
 
 function taoNhomCheckbox(danhSachGoc, danhSachDaChon, kieuPhanLoai) {
-    let html = `<div class="flex flex-wrap gap-2 justify-start max-h-32 overflow-y-auto p-1 custom-scrollbar">`;
+    let html = `<div class="flex flex-wrap gap-2 justify-start max-h-48 min-h-[120px] overflow-y-auto p-1 custom-scrollbar">`;
     danhSachGoc.forEach(item => {
         let idItem = typeof item === 'object' ? item.id : item;
         let tenItem = typeof item === 'object' ? item.ten : item;
-        let daChon = danhSachDaChon.includes(idItem) ? 'checked' : '';
-        html += `<label class="flex items-center gap-1 bg-slate-50 border border-gray-300 px-2 py-1 rounded text-xs cursor-pointer hover:bg-slate-100 transition-colors">
+        let daChon = (danhSachDaChon || []).includes(idItem) ? 'checked' : '';
+        
+        let borderClass = 'bg-slate-50 border-gray-300 text-slate-700';
+        if (idItem === 'btnKhoaTKB') {
+            borderClass = daChon 
+                ? 'bg-amber-100 border-amber-400 text-amber-900 font-extrabold shadow-sm' 
+                : 'bg-amber-50/70 border-amber-300 text-amber-800 font-semibold';
+        } else if (idItem === 'btnKhoaSoDauBai') {
+            borderClass = daChon 
+                ? 'bg-rose-100 border-rose-400 text-rose-900 font-extrabold shadow-sm' 
+                : 'bg-rose-50/70 border-rose-300 text-rose-800 font-semibold';
+        }
+
+        html += `<label class="flex items-center gap-1 border px-2 py-1 rounded text-xs cursor-pointer hover:bg-slate-100 transition-colors ${borderClass}">
             <input type="checkbox" value="${idItem}" data-loai="${kieuPhanLoai}" ${daChon} class="cursor-pointer">
-            <span class="font-semibold text-slate-700 whitespace-nowrap">${tenItem}</span>
+            <span class="whitespace-nowrap">${tenItem}</span>
         </label>`;
     });
     html += `</div>`;
