@@ -102,7 +102,7 @@ _call: function(hdong, tso, lan_thu = 1) { // NÂNG CẤP: Thêm tham số đế
             skt_nopbg_cuo: function(mdl) { this._call('skt_nopbg_cuo', { mdl: mdl }); },
             skt_layds_mhs_cn: function() { this._call('skt_layds_mhs_cn', {}); },
             skt_xoadon_nki_thc: function(mhso) { this._call('skt_xoadon_nki_thc', { mhso: mhso }); },
-            skt_laytm_con: function() { this._call('skt_laytm_con', {}); },
+            skt_laytm_con: function(ep_moi) { this._call('skt_laytm_con', { ep_moi: !!ep_moi }); },
             skt_tainhiu_tep: function(dltep, mhso, idtm, ddcu, cdghi) { this._call('skt_tainhiu_tep', { dltep: dltep, mhso: mhso, idtm: idtm, ddcu: ddcu, cdghi: cdghi }); },
             skt_taitm_minhc: function(idcha, tentmu, dltep, ddcu, cdghi) { this._call('skt_taitm_minhc', { idcha: idcha, tentmu: tentmu, dltep: dltep, ddcu: ddcu, cdghi: cdghi }); },
             skt_tk_laydl_loc: function() { this._call('skt_tk_laydl_loc', {}); },
@@ -118,10 +118,12 @@ _call: function(hdong, tso, lan_thu = 1) { // NÂNG CẤP: Thêm tham số đế
             skt_lay_phanquyen: function() { this._call('skt_lay_phanquyen', {}); },
             skt_luu_phanquyen: function(phamvi, cai_chau, mangdl) { this._call('skt_luu_phanquyen', { phamvi: phamvi, cai_chau: cai_chau, mangdl: mangdl }); },
             skt_lay_bophan: function() { this._call('skt_lay_bophan', {}); },
-            skt_luu_bophan: function(mangdl) { this._call('skt_luu_bophan', { mangdl: mangdl }); }
+            skt_luu_bophan: function(mangdl) { this._call('skt_luu_bophan', { mangdl: mangdl }); },
+            skt_xoatep_dd: function(ddan) { this._call('skt_xoatep_dd', { ddan: ddan }); }
         };
     }
     const google = { script: { get run() { return createRunner(null, null); } } };
+   
   </script>
 
   <style>
@@ -404,7 +406,7 @@ _call: function(hdong, tso, lan_thu = 1) { // NÂNG CẤP: Thêm tham số đế
           <label style="font-size: 13px; font-weight: bold; color: #b91c1c; display: block; margin-bottom: 12px; font-family: 'Times New Roman', serif;">📍 CHỌN ĐƠN VỊ</label>
           <select id="sel_don_vi" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #1e3a8a; font-family: 'Times New Roman', serif; font-size: 16px; font-weight: bold; outline: none; background: #ffffff; color: #1e3a8a; text-align: center; text-align-last: center; cursor: pointer;" onchange="thayDoiDonVi(this.value)">
            <option value="" selected>---CHỌN ĐƠN VỊ---</option>   
-           <option value="TRUONG_1">Trường Tiểu học Lên Văn Tám</option>
+           <option value="TRUONG_1">Trường TH&THCS Tả Phời</option>
            
           </select>
       </div>
@@ -1034,6 +1036,15 @@ function kiemtqvata(tk_chuyen_den = null, so_lan_thu = 1) {
                         if(el) { el.classList.remove('reactbits-skeleton'); el.disabled = false; }
                     });
                     try { if (typeof khoitti === 'function') khoitti(); } catch(loie) {}
+
+                    // --- BẮT ĐẦU NÂNG CẤP: ĐỒNG BỘ TẢI NGẦM DANH SÁCH THƯ MỤC MINH CHỨNG ---
+                    if (Array.isArray(dl_tk.dstm)) {
+                        window.skt_ds_thumuc = dl_tk.dstm;
+                        try { if (typeof nap_ds_thumuc_tu_ram === 'function') nap_ds_thumuc_tu_ram(dl_tk.dstm); } catch(e) {}
+                    } else if (q_c_t !== 'xx') {
+                        try { if (typeof taithu === 'function') taithu(false); } catch(e) {}
+                    }
+                    // --- KẾT THÚC NÂNG CẤP ---
                 }
             })
              .withFailureHandler(err => {
@@ -1224,6 +1235,7 @@ function yeuCauDonDepHeThong() {
     })
     .then(function(ketQua) {
         if (ketQua.trth === "tcon") {
+            window.skt_ds_thumuc = null;
             alert(ketQua.dliu); // In ra câu thông báo thành công từ máy chủ
         } else {
             alert("Lỗi từ máy chủ: " + ketQua.tbao);
@@ -1239,7 +1251,7 @@ function yeuCauDonDepHeThong() {
 }
 
    function chuyenHuongHeThong() {
-        var urlDich = 'https://gdlaocailci.github.io/thlevantam/';
+        var urlDich = 'https://gdlaocailci.github.io/taphoi/';
         window.open(urlDich, '_top');
     }
    
@@ -1273,10 +1285,7 @@ function yeuCauDonDepHeThong() {
             }
         });
     }
-
-    khoaTruyCapMaNguon();
-
-   /* ========================================================== */
+/* ========================================================== */
 /* KHỐI XỬ LÝ ĐÓNG/MỞ MENU TRÊN THIẾT BỊ DI ĐỘNG              */
 /* ========================================================== */
 function dongMoMenuMobile() {
@@ -1312,6 +1321,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
    
+    khoaTruyCapMaNguon();
   </script>
+
 </body>
 </html>
