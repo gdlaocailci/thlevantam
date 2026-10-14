@@ -23,25 +23,49 @@ function dungGiaoDienThongKe() {
             <div class="flex flex-wrap items-center gap-3 w-full md:w-auto text-sm font-semibold text-slate-800">
                 <div class="flex flex-col">
                     <label class="text-[11px] text-gray-500 uppercase tracking-widest mb-0.5">Năm học</label>
-                    <input type="text" id="inputNamHocTk" list="dlNamHocTk" onchange="xuLyDoiNamHocTk()" class="w-32 px-2 py-1.5 border border-gray-400 rounded outline-none focus:border-blue-500 bg-slate-50">
+                    <input type="text" id="inputNamHocTk" list="dlNamHocTk"
+                        onmousedown="xuLyMoDanhSachTk(this)"
+                        onfocus="xuLyMoDanhSachTk(this)"
+                        oninput="xuLyChonDanhSachTk(event, this, 'namHoc')"
+                        onchange="xuLyDoiGiaTriTk(this, 'namHoc')"
+                        onblur="xuLyThoatOChonTk(this)"
+                        class="w-32 px-2 py-1.5 border border-gray-400 rounded outline-none focus:border-blue-500 bg-slate-50 placeholder-gray-400 placeholder:font-normal cursor-pointer">
                     <datalist id="dlNamHocTk"></datalist>
                 </div>
 
                 <div class="flex flex-col">
                     <label class="text-[11px] text-gray-500 uppercase tracking-widest mb-0.5">Tháng</label>
-                    <input type="text" id="inputThangTk" list="dlThangTk" onchange="xuLyDoiThangTk()" class="w-32 px-2 py-1.5 border border-gray-400 rounded outline-none focus:border-blue-500 bg-slate-50">
+                    <input type="text" id="inputThangTk" list="dlThangTk"
+                        onmousedown="xuLyMoDanhSachTk(this)"
+                        onfocus="xuLyMoDanhSachTk(this)"
+                        oninput="xuLyChonDanhSachTk(event, this, 'thang')"
+                        onchange="xuLyDoiGiaTriTk(this, 'thang')"
+                        onblur="xuLyThoatOChonTk(this)"
+                        class="w-32 px-2 py-1.5 border border-gray-400 rounded outline-none focus:border-blue-500 bg-slate-50 placeholder-gray-400 placeholder:font-normal cursor-pointer">
                     <datalist id="dlThangTk"></datalist>
                 </div>
 
                 <div class="flex flex-col">
                     <label class="text-[11px] text-gray-500 uppercase tracking-widest mb-0.5">Tuần</label>
-                    <input type="text" id="inputTuanTk" list="dlTuanTk" class="w-36 px-2 py-1.5 border border-gray-400 rounded outline-none focus:border-blue-500 bg-slate-50">
+                    <input type="text" id="inputTuanTk" list="dlTuanTk"
+                        onmousedown="xuLyMoDanhSachTk(this)"
+                        onfocus="xuLyMoDanhSachTk(this)"
+                        oninput="xuLyChonDanhSachTk(event, this, 'tuan')"
+                        onchange="xuLyDoiGiaTriTk(this, 'tuan')"
+                        onblur="xuLyThoatOChonTk(this)"
+                        class="w-36 px-2 py-1.5 border border-gray-400 rounded outline-none focus:border-blue-500 bg-slate-50 placeholder-gray-400 placeholder:font-normal cursor-pointer">
                     <datalist id="dlTuanTk"></datalist>
                 </div>
 
                 <div class="flex flex-col">
                     <label class="text-[11px] text-gray-500 uppercase tracking-widest mb-0.5">Giáo viên</label>
-                    <input type="text" id="inputGiaoVienTk" list="dlGiaoVienTk" class="w-40 px-2 py-1.5 border border-gray-400 rounded outline-none focus:border-blue-500 bg-slate-50">
+                    <input type="text" id="inputGiaoVienTk" list="dlGiaoVienTk"
+                        onmousedown="xuLyMoDanhSachTk(this)"
+                        onfocus="xuLyMoDanhSachTk(this)"
+                        oninput="xuLyChonDanhSachTk(event, this, 'giaoVien')"
+                        onchange="xuLyDoiGiaTriTk(this, 'giaoVien')"
+                        onblur="xuLyThoatOChonTk(this)"
+                        class="w-40 px-2 py-1.5 border border-gray-400 rounded outline-none focus:border-blue-500 bg-slate-50 placeholder-gray-400 placeholder:font-normal cursor-pointer">
                     <datalist id="dlGiaoVienTk"></datalist>
                 </div>
             </div>
@@ -66,6 +90,80 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================================
+// HÀM TIỆN ÍCH UX CHO Ô CHỌN: BẤM VÀO SỔ NGAY DANH SÁCH, MỜ DỮ LIỆU CŨ, CHỌN XONG THOÁT CHUỘT
+// =========================================================================
+function ganGiaTriOChonTk(idInput, giaTri) {
+    let el = document.getElementById(idInput);
+    if (!el) return;
+    let val = String(giaTri || '').trim();
+    el.value = val;
+    el.dataset.giaTriCu = val;
+    el.placeholder = val;
+}
+
+function xuLyMoDanhSachTk(el) {
+    if (!el) return;
+    let valHienTai = el.value.trim();
+    if (valHienTai !== '') {
+        el.dataset.giaTriCu = valHienTai;
+        el.placeholder = valHienTai;
+        el.value = '';
+    }
+    el.dataset.daXuLyChon = '';
+}
+
+function xuLyChonDanhSachTk(evt, el, loai) {
+    if (!el) return;
+    let valMoi = el.value.trim();
+    if (valMoi === '') return;
+
+    let dsOption = el.list ? Array.from(el.list.options).map(opt => opt.value.trim()) : [];
+    let khopChinhXac = dsOption.indexOf(valMoi) !== -1;
+    let laChonTuDanhSach = !evt || !evt.inputType || evt.inputType === 'insertReplacementText';
+
+    // Nếu người dùng bấm chọn trực tiếp từ danh sách sổ xuống (hoặc gõ khớp duy nhất 1 mục)
+    let soMucBatDauBang = dsOption.filter(opt => opt.toLowerCase().indexOf(valMoi.toLowerCase()) === 0).length;
+    if (khopChinhXac && (laChonTuDanhSach || soMucBatDauBang === 1)) {
+        el.dataset.giaTriCu = valMoi;
+        el.placeholder = valMoi;
+        el.dataset.daXuLyChon = valMoi;
+
+        if (loai === 'namHoc') xuLyDoiNamHocTk();
+        else if (loai === 'thang') xuLyDoiThangTk();
+
+        setTimeout(() => { el.blur(); }, 10);
+    }
+}
+
+function xuLyDoiGiaTriTk(el, loai) {
+    if (!el) return;
+    let valMoi = el.value.trim();
+    if (valMoi === '') return;
+
+    if (el.dataset.daXuLyChon === valMoi) {
+        el.dataset.daXuLyChon = '';
+        el.blur();
+        return;
+    }
+
+    el.dataset.giaTriCu = valMoi;
+    el.placeholder = valMoi;
+
+    if (loai === 'namHoc') xuLyDoiNamHocTk();
+    else if (loai === 'thang') xuLyDoiThangTk();
+
+    setTimeout(() => { el.blur(); }, 10);
+}
+
+function xuLyThoatOChonTk(el) {
+    if (!el) return;
+    if (el.value.trim() === '' && el.dataset.giaTriCu) {
+        el.value = el.dataset.giaTriCu;
+    }
+    el.dataset.daXuLyChon = '';
+}
+
+// =========================================================================
 // KHỐI 2: GIAO TIẾP MÁY CHỦ VÀ LOGIC DROPDOWN LIÊN HOÀN
 // =========================================================================
 async function taiCayDanhMucThongKe() {
@@ -83,7 +181,7 @@ async function taiCayDanhMucThongKe() {
             let htmlArr = [];
             dsNam.forEach(n => htmlArr.push(`<option value="${n}">`));
             document.getElementById('dlNamHocTk').innerHTML = htmlArr.join('');
-            document.getElementById('inputNamHocTk').value = dsNam[dsNam.length - 1];
+            ganGiaTriOChonTk('inputNamHocTk', dsNam[dsNam.length - 1]);
             xuLyDoiNamHocTk();
         }
     } catch (loi) {
@@ -94,24 +192,27 @@ async function taiCayDanhMucThongKe() {
 }
 
 function xuLyDoiNamHocTk() {
-    let nam = document.getElementById('inputNamHocTk').value.trim();
+    let elNam = document.getElementById('inputNamHocTk');
+    let nam = elNam ? (elNam.value.trim() || elNam.dataset.giaTriCu || '') : '';
     let duLieuNam = cayDanhMucThongKe[nam];
     if (!duLieuNam) return;
 
     let htmlThang = `<option value="Cả năm">` + duLieuNam.danhSachThang.map(th => `<option value="Tháng ${th}">`).join('');
     document.getElementById('dlThangTk').innerHTML = htmlThang;
-    document.getElementById('inputThangTk').value = "Cả năm";
+    ganGiaTriOChonTk('inputThangTk', "Cả năm");
 
     let htmlGv = `<option value="Toàn trường">` + duLieuNam.danhSachGiaoVien.map(gv => `<option value="${gv}">`).join('');
     document.getElementById('dlGiaoVienTk').innerHTML = htmlGv;
-    document.getElementById('inputGiaoVienTk').value = "Toàn trường";
+    ganGiaTriOChonTk('inputGiaoVienTk', "Toàn trường");
 
     xuLyDoiThangTk();
 }
 
 function xuLyDoiThangTk() {
-    let nam = document.getElementById('inputNamHocTk').value.trim();
-    let thangStr = document.getElementById('inputThangTk').value.trim();
+    let elNam = document.getElementById('inputNamHocTk');
+    let elThang = document.getElementById('inputThangTk');
+    let nam = elNam ? (elNam.value.trim() || elNam.dataset.giaTriCu || '') : '';
+    let thangStr = elThang ? (elThang.value.trim() || elThang.dataset.giaTriCu || '') : '';
     let duLieuNam = cayDanhMucThongKe[nam];
     if (!duLieuNam) return;
 
@@ -127,17 +228,22 @@ function xuLyDoiThangTk() {
 
     let htmlTuan = `<option value="Tất cả các tuần">` + dsTuan.map(t => `<option value="Tuần ${t}">`).join('');
     document.getElementById('dlTuanTk').innerHTML = htmlTuan;
-    document.getElementById('inputTuanTk').value = "Tất cả các tuần";
+    ganGiaTriOChonTk('inputTuanTk', "Tất cả các tuần");
 }
 
 // =========================================================================
 // KHỐI 3: GỌI TRA CỨU VÀ VẼ GIAO DIỆN KẾT QUẢ
 // =========================================================================
 async function goiTraCuuThongKe() {
-    let namHoc = document.getElementById('inputNamHocTk').value.trim();
-    let thang = document.getElementById('inputThangTk').value.replace('Tháng ', '').trim();
-    let tuan = document.getElementById('inputTuanTk').value.replace('Tuần ', '').trim();
-    let giaoVien = document.getElementById('inputGiaoVienTk').value.trim();
+    let elNam = document.getElementById('inputNamHocTk');
+    let elThang = document.getElementById('inputThangTk');
+    let elTuan = document.getElementById('inputTuanTk');
+    let elGv = document.getElementById('inputGiaoVienTk');
+
+    let namHoc = (elNam.value.trim() || elNam.dataset.giaTriCu || '').trim();
+    let thang = (elThang.value.trim() || elThang.dataset.giaTriCu || '').replace('Tháng ', '').trim();
+    let tuan = (elTuan.value.trim() || elTuan.dataset.giaTriCu || '').replace('Tuần ', '').trim();
+    let giaoVien = (elGv.value.trim() || elGv.dataset.giaTriCu || '').trim();
 
     let soTuanTraCuu = 1;
     let duLieuNam = cayDanhMucThongKe[namHoc];
@@ -221,7 +327,7 @@ async function goiTraCuuThongKe() {
         const phanHoi = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=traCuuThongKe&namHoc=${encodeURIComponent(namHoc)}&thang=${encodeURIComponent(thang)}&tuan=${encodeURIComponent(tuan)}&giaoVien=${encodeURIComponent(giaoVien)}`);
         duLieuThongKeHienTai = await phanHoi.json();
         
-        let kieuGv = document.getElementById('inputGiaoVienTk').value.trim();
+        let kieuGv = (elGv.value.trim() || elGv.dataset.giaTriCu || '').trim();
         
         // [NÂNG CẤP]: Sử dụng requestAnimationFrame để tránh nghẽn luồng render
         requestAnimationFrame(() => {
