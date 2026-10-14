@@ -18,9 +18,23 @@
   input[list]::-webkit-calendar-picker-indicator:hover {
       opacity: 1;
   }
+
+  /* Bố cục khung chứa toàn giao diện */
+  .skt-search-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: calc(100vh - 12px);
+    height: calc(100vh - 12px);
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
   .header-card {
     background: white; padding: 5px 10px; border-radius: 6px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 5px; border-top: 3px solid #b91c1c; 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 5px; border-top: 3px solid #b91c1c;
+    width: 100%; box-sizing: border-box; flex-shrink: 0;
   }
   .page-title {
     text-align: center; font-size: 22px; font-family: 'Times New Roman', serif; font-weight: 900; color: #b91c1c; 
@@ -36,7 +50,7 @@
   .filter-section-search .f-item span { 
     font-size: 13px; margin-bottom: 2px; font-weight: bold; color: #1e3a8a; display: block; text-align: left; 
   }
-  .filter-section-search .f-input { width: 100% !important; font-size: 13px; padding: 3px 5px; height: 30px; border: 1px solid #ccc; border-radius: 3px; outline: none;}
+  .filter-section-search .f-input { width: 100% !important; font-size: 13px; padding: 3px 5px; height: 30px; border: 1px solid #ccc; border-radius: 3px; outline: none; box-sizing: border-box;}
   .filter-section-search .f-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
 
   /* ========================================================================= */
@@ -80,8 +94,8 @@
   .print-link { margin-left: 10px; font-size: 13px; font-weight: bold; color: #059669; text-decoration: none; border-bottom: 2px solid #059669; padding-bottom: 2px; animation: fadeIn 0.5s; white-space: nowrap; }
   .print-link:hover { color: #047857; border-color: #047857; }
 
-  .stats-container { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ddd; justify-content: center; }
-  .stat-group { flex: 1; min-width: 150px; max-width: 200px; background: #fff; border: 1px solid #e5e7eb; border-radius: 4px; padding: 3px 6px; }
+  .stats-container { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ddd; justify-content: stretch; width: 100%; box-sizing: border-box; }
+  .stat-group { flex: 1 1 160px; min-width: 150px; background: #fff; border: 1px solid #e5e7eb; border-radius: 4px; padding: 3px 8px; box-sizing: border-box; }
   .sg-general { border-left: 3px solid #2563eb; } .sg-hoso { border-left: 3px solid #059669; } .sg-day { border-left: 3px solid #d97706; } .sg-ks { border-left: 3px solid #7c3aed; } .sg-khac { border-left: 3px solid #db2777; }
   .sg-title { font-size: 12px; font-weight: 900; color: #374151; margin-bottom: 3px; border-bottom: 1px solid #f3f4f6; padding-bottom: 1px; }
   .sg-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 1px; color: #000; }
@@ -89,21 +103,84 @@
   .sg-total { color: #dc2626 !important; font-size: 15px !important; font-weight: 900 !important; }
 
   .table-container-search { 
-    width: 100%; overflow-x: auto; overflow-y: auto; max-height: 78vh; 
-    border: 1px solid #9ca3af; background: #fff; padding-bottom: 50px; 
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto;
+    min-height: 60vh;
+    overflow-x: auto;
+    overflow-y: auto;
+    border: 1px solid #9ca3af;
+    background: #fff;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
   }
-  .result-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .result-table thead th { position: sticky; top: 0; z-index: 10; background: #e0f2fe; border-bottom: 1px solid #64748b; }
-  .result-table th { color: #0c4a6e; font-weight: bold; text-align: center; padding: 6px 4px; border-right: 1px solid #cbd5e1; font-size: 13px; border: 1px solid #cbd5e1; }
+  .result-table {
+    width: 100% !important;
+    min-width: 100% !important;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin: 0;
+    box-sizing: border-box;
+  }
+  .result-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #e0f2fe;
+    border-bottom: 1px solid #64748b;
+  }
+  .result-table th {
+    color: #0c4a6e;
+    font-weight: bold;
+    text-align: center;
+    padding: 6px 4px;
+    font-size: 13px;
+    border: 1px solid #cbd5e1;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
   
   .result-table td { 
-    color: #333; font-size: 13px; border: 1px solid #cbd5e1; 
-    padding: 4px; vertical-align: top; overflow: visible; font-family: Times New Roman;
+    color: #333;
+    font-size: 13px;
+    border: 1px solid #cbd5e1; 
+    padding: 4px;
+    vertical-align: top;
+    overflow: visible;
+    font-family: "Times New Roman", serif;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .col-mahs {
+    text-align: center;
+    font-weight: bold;
+    color: #555;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    line-height: 1.3;
   }
   
   .result-link { color: #2563eb; text-decoration: underline; cursor: pointer; font-weight: bold; }
   .no-result { text-align: center; font-style: italic; color: #666; padding: 20px; }
-  .design-footer { text-align: center; margin-top: 5px; padding-top: 5px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #1e3a8a; font-weight: bold; font-style: italic; font-family: "Times New Roman", serif; }
+  .design-footer {
+    text-align: center;
+    margin-top: 4px;
+    padding: 4px 0 2px 0;
+    border-top: 1px solid #e5e7eb;
+    font-size: 11px;
+    color: #1e3a8a;
+    font-weight: bold;
+    font-style: italic;
+    font-family: "Times New Roman", serif;
+    flex-shrink: 0;
+  }
 
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
   .modal-box { background: white; padding: 20px; border-radius: 8px; width: 350px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
@@ -114,12 +191,18 @@
   .opinion-content {
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     text-overflow: ellipsis; font-size: 13px; color: #333; cursor: help; transition: all 0.2s ease;
+    word-wrap: break-word; overflow-wrap: anywhere; word-break: break-word;
   }
   .opinion-cell-wrapper:hover .opinion-content {
     position: absolute; top: -5px; left: -5px; width: auto; min-width: 300px; max-width: 450px; height: auto;
     background-color: white; color: black; padding: 12px; border: 1px solid #0d6efd; border-radius: 6px;
     box-shadow: 0 5px 25px rgba(0,0,0,0.4); z-index: 9999; white-space: normal;
     -webkit-line-clamp: unset; overflow: visible; text-align: left;
+  }
+  .result-table td:nth-child(14) .opinion-cell-wrapper:hover .opinion-content,
+  .result-table td:nth-child(15) .opinion-cell-wrapper:hover .opinion-content {
+    left: auto;
+    right: 0;
   }
   
   .file-badge {
@@ -132,108 +215,110 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
-<div class="header-card">
-  <div class="page-title" id="title_timkiem">ĐANG ĐỒNG BỘ DỮ LIỆU...</div>
-  
-  <div class="filter-section-search">
-    <!-- NÂNG CẤP: Đổi tên hàm thành _tk để tránh xung đột với file Nhập Liệu -->
-    <div class="f-item">
-      <span>Giáo viên</span>
-      <input id="s_gv" list="list_s_gv" class="f-input" placeholder="-- Tất cả --" onchange="skt_change_cb_tk(this)" onclick="skt_click_cb_tk(this)" onblur="skt_blur_cb_tk(this)" autocomplete="off">
-      <datalist id="list_s_gv"></datalist>
+<div class="skt-search-layout">
+  <div class="header-card">
+    <div class="page-title" id="title_timkiem">ĐANG ĐỒNG BỘ DỮ LIỆU...</div>
+    
+    <div class="filter-section-search">
+      <!-- NÂNG CẤP: Đổi tên hàm thành _tk để tránh xung đột với file Nhập Liệu -->
+      <div class="f-item">
+        <span>Giáo viên</span>
+        <input id="s_gv" list="list_s_gv" class="f-input" placeholder="-- Tất cả --" onchange="skt_change_cb_tk(this)" onclick="skt_click_cb_tk(this)" onblur="skt_blur_cb_tk(this)" autocomplete="off">
+        <datalist id="list_s_gv"></datalist>
+      </div>
+      <div class="f-item">
+        <span>Người kiểm tra</span>
+        <input id="s_nkt" list="list_s_nkt" class="f-input" placeholder="-- Tất cả --" onchange="skt_change_cb_tk(this)" onclick="skt_click_cb_tk(this)" onblur="skt_blur_cb_tk(this)" autocomplete="off">
+        <datalist id="list_s_nkt"></datalist>
+      </div>
+      <div class="f-item">
+        <span>Bộ phận</span>
+        <input id="s_bp" list="list_s_bp" class="f-input" placeholder="-- Tất cả --" onchange="skt_change_cb_tk(this)" onclick="skt_click_cb_tk(this)" onblur="skt_blur_cb_tk(this)" autocomplete="off">
+        <datalist id="list_s_bp"></datalist>
+      </div>
+      <!-- GIỮ NGUYÊN 2 Ô THỜI GIAN -->
+      <div class="f-item"><span>Từ ngày</span><input type="text" id="s_from" class="f-input text-center" placeholder="dd/mm/yyyy" oninput="dinhdng(event);"></div>
+      <div class="f-item"><span>Đến ngày</span><input type="text" id="s_to" class="f-input text-center" placeholder="dd/mm/yyyy" oninput="dinhdng(event);"></div>
+      <div class="f-item" style="display:flex; align-items: flex-end;">
+        <button id="btn_search_main" class="reactbits-btn search-btn" onclick="con_chuot_goi_api_tim_kiem()">🔍 Tìm</button>
+        <button class="reactbits-btn reset-search-btn" onclick="xoatti()">↻</button>
+        <button class="reactbits-btn print-btn" onclick="inba()" title="Xuất sổ kiểm tra">🖨️</button>
+        <button class="reactbits-btn print-pdf-btn" onclick="qua_tao_xuat_pdf()" title="Xuất kết quả ra file PDF" style="display: none;">📄</button>
+        <span id="print_link_container"></span>
+      </div>
     </div>
-    <div class="f-item">
-      <span>Người kiểm tra</span>
-      <input id="s_nkt" list="list_s_nkt" class="f-input" placeholder="-- Tất cả --" onchange="skt_change_cb_tk(this)" onclick="skt_click_cb_tk(this)" onblur="skt_blur_cb_tk(this)" autocomplete="off">
-      <datalist id="list_s_nkt"></datalist>
-    </div>
-    <div class="f-item">
-      <span>Bộ phận</span>
-      <input id="s_bp" list="list_s_bp" class="f-input" placeholder="-- Tất cả --" onchange="skt_change_cb_tk(this)" onclick="skt_click_cb_tk(this)" onblur="skt_blur_cb_tk(this)" autocomplete="off">
-      <datalist id="list_s_bp"></datalist>
-    </div>
-    <!-- GIỮ NGUYÊN 2 Ô THỜI GIAN -->
-    <div class="f-item"><span>Từ ngày</span><input type="text" id="s_from" class="f-input text-center" placeholder="dd/mm/yyyy" oninput="dinhdng(event);"></div>
-    <div class="f-item"><span>Đến ngày</span><input type="text" id="s_to" class="f-input text-center" placeholder="dd/mm/yyyy" oninput="dinhdng(event);"></div>
-    <div class="f-item" style="display:flex; align-items: flex-end;">
-      <button id="btn_search_main" class="reactbits-btn search-btn" onclick="con_chuot_goi_api_tim_kiem()">🔍 Tìm</button>
-      <button class="reactbits-btn reset-search-btn" onclick="xoatti()">↻</button>
-      <button class="reactbits-btn print-btn" onclick="inba()" title="Xuất sổ kiểm tra">🖨️</button>
-      <button class="reactbits-btn print-pdf-btn" onclick="qua_tao_xuat_pdf()" title="Xuất kết quả ra file PDF" style="display: none;">📄</button>
-      <span id="print_link_container"></span>
+
+    <div class="stats-container" id="dashboard_stats" style="display:none;">
+      <div class="stat-group sg-general">
+        <div class="sg-title">TỔNG QUAN</div>
+        <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_total" class="sg-total">0</span></div>
+        <div id="box_thongke_bophan"></div>
+      </div>
+      <div class="stat-group sg-hoso">
+        <div class="sg-title">XL HỒ SƠ</div>
+        <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_hs_total" class="sg-total">0</span></div>
+        <div class="sg-row"><span>Tốt:</span> <span id="st_hs_tot">0</span></div>
+        <div class="sg-row"><span>Khá:</span> <span id="st_hs_kha">0</span></div>
+        <div class="sg-row"><span>TB:</span> <span id="st_hs_tb">0</span></div>
+      </div>
+      <div class="stat-group sg-day">
+        <div class="sg-title">XL GIỜ DẠY</div>
+        <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_gd_total" class="sg-total">0</span></div>
+        <div class="sg-row"><span>Giỏi:</span> <span id="st_gd_gioi">0</span></div>
+        <div class="sg-row"><span>Khá:</span> <span id="st_gd_kha">0</span></div>
+        <div class="sg-row"><span>TB:</span> <span id="st_gd_tb">0</span></div>
+        <div class="sg-row"><span>Yếu:</span> <span id="st_gd_yeu">0</span></div>
+      </div>
+      <div class="stat-group sg-ks">
+        <div class="sg-title">XL KHẢO SÁT</div>
+        <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_ks_total" class="sg-total">0</span></div>
+        <div class="sg-row"><span>Tốt:</span> <span id="st_ks_tot">0</span></div>
+        <div class="sg-row"><span>Khá:</span> <span id="st_ks_kha">0</span></div>
+        <div class="sg-row"><span>Đạt:</span> <span id="st_ks_dat">0</span></div>
+        <div class="sg-row"><span>Yếu:</span> <span id="st_ks_yeu">0</span></div>
+      </div>
+      <div class="stat-group sg-khac">
+        <div class="sg-title">XL KHÁC</div>
+        <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_khac_total" class="sg-total">0</span></div>
+        <div class="sg-row"><span>Tốt:</span> <span id="st_khac_tot">0</span></div>
+        <div class="sg-row"><span>Khá:</span> <span id="st_khac_kha">0</span></div>
+        <div class="sg-row"><span>TB:</span> <span id="st_khac_tb">0</span></div>
+        <div class="sg-row"><span>Chưa đạt:</span> <span id="st_khac_cd">0</span></div>
+      </div>
     </div>
   </div>
 
-  <div class="stats-container" id="dashboard_stats" style="display:none;">
-    <div class="stat-group sg-general">
-      <div class="sg-title">TỔNG QUAN</div>
-      <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_total" class="sg-total">0</span></div>
-      <div id="box_thongke_bophan"></div>
-    </div>
-    <div class="stat-group sg-hoso">
-      <div class="sg-title">XL HỒ SƠ</div>
-      <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_hs_total" class="sg-total">0</span></div>
-      <div class="sg-row"><span>Tốt:</span> <span id="st_hs_tot">0</span></div>
-      <div class="sg-row"><span>Khá:</span> <span id="st_hs_kha">0</span></div>
-      <div class="sg-row"><span>TB:</span> <span id="st_hs_tb">0</span></div>
-    </div>
-    <div class="stat-group sg-day">
-      <div class="sg-title">XL GIỜ DẠY</div>
-      <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_gd_total" class="sg-total">0</span></div>
-      <div class="sg-row"><span>Giỏi:</span> <span id="st_gd_gioi">0</span></div>
-      <div class="sg-row"><span>Khá:</span> <span id="st_gd_kha">0</span></div>
-      <div class="sg-row"><span>TB:</span> <span id="st_gd_tb">0</span></div>
-      <div class="sg-row"><span>Yếu:</span> <span id="st_gd_yeu">0</span></div>
-    </div>
-    <div class="stat-group sg-ks">
-      <div class="sg-title">XL KHẢO SÁT</div>
-      <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_ks_total" class="sg-total">0</span></div>
-      <div class="sg-row"><span>Tốt:</span> <span id="st_ks_tot">0</span></div>
-      <div class="sg-row"><span>Khá:</span> <span id="st_ks_kha">0</span></div>
-      <div class="sg-row"><span>Đạt:</span> <span id="st_ks_dat">0</span></div>
-      <div class="sg-row"><span>Yếu:</span> <span id="st_ks_yeu">0</span></div>
-    </div>
-    <div class="stat-group sg-khac">
-      <div class="sg-title">XL KHÁC</div>
-      <div class="sg-row"><span style="color:#b91c1c; font-weight:bold;">TỔNG SỐ:</span> <span id="st_khac_total" class="sg-total">0</span></div>
-      <div class="sg-row"><span>Tốt:</span> <span id="st_khac_tot">0</span></div>
-      <div class="sg-row"><span>Khá:</span> <span id="st_khac_kha">0</span></div>
-      <div class="sg-row"><span>TB:</span> <span id="st_khac_tb">0</span></div>
-      <div class="sg-row"><span>Chưa đạt:</span> <span id="st_khac_cd">0</span></div>
-    </div>
+  <div class="table-container-search">
+    <table class="result-table">
+      <thead>
+        <tr>
+          <th style="width:36px">STT</th>
+          <th style="width:78px">Thời gian</th>
+          <th style="width:105px">Giáo viên</th>
+          <th style="width:105px">Người KT</th>
+          <th style="width:90px">Bộ phận</th>
+          <th style="width:125px">Nội dung</th> 
+          <th style="width:135px">Ưu điểm</th>  
+          <th style="width:135px">Tồn tại</th>
+          <th style="width:135px">Biện pháp</th>
+          <th style="width:46px">XL HS</th>
+          <th style="width:46px">XL GD</th>
+          <th style="width:46px">XL KS</th>
+          <th style="width:48px">XL khác</th>
+          <th style="width:120px">Ý kiến</th>
+          <th style="width:100px">Ký tên</th>
+          <th style="width:60px">Hồ sơ</th>
+          <th style="width:150px">Mã HS</th>
+        </tr>
+      </thead>
+      <tbody id="searchBody">
+        <tr><td colspan="17" class="no-result">Vui lòng chờ. Đang kết nối dữ liệu máy chủ...</td></tr>
+      </tbody>
+    </table>
   </div>
-</div>
 
-<div class="table-container-search">
-  <table class="result-table">
-    <thead>
-      <tr>
-        <th style="width:40px">STT</th>
-        <th style="width:80px">Thời gian</th>
-        <th style="width:110px">Giáo viên</th>
-        <th style="width:110px">Người KT</th>
-        <th style="width:100px">Bộ phận</th>
-        <th style="width:150px">Nội dung</th> 
-        <th style="width:180px">Ưu điểm</th>  
-        <th style="width:180px">Tồn tại</th>
-        <th style="width:180px">Biện pháp</th>
-        <th style="width:50px">XL HS</th>
-        <th style="width:50px">XL GD</th>
-        <th style="width:50px">XL KS</th>
-        <th style="width:50px">XL khác</th>
-        <th style="width:160px">Ý kiến</th>
-        <th style="width:100px">Ký tên</th>
-        <th style="width:70px">Hồ sơ</th>
-        <th style="width:110px">Mã HS</th>
-      </tr>
-    </thead>
-    <tbody id="searchBody">
-      <tr><td colspan="17" class="no-result">Vui lòng chờ. Đang kết nối dữ liệu máy chủ...</td></tr>
-    </tbody>
-  </table>
+  <div class="design-footer" id="footer_timkiem"></div>
 </div>
-
-<div class="design-footer" id="footer_timkiem"></div>
 
 <div id="tk_modal_overlay" class="modal-overlay">
   <div class="modal-box">
@@ -475,7 +560,7 @@ function hienThiBangKetQua(kqt) {
     let htmlKyTen = "";
     if (bg[14] && String(bg[14]).trim() !== "") {
         htmlKyTen = `<div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-                        <span title="Đã ký xác nhận" style="display: inline-flex; align-items: center;">
+                        <span title="Đã ký xác nhận" style="display: inline-flex; align-items: center; flex-shrink: 0;">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="7 12 11 16 17 9"></polyline>
@@ -504,7 +589,7 @@ function hienThiBangKetQua(kqt) {
       <td style="text-align:center;">${xuatndkno(bg[13])}</td>
       <td style="text-align:center;">${htmlKyTen}</td>
       <td style="text-align:center">${hml}</td>
-      <td style="text-align:center; font-weight:bold; color:#555;">${bg[16]}</td>
+      <td class="col-mahs">${bg[16] || ""}</td>
     `;
     tbg.appendChild(dg);
   });
