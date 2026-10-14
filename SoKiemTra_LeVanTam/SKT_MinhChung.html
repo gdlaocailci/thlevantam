@@ -21,9 +21,12 @@
     <div class="up-header"><h2 style="margin:0; color:#b91c1c;">📁 MINH CHỨNG KÈM THEO</h2></div>
     
     <div class="up-box">
-      <label><b>1. Chọn thư mục lưu trữ (Tiêu chuẩn tải File):</b></label>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <label><b>1. Chọn thư mục lưu trữ (Tiêu chuẩn tải File):</b></label>
+        <button type="button" class="refresh-btn" title="Làm mới danh sách thư mục từ Google Drive" onclick="taithu(true)" style="padding:2px 8px; font-size:12px;">↻</button>
+      </div>
       <select id="folderSelect" style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:4px;">
-        <option>⏳ Đang kết nối...</option>
+        <option value="">⏳ Đang kết nối...</option>
       </select>
     </div>
 
@@ -71,26 +74,47 @@
 <script>
   let tepht = [];
   let lkcx = ""; 
+  let dangTaiThuMuc = false;
 
-// Tải danh sách thư mục con vào ComboBox (Đã bổ sung xử lý lỗi và trạng thái chờ)
-  function taithu() {
+  // --- BẮT ĐẦU NÂNG CẤP: NẠP THƯ MỤC TỨC THÌ TỪ BỘ ĐỆM RAM & CHỐNG GỌI LẶP API ---
+  function nap_ds_thumuc_tu_ram(ds) {
     const hop = document.getElementById('folderSelect');
-    
-    // Hiển thị trạng thái chờ mượt mà trên giao diện
-    if (hop.options.length <= 1) {
-        hop.innerHTML = `<option value="">⏳ Đang tải danh sách thư mục...</option>`;
+    if (!hop || !Array.isArray(ds)) return;
+    const giatriCu = hop.value;
+    hop.innerHTML = `<option value="">-- Thư mục gốc --</option>`;
+    ds.forEach(t1 => hop.add(new Option("📂 " + t1.tenn, t1.idt)));
+    if (giatriCu) hop.value = giatriCu;
+  }
+
+  function taithu(epTaiLai = false) {
+    const hop = document.getElementById('folderSelect');
+    if (!hop) return;
+
+    // Nếu không ép tải lại và đã có sẵn dữ liệu trong RAM -> Đổ ra ngay (0ms), không gọi lại máy chủ
+    if (!epTaiLai && Array.isArray(window.skt_ds_thumuc)) {
+      if (hop.options.length <= 1 || hop.options[0].text.includes("Đang") || hop.options[0].text.includes("Lỗi")) {
+        nap_ds_thumuc_tu_ram(window.skt_ds_thumuc);
+      }
+      return;
     }
+
+    if (dangTaiThuMuc) return;
+    dangTaiThuMuc = true;
+    hop.innerHTML = `<option value="">⏳ Đang tải danh sách thư mục...</option>`;
     
     google.script.run
       .withSuccessHandler(tm => {
-        hop.innerHTML = `<option value="">-- Thư mục gốc --</option>`;
-        if(tm) tm.forEach(t1 => hop.add(new Option("📂 " + t1.tenn, t1.idt)));
+        dangTaiThuMuc = false;
+        window.skt_ds_thumuc = Array.isArray(tm) ? tm : [];
+        nap_ds_thumuc_tu_ram(window.skt_ds_thumuc);
       })
       .withFailureHandler(err => {
-        hop.innerHTML = `<option value="">❌ Lỗi kết nối lấy thư mục</option>`;
+        dangTaiThuMuc = false;
+        hop.innerHTML = `<option value="">❌ Lỗi kết nối lấy thư mục (Nhấn ↻ để thử lại)</option>`;
       })
-      .skt_laytm_con();
+      .skt_laytm_con(epTaiLai);
   }
+  // --- KẾT THÚC NÂNG CẤP ---
 
   // Khởi động Modal đính kèm (Đã bổ sung luồng gọi thư mục)
   function mohopthta(lkht) {
@@ -345,6 +369,12 @@
   function xulykqta(kq, tt, nt) {
     if (kq.tcon) {
       tt.style.color = "green"; tt.innerText = "✅ " + kq.tbao;
+      // Nếu vừa tải cả thư mục lên thư mục gốc, xóa đệm RAM để lần mở sau tự động đồng bộ thư mục mới
+      const cd = document.querySelector('input[name="upMode"]:checked')?.value;
+      const idt = document.getElementById('folderSelect')?.value;
+      if (cd === 'folder' && !idt) {
+          window.skt_ds_thumuc = null;
+      }
       if(typeof trallkch === 'function') {
           trallkch(kq.lkpt); 
       }
