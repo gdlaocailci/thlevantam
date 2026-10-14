@@ -12,13 +12,17 @@ async function taiDuLieuDanhMucGV() {
         duLieuDanhMucGV = [];
         if (duLieuS && duLieuS.length > 1) {
             for (let i = 1; i < duLieuS.length; i++) {
+                let ma = (duLieuS[i][0] !== undefined && duLieuS[i][0] !== null) ? String(duLieuS[i][0]).trim() : '';
+                let ten = (duLieuS[i][1] !== undefined && duLieuS[i][1] !== null) ? String(duLieuS[i][1]).trim() : '';
+                if (ma === '' && ten === '') continue;
+
                 duLieuDanhMucGV.push({
-                    maGv: duLieuS[i][0] || '',
-                    hoTen: duLieuS[i][1] || '',
-                    toChuyenMon: duLieuS[i][2] || '',
-                    dinhMuc: duLieuS[i][3] || '',
-                    trangThai: duLieuS[i][4] || 'Đang công tác',
-                    hopThu: duLieuS[i][5] || ''
+                    maGv: ma,
+                    hoTen: ten,
+                    toChuyenMon: (duLieuS[i][2] !== undefined && duLieuS[i][2] !== null) ? String(duLieuS[i][2]).trim() : '',
+                    dinhMuc: (duLieuS[i][3] !== undefined && duLieuS[i][3] !== null) ? duLieuS[i][3] : '',
+                    trangThai: duLieuS[i][4] ? String(duLieuS[i][4]).trim() : 'Đang công tác',
+                    hopThu: (duLieuS[i][5] !== undefined && duLieuS[i][5] !== null) ? String(duLieuS[i][5]).trim() : ''
                 });
             }
         }
@@ -70,9 +74,9 @@ function veBangDanhMucGV() {
 
 function capNhatGv(index, truong, giaTri) { 
     if (truong === 'maGv') {
-        let maMoi = giaTri.trim();
+        let maMoi = String(giaTri || '').trim();
         if (maMoi !== '') {
-            let biTrung = duLieuDanhMucGV.some((gv, idx) => idx !== index && gv.maGv.trim().toLowerCase() === maMoi.toLowerCase());
+            let biTrung = duLieuDanhMucGV.some((gv, idx) => idx !== index && String(gv.maGv || '').trim().toLowerCase() === maMoi.toLowerCase());
             if (biTrung) {
                 alert(`⚠️ LỖI DỮ LIỆU:\nMã giáo viên "${maMoi}" đã tồn tại trong hệ thống. Vui lòng nhập một mã khác để tránh xung đột thuật toán xếp lịch!`);
                 veBangDanhMucGV(); 
@@ -111,11 +115,23 @@ async function luuDuLieuDanhMucGVSangMayChu() {
 
     try {
         let mangGhi = [TIEU_DE_DM_GV]; 
-        duLieuDanhMucGV.forEach(gv => {
-            if (gv.maGv.trim() !== '') {
-                mangGhi.push([gv.maGv, gv.hoTen, gv.toChuyenMon, gv.dinhMuc, gv.trangThai, gv.hopThu]);
+        for (let i = 0; i < duLieuDanhMucGV.length; i++) {
+            let gv = duLieuDanhMucGV[i];
+            let ma = String(gv.maGv || '').trim();
+            let ten = String(gv.hoTen || '').trim();
+
+            if (ma === '' && ten !== '') {
+                alert(`⚠️ Dòng số ${i + 1} (${ten}) chưa có Mã GV. Vui lòng nhập Mã GV để hệ thống không bỏ sót giáo viên khi xếp lịch và thống kê!`);
+                if (btn) { btn.innerHTML = textGoc; btn.disabled = false; }
+                return;
             }
-        });
+
+            if (ma !== '') {
+                gv.maGv = ma;
+                gv.hoTen = ten;
+                mangGhi.push([ma, ten, gv.toChuyenMon, gv.dinhMuc, gv.trangThai, gv.hopThu]);
+            }
+        }
 
         const payload = { thaoTac: 'luuDanhMucGV', duLieu: mangGhi };
         const phanHoi = await fetch(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { method: 'POST', body: JSON.stringify(payload) });
@@ -155,6 +171,11 @@ async function luuDuLieuDanhMucGVSangMayChu() {
             // Đồng bộ ngầm bổ sung từ máy chủ để bảo đảm toàn vẹn
             if (typeof window.dongBoDanhMucMonVaGiaoVien === 'function') {
                 window.dongBoDanhMucMonVaGiaoVien(false);
+            }
+
+            // Đồng bộ luôn cây danh mục bên phân hệ Thống kê nếu có
+            if (typeof taiCayDanhMucThongKe === 'function') {
+                taiCayDanhMucThongKe();
             }
 
             alert("Đã đồng bộ Danh mục Giáo viên lên hệ thống và cập nhật vào ô chọn Thời khóa biểu thành công!"); 
@@ -208,10 +229,14 @@ function nhapExcelDanhMucGV(e) {
 
             for (let i = 1; i < duLieuExcel.length; i++) {
                 let row = duLieuExcel[i];
-                let maGvMoi = row[0] ? String(row[0]).trim() : '';
+                let tenGvMoi = row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : '';
+                let maGvMoi = row[0] !== undefined && row[0] !== null ? String(row[0]).trim() : '';
+                if (maGvMoi === '' && tenGvMoi !== '') {
+                    maGvMoi = tenGvMoi;
+                }
                 
                 if (maGvMoi !== '') {
-                    let biTrung = duLieuDanhMucGV.some(gv => gv.maGv.trim().toLowerCase() === maGvMoi.toLowerCase());
+                    let biTrung = duLieuDanhMucGV.some(gv => String(gv.maGv || '').trim().toLowerCase() === maGvMoi.toLowerCase());
                     if (biTrung && !ghiDe) {
                         soGvBiTrung++;
                         continue; 
@@ -221,7 +246,7 @@ function nhapExcelDanhMucGV(e) {
 
                     duLieuDanhMucGV.push({
                         maGv: maGvMoi,
-                        hoTen: row[1] ? String(row[1]).trim() : '',
+                        hoTen: tenGvMoi,
                         toChuyenMon: row[2] ? String(row[2]).trim() : 'Tiểu học',
                         dinhMuc: dinhMuc,
                         trangThai: row[4] ? String(row[4]).trim() : 'Đang công tác',
