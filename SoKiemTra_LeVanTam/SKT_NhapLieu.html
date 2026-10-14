@@ -22,7 +22,38 @@
   #mainTable .cell-input::placeholder { opacity: 0.45; }
   select.cell-input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231e3a8a%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 5px top 50%; background-size: 8px auto; padding-right: 15px; text-align-last: center; }
   th { text-align: center !important; vertical-align: middle !important; }
-  .filter-section { grid-template-columns: 220px 220px 220px 175px 1fr !important; }
+  /* --- BẮT ĐẦU NÂNG CẤP: CO GIÃN BỐ CỤC CHUẨN 100% MÀN HÌNH (CHỐNG TRÀN LỀ PHẢI & ĐÁY) --- */
+  #main_content {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      min-height: 0;
+      height: 100%;
+      width: 100%;
+  }
+  .filter-section {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.25fr) minmax(0, 1.1fr) minmax(0, 0.75fr) minmax(0, 1.15fr) !important;
+      gap: 10px !important;
+      margin-top: 10px !important;
+      width: 100% !important;
+  }
+  .filter-section .f-item {
+      min-width: 0 !important;
+      justify-self: stretch !important;
+      text-align: left !important;
+  }
+  .filter-section .f-item:nth-child(5) .f-input {
+      width: 100% !important;
+      margin-left: 0 !important;
+  }
+  #btnSave {
+      margin-top: 10px !important;
+      padding: 9px 32px !important;
+      align-self: flex-end;
+      flex-shrink: 0;
+  }
+  /* --- KẾT THÚC NÂNG CẤP --- */
 
   /* NÂNG CẤP UI: Hiệu ứng làm mờ chữ khi người dùng đang focus chọn lại danh sách */
   .input-dimmed::placeholder {
@@ -101,23 +132,23 @@
   </div>
  <div class="table-container">
     <table id="mainTable">
-      <thead>
+     <thead>
         <tr>
-          <th style="width:35px; text-align:center;">🗑️</th>
-          <th style="width:40px">STT</th>
-          <th style="width:110px">Thời gian</th>
-          <th style="width:140px">Nội dung</th>
-          <th style="width:205px">Ưu điểm</th>
-          <th style="width:195px">Tồn tại</th>
-          <th style="width:180px">Biện pháp</th>
-          <th style="width:55px">XL HS</th>
-          <th style="width:55px">XL GD</th>
-          <th style="width:55px">XL KS</th>
-          <th style="width:55px">XL khác</th>
-          <th style="width:180px">Ý kiến người được KT</th>
-          <th style="width:135px">Ký tên</th>
-          <th style="width:100px">Hồ sơ</th>
-          <th style="width:120px">Mã HS</th>
+          <th style="width:2.5%; text-align:center;">🗑️</th>
+          <th style="width:3%;">STT</th>
+          <th style="width:7.5%;">Thời gian</th>
+          <th style="width:9.5%;">Nội dung</th>
+          <th style="width:12.5%;">Ưu điểm</th>
+          <th style="width:12%;">Tồn tại</th>
+          <th style="width:11.5%;">Biện pháp</th>
+          <th style="width:4.2%;">XL HS</th>
+          <th style="width:4.2%;">XL GD</th>
+          <th style="width:4.2%;">XL KS</th>
+          <th style="width:4.4%;">XL khác</th>
+          <th style="width:9%;">Ý kiến người được KT</th>
+          <th style="width:6.5%;">Ký tên</th>
+          <th style="width:4.5%;">Hồ sơ</th>
+          <th style="width:4.5%;">Mã HS</th>
         </tr>
       </thead>
       <tbody id="tableContent"></tbody>
