@@ -81,6 +81,13 @@
   #mainTable td {
       vertical-align: middle !important;
   }
+  /* Căn lề trên đồng nhất cho 4 cột văn bản dài (Nội dung, Ưu điểm, Tồn tại, Biện pháp) */
+  #mainTable td:nth-child(4),
+  #mainTable td:nth-child(5),
+  #mainTable td:nth-child(6),
+  #mainTable td:nth-child(7) {
+      vertical-align: top !important;
+  }
   #mainTable td:has(.cell-input:disabled) {
       background-color: #f1f5f9 !important;
   }
@@ -212,16 +219,16 @@
           <th style="width:2.8%;">STT</th>
           <th style="width:7.5%;">Thời gian</th>
           <th style="width:9.5%;">Nội dung</th>
-          <th style="width:11%;">Ưu điểm</th>
-          <th style="width:10.5%;">Tồn tại</th>
-          <th style="width:10.5%;">Biện pháp</th>
+          <th style="width:10.6%;">Ưu điểm</th>
+          <th style="width:10.1%;">Tồn tại</th>
+          <th style="width:10.1%;">Biện pháp</th>
           <th style="width:3.8%;">XL HS</th>
           <th style="width:3.8%;">XL GD</th>
           <th style="width:3.8%;">XL KS</th>
           <th style="width:4%;">XL khác</th>
           <th style="width:10.8%;">Ý kiến người được KT</th>
           <th style="width:8%;">Ký tên</th>
-          <th style="width:4%;">Hồ sơ</th>
+          <th style="width:5.2%;">Hồ sơ</th>
           <th style="width:7.5%;">Mã HS</th>
         </tr>
       </thead>
@@ -423,7 +430,7 @@ function trallkch(ddn) {
     const oo = donghtta.querySelector('.evidence-cell');
     const nh = donghtta.querySelector('.link-input');
     const vg = donghtta.querySelector('.link-display-area');
-    const nt = donghtta.querySelector('.btn-upload-icon'); 
+    const nt = oo ? oo.querySelector(':scope > .btn-upload-icon') : donghtta.querySelector('.btn-upload-icon'); 
 
     if (ddn && ddn.trim()) {
         nh.value = ddn;
@@ -431,16 +438,17 @@ function trallkch(ddn) {
         
         if(nt) nt.style.display = 'none'; 
         
-       const clk = ddn.split(',').filter(l => l.trim() !== "");
+        const clk = ddn.split(',').filter(l => l.trim() !== "");
         let htlk = clk.map((l1, c1) => 
-            `<a href="javascript:void(0)" onclick="moKhungXemTep('${l1}')" style="display:block; color:#0369a1; text-decoration:none; font-size:11px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📎 File ${c1 + 1}</a>`
+            `<a href="javascript:void(0)" onclick="moKhungXemTep('${l1}')" style="display:block; width:100%; text-align:center; color:#0369a1; background:#e0f2fe; border:1px solid #bae6fd; border-radius:3px; padding:2px 2px; text-decoration:none; font-size:11px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-sizing:border-box;">📎 File ${c1 + 1}</a>`
         ).join('');
 
+        // Bố trí theo hàng dọc từ trên xuống: Danh sách File -> Nút 📎 File -> Nút 🤖 AI cuối cùng
         vg.innerHTML = `
-            <div style="max-height:60px; overflow-y:auto; margin-bottom:5px;">${htlk}</div>
-            <div style="display: flex; gap: 4px; align-items: stretch; justify-content: space-between;">
-                <button class="btn-ai-nhanxet reactbits-btn" onclick="goi_ai_nhanxet(this)" style="flex: 1; background:#10b981; color:white; border:none; border-radius:3px; padding:4px 2px; font-size:11px; cursor:pointer; font-weight:bold; white-space: normal; line-height: 1.2; word-wrap: break-word;">🤖 AI</button>
-                <button class="btn-upload-icon reactbits-btn" onclick="kichhta(this)" style="flex: 1; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; padding:4px 2px; font-size:11px; cursor:pointer; color:#333; font-weight:bold; white-space: normal; line-height: 1.2; word-wrap: break-word;">📎File</button>
+            <div style="display: flex; flex-direction: column; gap: 4px; align-items: stretch; width: 100%;">
+                <div style="display: flex; flex-direction: column; gap: 3px; max-height: 65px; overflow-y: auto; width: 100%;">${htlk}</div>
+                <button class="btn-upload-icon reactbits-btn" onclick="kichhta(this)" style="width: 100%; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; padding:3px 2px; font-size:11px; cursor:pointer; color:#333; font-weight:bold; white-space:nowrap; line-height:1.2; box-sizing:border-box;">📎 File</button>
+                <button class="btn-ai-nhanxet reactbits-btn" onclick="goi_ai_nhanxet(this)" style="width: 100%; background:#10b981; color:white; border:none; border-radius:3px; padding:3px 2px; font-size:11px; cursor:pointer; font-weight:bold; white-space:nowrap; line-height:1.2; box-sizing:border-box;">🤖 AI</button>
             </div>`;
     } else {
         nh.value = "";
@@ -986,7 +994,62 @@ function thuchms(ha, nt, ch) {
 }
   function hienhth(tb) { document.getElementById('modal_message_nhap').innerText=tb; document.getElementById('modal_overlay_nhap').style.display='flex'; }
   function donghth() { document.getElementById('modal_overlay_nhap').style.display='none'; }
-  function tudochk(ph) { ph.style.height='auto'; ph.style.height=ph.scrollHeight+'px'; }
+  // --- BẮT ĐẦU NÂNG CẤP: TỰ ĐỘNG CO GIÃN CHIỀU CAO DÒNG THEO ĐỘ RỘNG MÀN HÌNH (RESIZE OBSERVER) ---
+  function tudochk(ph) {
+      if (!ph) return;
+      const dg = ph.closest('tr');
+      if (dg) {
+          const dsTa = dg.querySelectorAll('textarea.cell-input');
+          dsTa.forEach(ta => { ta.style.height = '0px'; });
+          dsTa.forEach(ta => { ta.style.height = Math.max(36, ta.scrollHeight) + 'px'; });
+      } else {
+          ph.style.height = '0px';
+          ph.style.height = Math.max(36, ph.scrollHeight) + 'px';
+      }
+  }
+
+  function capNhatChieuCaoBang() {
+      const dsTextarea = document.querySelectorAll('#mainTable textarea.cell-input');
+      if (!dsTextarea.length) return;
+      const khungBang = document.querySelector('#main_content .table-container');
+      const viTriCuon = khungBang ? khungBang.scrollTop : 0;
+
+      // Bước 1: Thu toàn bộ textarea về 0px cùng lúc để giải phóng chiều cao dòng <tr> cũ
+      dsTextarea.forEach(ta => {
+          ta.style.height = '0px';
+      });
+      // Bước 2: Đo lại chính xác scrollHeight theo độ rộng cột mới và gán lại
+      dsTextarea.forEach(ta => {
+          ta.style.height = Math.max(36, ta.scrollHeight) + 'px';
+      });
+
+      if (khungBang) khungBang.scrollTop = viTriCuon;
+  }
+
+  (function khoiTaoTuDongCoGianDong() {
+      let resizeTimer = null;
+      let chieuRongCu = 0;
+      const xuLyCoGian = () => {
+          const bang = document.getElementById('mainTable');
+          const chieuRongMoi = bang ? bang.clientWidth : window.innerWidth;
+          if (chieuRongMoi > 0 && chieuRongMoi !== chieuRongCu) {
+              chieuRongCu = chieuRongMoi;
+              if (resizeTimer) cancelAnimationFrame(resizeTimer);
+              resizeTimer = requestAnimationFrame(() => {
+                  capNhatChieuCaoBang();
+              });
+          }
+      };
+      window.addEventListener('resize', xuLyCoGian);
+      setTimeout(() => {
+          const bang = document.getElementById('mainTable');
+          if (bang && typeof ResizeObserver !== 'undefined') {
+              const ro = new ResizeObserver(xuLyCoGian);
+              ro.observe(bang);
+          }
+      }, 100);
+  })();
+  // --- KẾT THÚC NÂNG CẤP ---
   function dinhdng(s1) { let gi = s1.target.value.replace(/\D/g,''); if(gi.length>8)gi=gi.substring(0,8); let r1=""; if(gi.length>0)r1+=gi.substring(0,2); if(gi.length>2)r1+='/'+gi.substring(2,4); if(gi.length>4)r1+='/'+gi.substring(4,8); s1.target.value=r1; }
   function chuyentxo(lo, ht) { document.querySelectorAll('.f-input, .cell-input').forEach(ptu=>ptu.classList[ht?'add':'remove']('loading-spin')); }
   function dattr(tt) { for(let iso=1;iso<=4;iso++){ let p1=document.getElementById('step'+iso); if(p1){ p1.className='step'; if(iso<tt)p1.classList.add('completed'); if(iso===tt)p1.classList.add('active'); }}}
