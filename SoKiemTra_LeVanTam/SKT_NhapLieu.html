@@ -740,6 +740,49 @@ function themdongmo(dld = null) {
       if(hoplno()) thuchms("skt_nopbg_cuo", document.getElementById('btnSubmit'), "NỘP KẾT QUẢ"); 
   }
 
+// NÂNG CẤP TỐC ĐỘ (0ms): Đồng bộ trực tiếp bộ nhớ đệm Mã hồ sơ & Nhật ký ngay tại trình duyệt
+function dongBoKhoNhatKyTaiCho(dsDong, isSubmit) {
+    try {
+        if (!Array.isArray(window.skt_kho_nhatky)) window.skt_kho_nhatky = [];
+        if (!Array.isArray(dlmhso)) dlmhso = [];
+
+        if (isSubmit) {
+            const tapMaNop = new Set(
+                dsDong.map(d => String(d[16] || "").trim().toLowerCase()).filter(Boolean)
+            );
+            window.skt_kho_nhatky = window.skt_kho_nhatky.filter(
+                hang => !tapMaNop.has(String(hang[16] || "").trim().toLowerCase())
+            );
+            dlmhso = dlmhso.filter(
+                ma => !tapMaNop.has(String(ma || "").trim().toLowerCase())
+            );
+            if (window.ruongbac && Array.isArray(window.ruongbac.kqt)) {
+                const banSaoNop = dsDong.map(d => [...d]);
+                window.ruongbac.kqt = banSaoNop.concat(window.ruongbac.kqt);
+            }
+        } else {
+            dsDong.forEach(dongMoi => {
+                const maHS = String(dongMoi[16] || "").trim();
+                if (!maHS) return;
+                const maTim = maHS.toLowerCase();
+                const viTri = window.skt_kho_nhatky.findIndex(
+                    hang => String(hang[16] || "").trim().toLowerCase() === maTim
+                );
+                if (viTri !== -1) {
+                    window.skt_kho_nhatky[viTri] = [...dongMoi];
+                } else {
+                    window.skt_kho_nhatky.push([...dongMoi]);
+                }
+                const daCoMa = dlmhso.some(m => String(m || "").trim().toLowerCase() === maTim);
+                if (!daCoMa) {
+                    dlmhso.push(maHS);
+                }
+            });
+        }
+        capnhopm();
+    } catch (eSync) {}
+}
+
 function thuchms(ha, nt, ch) {
     // ĐỒNG BỘ NÂNG CẤP: Loại bỏ từ khóa nhạy cảm, sử dụng SKT_DINHDANH_TAIK 
     const con_trau_nuoc = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || tknd);
@@ -806,51 +849,36 @@ function thuchms(ha, nt, ch) {
         return;
     }
     
+    const btnSaveEl = document.getElementById('btnSave');
+    const btnSubmitEl = document.getElementById('btnSubmit');
+    if (btnSaveEl) btnSaveEl.disabled = true;
+    if (btnSubmitEl) btnSubmitEl.disabled = true;
+
     nt.disabled = true; 
     nt.innerText = "⏳ XỬ LÝ..."; 
     nt.classList.add('loading-spin');
     
-    if (isSubmit) {
-        google.script.run
-        .withSuccessHandler(kq_luu => {
-            if(typeof kq_luu === 'string' && (kq_luu.includes("⚠️") || kq_luu.includes("❌"))) { 
-                 nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
-                 hienhth(kq_luu);
-                 return;
-            }
-            google.script.run
-            .withSuccessHandler(kq_nop => {
-                nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
-                hienhth(kq_nop);
-                if(typeof kq_nop === 'string' && !kq_nop.includes("⚠️") && !kq_nop.includes("❌")) { 
-                    setTimeout(lammdsm, 500); 
-                    datlbie(); 
-                }
-            })
-            .withFailureHandler(lo_nop => {
-                nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
-                hienhth("❌ Lỗi nộp báo cáo: " + lo_nop.message);
-            }).skt_nopbg_cuo(thung_chua_do);
-        })
-        .withFailureHandler(lo_luu => {
-            nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
-            hienhth("❌ Lỗi lưu nền hệ thống: " + lo_luu.message);
-        }).skt_luubg_nha(thung_chua_do);
-    } else {
-        google.script.run
-        .withSuccessHandler(kq => {
-          nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin'); 
-          hienhth(kq);
-          if(typeof kq === 'string' && !kq.includes("⚠️") && !kq.includes("❌")) { 
-              setTimeout(lammdsm, 500); 
-              datlbie(); 
-          }
-        })
-        .withFailureHandler(lo => {
-            nt.disabled = false; nt.innerText = ch; nt.classList.remove('loading-spin');
-            hienhth("❌ Lỗi đường truyền mạng: " + lo.message);
-        })[ha](thung_chua_do);
-    }
+    // GỌI TRỰC TIẾP 1 LƯỢT LÊN MÁY CHỦ (Loại bỏ việc gọi kép skt_luubg_nha trước skt_nopbg_cuo)
+    google.script.run
+    .withSuccessHandler(kq => {
+        nt.disabled = false; 
+        nt.innerText = ch; 
+        nt.classList.remove('loading-spin'); 
+        if (typeof kq === 'string' && !kq.includes("⚠️") && !kq.includes("❌")) { 
+            dongBoKhoNhatKyTaiCho(thung_chua_do, isSubmit);
+            datlbie(); 
+        } else {
+            apdquye();
+        }
+        hienhth(kq);
+    })
+    .withFailureHandler(lo => {
+        nt.disabled = false; 
+        nt.innerText = ch; 
+        nt.classList.remove('loading-spin');
+        apdquye();
+        hienhth((isSubmit ? "❌ Lỗi nộp báo cáo: " : "❌ Lỗi đường truyền mạng: ") + lo.message);
+    })[ha](thung_chua_do);
 }
   function kiemttrem(lo) {
     const gv = document.getElementById('cbGiaoVien').value;
@@ -970,13 +998,13 @@ function lammdsm() {
 
   function hoplno() {
     if (!hopllu()) return false;
-    let hl = true;
-    document.querySelectorAll('#tableContent tr').forEach((dg, iso) => {
-        const cn = dg.querySelectorAll('.cell-input');
-        if (!cn[9].value.trim()) { hienhth(`⚠️ Dòng ${iso+1}: Thiếu Ý kiến người được kiểm tra!`); cn[9].focus(); hl = false; return; }
-        if (!cn[10].value.trim()) { hienhth(`⚠️ Dòng ${iso+1}: Thiếu chữ ký xác nhận của người được kiểm tra!`); cn[10].focus(); hl = false; return; }
-    });
-    return hl;
+    const cacDong = document.querySelectorAll('#tableContent tr');
+    for (let iso = 0; iso < cacDong.length; iso++) {
+        const cn = cacDong[iso].querySelectorAll('.cell-input');
+        if (!cn[9].value.trim()) { hienhth(`⚠️ Dòng ${iso+1}: Thiếu Ý kiến người được kiểm tra!`); cn[9].focus(); return false; }
+        if (!cn[10].value.trim()) { hienhth(`⚠️ Dòng ${iso+1}: Thiếu chữ ký xác nhận của người được kiểm tra!`); cn[10].focus(); return false; }
+    }
+    return true;
   }
 
   function dienbgw(ds) {
