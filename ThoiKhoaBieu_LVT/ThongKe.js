@@ -121,7 +121,8 @@ function xuLyDoiThangTk() {
         dsTuan = [...new Set(dsTuan)].sort((a, b) => a - b);
     } else {
         let thSo = thangStr.replace(/\D/g, '');
-        dsTuan = duLieuNam.soDoThoiGian[thSo] || [];
+        let thKey = thSo !== '' ? String(parseInt(thSo, 10)) : thangStr.replace('Tháng ', '').trim();
+        dsTuan = duLieuNam.soDoThoiGian[thKey] || duLieuNam.soDoThoiGian[thSo] || [];
     }
 
     let htmlTuan = `<option value="Tất cả các tuần">` + dsTuan.map(t => `<option value="Tuần ${t}">`).join('');
@@ -145,7 +146,9 @@ async function goiTraCuuThongKe() {
         if (thang === "Cả năm" || thang === "") {
             for (let th in duLieuNam.soDoThoiGian) { dsTuan = dsTuan.concat(duLieuNam.soDoThoiGian[th]); }
         } else {
-            dsTuan = duLieuNam.soDoThoiGian[thang] || [];
+            let thSo = thang.replace(/\D/g, '');
+            let thKey = thSo !== '' ? String(parseInt(thSo, 10)) : thang;
+            dsTuan = duLieuNam.soDoThoiGian[thKey] || duLieuNam.soDoThoiGian[thang] || [];
         }
         dsTuan = [...new Set(dsTuan)];
         soTuanTraCuu = dsTuan.length > 0 ? dsTuan.length : 1;
@@ -163,37 +166,59 @@ async function goiTraCuuThongKe() {
     try {
         let mangDinhMucChuan = {};
         let mapTenGiaoVien = {}; 
+        let mapMaGoc = {};
+        let mapTenSangMaKey = {};
         
         // [NÂNG CẤP]: Áp dụng fetchVoiCoCheThuLai để kết nối ổn định
         const fetchFunc = (typeof fetchVoiCoCheThuLai === 'function') ? fetchVoiCoCheThuLai : fetch;
 
+        let danhSachGvNguon = [];
         if (typeof duLieuDanhMucGV !== 'undefined' && duLieuDanhMucGV.length > 0) {
-            duLieuDanhMucGV.forEach(g => {
-                let ma = (g.maGv || g.hoTen || '').toString().trim();
-                let maKey = ma.toLowerCase(); 
-                mangDinhMucChuan[maKey] = parseInt(g.dinhMuc) || 0;
-                mapTenGiaoVien[maKey] = (g.hoTen || ma).toString().trim();
-            });
+            danhSachGvNguon = duLieuDanhMucGV;
         } else {
             try {
                 const resDM = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDanhMucGV`);
                 const dataDM = await resDM.json();
                 if (dataDM && dataDM.length > 1) {
                     for (let i = 1; i < dataDM.length; i++) {
-                        let ma = (dataDM[i][0] || '').toString().trim();
-                        let maKey = ma.toLowerCase();
-                        let ten = (dataDM[i][1] || ma).toString().trim();
-                        let dinhMuc = dataDM[i][3];
-                        if (maKey !== '') {
-                            mangDinhMucChuan[maKey] = parseInt(dinhMuc) || 0;
-                            mapTenGiaoVien[maKey] = ten;
-                        }
+                        danhSachGvNguon.push({
+                            maGv: dataDM[i][0] !== undefined && dataDM[i][0] !== null ? String(dataDM[i][0]).trim() : '',
+                            hoTen: dataDM[i][1] !== undefined && dataDM[i][1] !== null ? String(dataDM[i][1]).trim() : '',
+                            dinhMuc: dataDM[i][3],
+                            trangThai: dataDM[i][4] ? String(dataDM[i][4]).trim() : 'Đang công tác'
+                        });
                     }
                 }
             } catch(e) { console.warn("Lỗi tải định mức:", e); }
         }
 
-        const phanHoi = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=traCuuThongKe&namHoc=${namHoc}&thang=${thang}&tuan=${tuan}&giaoVien=${giaoVien}`);
+        // Đếm tần suất Họ tên để ánh xạ an toàn các dòng TKB cũ lưu bằng Họ tên
+        let demTen = {};
+        danhSachGvNguon.forEach(g => {
+            let tenLC = (g.hoTen || '').toString().trim().toLowerCase();
+            if (tenLC !== '') demTen[tenLC] = (demTen[tenLC] || 0) + 1;
+        });
+
+        danhSachGvNguon.forEach(g => {
+            let ma = (g.maGv || '').toString().trim();
+            let ten = (g.hoTen || '').toString().trim();
+            let dinhDanh = ma !== '' ? ma : ten;
+            if (dinhDanh === '' || dinhDanh === '---') return;
+
+            let maKey = dinhDanh.toLowerCase();
+            mangDinhMucChuan[maKey] = parseInt(g.dinhMuc, 10) || 0;
+            mapTenGiaoVien[maKey] = ten !== '' ? ten : dinhDanh;
+            mapMaGoc[maKey] = dinhDanh;
+
+            if (ten !== '' && demTen[ten.toLowerCase()] === 1) {
+                mapTenSangMaKey[ten.toLowerCase()] = maKey;
+            }
+            if (ma !== '') {
+                mapTenSangMaKey[ma.toLowerCase()] = maKey;
+            }
+        });
+
+        const phanHoi = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=traCuuThongKe&namHoc=${encodeURIComponent(namHoc)}&thang=${encodeURIComponent(thang)}&tuan=${encodeURIComponent(tuan)}&giaoVien=${encodeURIComponent(giaoVien)}`);
         duLieuThongKeHienTai = await phanHoi.json();
         
         let kieuGv = document.getElementById('inputGiaoVienTk').value.trim();
@@ -201,27 +226,34 @@ async function goiTraCuuThongKe() {
         // [NÂNG CẤP]: Sử dụng requestAnimationFrame để tránh nghẽn luồng render
         requestAnimationFrame(() => {
             if (kieuGv === "Toàn trường" || kieuGv === "") {
-                veBangThongKeToanTruong(duLieuThongKeHienTai, namHoc, thang, tuan, soTuanTraCuu, mangDinhMucChuan, mapTenGiaoVien);
+                veBangThongKeToanTruong(duLieuThongKeHienTai, namHoc, thang, tuan, soTuanTraCuu, mangDinhMucChuan, mapTenGiaoVien, mapMaGoc, mapTenSangMaKey);
             } else {
                 veMaTranThongKeCaNhan(duLieuThongKeHienTai, kieuGv, namHoc, thang, tuan);
             }
         });
         
-        } catch (loi) {
+    } catch (loi) {
         console.error("Lỗi Tra cứu:", loi);
         vungKetQua.innerHTML = `<div class="m-auto text-center text-red-500 font-bold w-full">Lỗi kết nối máy chủ dữ liệu.</div>`;
     }
 }
 
-function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDinhMucChuan, mapTenGiaoVien) {
+function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDinhMucChuan, mapTenGiaoVien, mapMaGoc, mapTenSangMaKey) {
     let tDe = `Thống kê Toàn trường - Năm học ${nam}`;
     if (thang) tDe += ` | Tháng ${thang}`;
     if (tuan) tDe += ` | Tuần ${tuan}`;
 
     let tapHopNgay = new Set();
     duLieu.forEach(t => { 
-        if (t.ngay && t.ngay.trim() !== "") {
-            tapHopNgay.add(t.ngay.trim()); 
+        if (t.ngay && String(t.ngay).trim() !== "") {
+            let sNgay = String(t.ngay).trim();
+            let p = sNgay.split(/[\/\-]/);
+            if (p.length === 3) {
+                let dStr = p[0].padStart(2, '0') + '/' + p[1].padStart(2, '0') + '/' + p[2];
+                tapHopNgay.add(dStr);
+            } else {
+                tapHopNgay.add(sNgay); 
+            }
         }
     });
     
@@ -269,17 +301,48 @@ function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDin
                     <tbody>`);
     
     let tongHopGv = {};
+    let mapKeyHienThi = {};
+
+    // 1. Khởi tạo trước 100% Giáo viên từ Danh mục Giáo viên (kể cả GV có 0 tiết dạy)
+    if (mapTenGiaoVien) {
+        Object.keys(mapTenGiaoVien).forEach(gvKey => {
+            if (!gvKey || gvKey === '---') return;
+            tongHopGv[gvKey] = { sang: 0, chieu: 0, tong: 0 };
+            mapKeyHienThi[gvKey] = (mapMaGoc && mapMaGoc[gvKey]) ? mapMaGoc[gvKey] : gvKey;
+        });
+    }
+
+    // 2. Cộng dồn số tiết thực tế từ dữ liệu TKB
     duLieu.forEach(t => {
-        if (!tongHopGv[t.maGv]) tongHopGv[t.maGv] = { sang: 0, chieu: 0, tong: 0 };
-        if (t.buoi === "Sáng") tongHopGv[t.maGv].sang++;
-        else tongHopGv[t.maGv].chieu++;
-        tongHopGv[t.maGv].tong++;
+        let rawGv = (t.maGv || '').toString().trim();
+        if (!rawGv || rawGv === '---') return;
+        let gvKey = rawGv.toLowerCase();
+
+        if (!tongHopGv[gvKey] && mapTenSangMaKey && mapTenSangMaKey[gvKey]) {
+            gvKey = mapTenSangMaKey[gvKey];
+        }
+
+        if (!tongHopGv[gvKey]) {
+            tongHopGv[gvKey] = { sang: 0, chieu: 0, tong: 0 };
+            mapKeyHienThi[gvKey] = rawGv;
+        }
+        if (String(t.buoi || '').trim().toLowerCase() === "sáng") {
+            tongHopGv[gvKey].sang++;
+        } else {
+            tongHopGv[gvKey].chieu++;
+        }
+        tongHopGv[gvKey].tong++;
     });
 
-    let dsGv = Object.keys(tongHopGv).sort();
-    dsGv.forEach((gv, index) => {
-        let th = tongHopGv[gv];
-        let gvKey = gv.toLowerCase(); 
+    let dsGvKey = Object.keys(tongHopGv).sort((a, b) => {
+        let maA = mapKeyHienThi[a] || a;
+        let maB = mapKeyHienThi[b] || b;
+        return maA.localeCompare(maB, 'vi');
+    });
+
+    dsGvKey.forEach((gvKey, index) => {
+        let th = tongHopGv[gvKey];
+        let gv = mapKeyHienThi[gvKey] || gvKey;
         
         let dinhMuc1Tuan = mangDinhMucChuan[gvKey] || 0;
         let tenThuc = mapTenGiaoVien[gvKey] ? mapTenGiaoVien[gvKey] : gv;
@@ -370,7 +433,19 @@ function veMaTranThongKeCaNhan(duLieu, gv, nam, thang, tuan) {
     thuMacDinh.forEach(thu => { luoi[thu] = { "Sáng": {}, "Chiều": {} }; });
 
     duLieu.forEach(t => {
-        let thu = t.thu; let buoi = t.buoi; let tiet = t.tiet;
+        let thuRaw = String(t.thu || '').trim();
+        let thu = thuRaw;
+        if (/^[2-7]$/.test(thuRaw)) thu = "Thứ " + thuRaw;
+        else if (/^t[2-7]$/i.test(thuRaw)) thu = "Thứ " + thuRaw.substring(1);
+
+        let buoiRaw = String(t.buoi || '').trim().toLowerCase();
+        let buoi = (buoiRaw === "sáng" || buoiRaw === "s") ? "Sáng" : "Chiều";
+        let tiet = t.tiet;
+
+        if (!luoi[thu]) {
+            luoi[thu] = { "Sáng": {}, "Chiều": {} };
+            if (thuMacDinh.indexOf(thu) === -1) thuMacDinh.push(thu);
+        }
         if (luoi[thu] && luoi[thu][buoi]) {
             if (!luoi[thu][buoi][tiet]) luoi[thu][buoi][tiet] = {};
             let khoa = `${t.monHoc} - ${t.maLop}`;
