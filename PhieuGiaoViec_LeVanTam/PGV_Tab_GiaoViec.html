@@ -413,7 +413,6 @@
     <div class="hopDau">
       <div class="d-flex align-items-center">
         <div class="tDe">PHIẾU GIAO NHIỆM VỤ</div>
-        <button id="btnCapNhatChung" class="btn btn-warning btn-sm fw-bold ms-3 shadow-sm" style="display:none;" onclick="gvCapNhatNhiemVuChung()"><i class="bi bi-pencil-square"></i> Cập nhật nhiệm vụ chung</button>
       </div>
       <div class="hopLoc">
         <button id="gvNutChth" class="btn btn-danger btn-sm fw-bold nhapTuyChinh" style="display:none; color: white; border: none; padding: 4px 10px;" onclick="gvXlmChth(this)">Chuyển tháng mới</button>
@@ -1004,22 +1003,18 @@ function gvTaiCanb() {
             quyen = canbHientai.quyen; 
         }
         
-        const btnChung = document.getElementById('btnCapNhatChung'); 
         const btnChuyenThang = document.getElementById('gvNutChth');
         
         if (quyen === 'xxx') { 
             // Quyền XXX (Quản trị VIP): Toàn quyền kiểm soát
-            if (btnChung) btnChung.style.display = 'inline-block'; 
             if (btnChuyenThang) btnChuyenThang.style.display = 'flex'; 
         } 
         else if (quyen === 'xx') { 
             // Quyền XX (Quản trị): Chỉ được chuyển tháng, KHÔNG được cập nhật tiêu chí chung
-            if (btnChung) btnChung.style.display = 'none'; 
             if (btnChuyenThang) btnChuyenThang.style.display = 'none'; 
         }
         else { 
             // Quyền X (Giao việc lẻ), GS (Giám sát), hoặc rỗng: KHÔNG được chuyển tháng và cập nhật chung
-            if (btnChung) btnChung.style.display = 'none'; 
             if (btnChuyenThang) btnChuyenThang.style.display = 'none'; 
         }
     }
@@ -1569,111 +1564,6 @@ function gvVeDong(dong = null) {
     function gvDoiNgn(ptu) {
         if (!ptu) return;
         gvMoModalChonNguoi(ptu);
-    }
-
-// HÀM 2: LƯU ĐỒNG LOẠT TOÀN BỘ (Nút Cập nhật chung) - HỖ TRỢ ĐẦY ĐỦ 1 NGƯỜI, NHIỀU NGƯỜI VÀ TOÀN TRƯỜNG
-    function gvCapNhatNhiemVuChung() {
-        const nm = document.getElementById('gvLocNam') ? document.getElementById('gvLocNam').value : ""; 
-        const th_htai = document.getElementById('gvLocThang') ? document.getElementById('gvLocThang').value : "";
-        const ngDangNhap = gvLayThongTinNguoiDangNhap();
-        let dsNviec = [];
-        const rows = document.querySelectorAll('#gvThanBang tr');
-        if (!rows.length) return;
-        
-        rows.forEach((dong, idx) => {
-            const ndgInput = dong.querySelector('.oNdGv');
-            if (!ndgInput) return;
-            const ndg = ndgInput.value.trim();
-            if (ndg !== "") {
-                const ptu_ngnhan = dong.querySelector('.oNnghanGv');
-                const ptu_gchu = dong.querySelector('.oGchuGv');
-                let gt_nhap = ptu_ngnhan ? ptu_ngnhan.value.trim() : "";
-                let gchu_hientai = ptu_gchu ? ptu_gchu.value.trim() : "";
-                let ma_tai_khoan = "";
-                let ten_hien_thi = "";
-
-                if (gt_nhap.toUpperCase() === 'ALL' || gt_nhap.toUpperCase() === '-TOÀN TRƯỜNG-') {
-                    ma_tai_khoan = 'ALL';
-                    ten_hien_thi = '-TOÀN TRƯỜNG-';
-                    if (!gchu_hientai.startsWith('Người giao:')) {
-                        gchu_hientai = gvTaoChuoiGhiChuChuan([], true, gchu_hientai);
-                    }
-                } else if (gt_nhap !== "") {
-                    let pt = gvPhanTichNguoiNhan(gt_nhap, gchu_hientai);
-                    if (pt.isAll) {
-                        ma_tai_khoan = 'ALL';
-                        ten_hien_thi = '-TOÀN TRƯỜNG-';
-                        if (!gchu_hientai.startsWith('Người giao:')) {
-                            gchu_hientai = gvTaoChuoiGhiChuChuan([], true, gchu_hientai);
-                        }
-                    } else if (pt.ids.length > 0) {
-                        ma_tai_khoan = pt.ids.join(", ");
-                        ten_hien_thi = pt.names.join(", ");
-                        ptu_ngnhan.value = ten_hien_thi;
-                        if (!gchu_hientai.startsWith('Người giao:')) {
-                            const dsChon = pt.ids.map((idVal, kIdx) => ({ ttrg: idVal, tenn: pt.names[kIdx] || idVal }));
-                            gchu_hientai = gvTaoChuoiGhiChuChuan(dsChon, false, gchu_hientai);
-                        }
-                    } else {
-                        ptu_ngnhan.value = "";
-                        return;
-                    }
-                }
-
-                const row_idx = idx + 1;
-                dsNviec.push({ 
-                    row_idx: row_idx,
-                    stt: dong.querySelector('.oSttGv') ? dong.querySelector('.oSttGv').value : "", 
-                    ndung: ndg, 
-                    diemmax: dong.querySelector('.oDmaxGv') ? dong.querySelector('.oDmaxGv').value : "", 
-                    tggiao: dong.querySelector('.oTGGiao') ? dong.querySelector('.oTGGiao').value : "", 
-                    tdo: dong.querySelector('.oTdoGv') ? dong.querySelector('.oTdoGv').value : "", 
-                    tght: dong.querySelector('.oTGHoanThanh') ? dong.querySelector('.oTGHoanThanh').value : "", 
-                    diemdg: dong.querySelector('.oDiemDgGv') ? dong.querySelector('.oDiemDgGv').value : "", 
-                    gchu: gchu_hientai, 
-                    ngnhan: ma_tai_khoan, 
-                    trangngnhan: ma_tai_khoan, 
-                    tenngnhan: ten_hien_thi,
-                    nguoiGiaoId: ngDangNhap.id,
-                    nguoiGiaoTen: ngDangNhap.ten,
-                    nguoiGiaoTaik: ngDangNhap.taik,
-                    colJ: dong.querySelector('.oColJ') ? dong.querySelector('.oColJ').value : "",
-                    colK: dong.querySelector('.oColK') ? dong.querySelector('.oColK').value : "",
-                    colL: dong.querySelector('.oColL') ? dong.querySelector('.oColL').value : "",
-                    colM: dong.querySelector('.oColM') ? dong.querySelector('.oColM').value : ""
-                });
-            }
-        });
-        if (dsNviec.length === 0) return;
-        gvDatTai(true, "⏳ Đang cập nhật toàn bộ nhiệm vụ hợp lệ...");
-        if (typeof khachApi === 'undefined' || !khachApi.gvXulyNviec) {
-            gvTbaoNhanh('loi', "Lỗi: API không khả dụng.");
-            gvDatTai(false);
-            return;
-        }
-        khachApi.gvXulyNviec({
-            nam: nm,
-            thang: th_htai,
-            nviec: {
-                batch: true,
-                ds: dsNviec,
-                nguoiGiaoId: ngDangNhap.id,
-                nguoiGiaoTen: ngDangNhap.ten,
-                nguoiGiaoTaik: ngDangNhap.taik
-            }
-        }, function(kq) { 
-            gvDatTai(false); 
-            if (kq && kq.ttai === 'tcong') {
-                gvTbaoNhanh('tc', "✓ Cập nhật nhiệm vụ thành công!", function() {
-                    setTimeout(gvLaydlGoc, 500);
-                });
-            } else {
-                gvTbaoNhanh('loi', "Lỗi Server: " + (kq ? kq.tbao : "Unknown")); 
-            }
-        }, function(l) { 
-            gvDatTai(false); 
-            gvTbaoNhanh('loi', "Lỗi kết nối: " + (l ? l.message : "Không xác định")); 
-        });
     }
 
     function gvGoiMayChu(n, t, nv, ptu, hth) { 
