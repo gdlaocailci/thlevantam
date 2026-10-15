@@ -11,26 +11,23 @@
   
   <script>
     window.khachApi = {
-          yeucauApi: function(hdong, tdtai, khiTcong, khiLoi) {
+       yeucauApi: function(hdong, tdtai, khiTcong, khiLoi) {
             if (typeof ddungApi === 'undefined' || !ddungApi) {
                 if (khiLoi) khiLoi(new Error("Liên kết API hệ thống chưa sẵn sàng. Vui lòng tải lại trang."));
                 return;
             }
             var dlieu = { hdong: hdong, token: window.PGV_TOKEN || "", ...tdtai };
             
-            fetch(ddungApi, {
+            // NÂNG CẤP: Đính kèm hdong vào URL để chống lỗi mất payload khi GAS redirect 302 sang GET
+            var urlFetch = ddungApi + (ddungApi.includes('?') ? '&' : '?') + 'hdong=' + encodeURIComponent(hdong);
+            
+            fetch(urlFetch, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
                 body: JSON.stringify(dlieu),
-                redirect: 'follow',
-                // [NÂNG CẤP]: Cấm trình duyệt gửi Cookie, giải quyết triệt để lỗi trên điện thoại
-                credentials: 'omit'
+                redirect: 'follow'
             })
             .then(function(ph) { 
-                // Bắt mạch lỗi Redirect sang trang đăng nhập do sai cấu hình URL
-                if (ph.redirected && ph.url.includes('ServiceLogin')) {
-                    throw new Error("Lỗi máy chủ: API đang ở chế độ /dev hoặc chưa cấp quyền truy cập public.");
-                }
                 if (!ph.ok) throw new Error("Máy chủ từ chối kết nối (Mã lỗi: " + ph.status + ")");
                 return ph.text(); 
             })
@@ -49,8 +46,6 @@
             })
             .catch(function(loie) { if (khiLoi) khiLoi(loie); });
         },
-
-      
         layDlCanb: function(ttrang, taik, khiTcong, khiLoi) { this.yeucauApi("laydlcanb", { ttrang: ttrang, tkcanb: taik }, khiTcong, khiLoi); },
         luuTam: function(dldeu, khiTcong, khiLoi) { this.yeucauApi("luutam", { dldeu: dldeu }, khiTcong, khiLoi); },
         nopBcao: function(dl, khiTcong, khiLoi) { this.yeucauApi("nopbcao", { dldeu: dl }, khiTcong, khiLoi); },
@@ -159,12 +154,17 @@ function kiemTraPhienLamViec() {
                 hienThongbLoi("Cảnh báo: Tệp ketnoi.js chưa được khai báo Client ID Google.");
                 return;
             }
+            
+           // [NÂNG CẤP] Bổ sung use_fedcm_for_prompt: true để chuyển đổi sang giao thức FedCM.
+           // Việc này giúp bỏ qua cơ chế Cookie chéo (Third-party Cookies), khắc phục triệt để 
+           // tình trạng chặn đăng nhập trên các trình duyệt hiện đại (Chrome, Safari, Edge).
            google.accounts.id.initialize({
                 client_id: PGV_GOOGLE_CLIENT_ID,
                 callback: xulyPhienDn,
-                auto_prompt: false, // [SỬA LỖI]: Đã bổ sung dấu phẩy tại đây
-                use_fedcm_for_prompt: true
+                auto_prompt: false,
+                use_fedcm_for_prompt: true 
             });
+            
             google.accounts.id.renderButton(
                 document.getElementById("khu_vuc_nut_dang_nhap"),
                 { theme: "outline", size: "large", type: "standard", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
@@ -208,7 +208,7 @@ function xulyPhienDn(phanho) {
       return JSON.parse(noidunjson);
     }
 
-function thoatTaik() { 
+    function thoatTaik() { 
         sessionStorage.removeItem("MA_PBAN_HT"); 
         sessionStorage.removeItem("PGV_TOKEN"); 
         sessionStorage.removeItem("DA_GHI_LS"); 
@@ -219,6 +219,40 @@ function thoatTaik() {
   </script>
 
   <style>
+    body, input, select, textarea, button, table { font-family: 'Times New Roman', Times, serif !important; font-size: 14px; }
+    body { background-color: transparent; min-height: 100vh; overflow: hidden; margin: 0; padding: 0; }
+    body::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 251, 240, 0.6); z-index: -1; pointer-events: none; }
+
+    .bo-cuc-tong { display: flex; width: 100%; align-items: stretch; min-height: 100vh; }
+    .k-ngoai { flex: 1; padding: 0px 20px 20px 0; position: relative; width: calc(100% - 300px); box-sizing: border-box; margin: 0; overflow-y: auto;}
+
+    #manhChao { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f0fdf4; }
+    #lopPhuTai { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); z-index: 10000; display: none; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s ease; }
+    
+    .vongXoay { width: 60px; height: 60px; border: 5px solid rgba(0, 0, 0, 0.1); border-left-color: #0d6efd; border-top-color: #dc3545; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .chuTai { font-family: 'Segoe UI', Arial, sans-serif; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; background: linear-gradient(45deg, #0d6efd, #6610f2, #dc3545, #0d6efd); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientMove 3s ease infinite; }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+    #hopLoi { margin-top: 20px; padding: 10px; background: #ffecec; border: 1px solid #f5c6cb; color: #721c24; border-radius: 5px; max-width: 90%; z-index: 10001; position: relative; }
+
+    .tab-content { background-color: rgba(255, 255, 255, 0.95) !important; border-radius: 6px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.1); min-height: calc(100vh - 40px); }
+    .table { --bs-table-bg: transparent; }
+    .bg-white { background-color: rgba(255,255,255,0.6) !important; }
+
+    #bangThop thead th, #bangBcao thead th, #bangNghi thead th, #bangYkien thead th { padding-top: 4px !important; padding-bottom: 4px !important; vertical-align: middle !important; line-height: 1.1 !important; font-size: 13px !important; white-space: normal !important; border: 1.5px solid #444 !important; background-color: rgba(233, 236, 239, 0.9) !important; }
+    
+    .voBocYk { position: relative; width: 100%; height: 100%; }
+    .ndYk { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; color: #333; cursor: help; }
+    .voBocYk:hover .ndYk { position: absolute; top: -5px; left: -5px; min-width: 300px; max-width: 450px; background-color: white; padding: 12px; border: 1px solid #0d6efd; border-radius: 6px; box-shadow: 0 5px 20px rgba(0,0,0,0.25); z-index: 9999; white-space: normal; -webkit-line-clamp: unset; overflow: visible; text-align: left; }
+    .ndKhoa { filter: blur(4px); pointer-events: none; user-select: none; opacity: 0.6; transition: all 0.3s ease; }
+
+    .nut-huong-dan { position: fixed; bottom: 40px; right: 30px; z-index: 10001; width: 45px; height: 45px; border-radius: 50%; background: linear-gradient(135deg, #198754, #20c997); color: white; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.3s ease; }
+    .nut-huong-dan .kytu-hoi { font-size: 32px; font-weight: 900; font-family: 'Arial Black', Arial, sans-serif; line-height: 1; padding-top: 2px; }
+    .nut-huong-dan span { position: absolute; top: 52px; font-size: 11px; font-weight: bold; color: #198754; white-space: nowrap; background: rgba(255,255,255,0.95); padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); pointer-events: none; }
+    .nut-huong-dan:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.25); color: white; }
+
     /* ========================================================== */
     /* NÂNG CẤP: THUẬT TOÁN RESPONSIVE MENU OFF-CANVAS CHO MOBILE */
     /* ========================================================== */
@@ -267,40 +301,6 @@ function thoatTaik() {
         /* Tối ưu hiển thị bảng trên điện thoại */
         .table-responsive { max-height: calc(100vh - 180px) !important; }
     }
-
-    body, input, select, textarea, button, table { font-family: 'Times New Roman', Times, serif !important; font-size: 14px; }
-    body { background-color: transparent; min-height: 100vh; overflow: hidden; margin: 0; padding: 0; }
-    body::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 251, 240, 0.6); z-index: -1; pointer-events: none; }
-
-    .bo-cuc-tong { display: flex; width: 100%; align-items: stretch; min-height: 100vh; }
-    .k-ngoai { flex: 1; padding: 0px 20px 20px 0; position: relative; width: calc(100% - 300px); box-sizing: border-box; margin: 0; overflow-y: auto;}
-
-    #manhChao { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f0fdf4; }
-    #lopPhuTai { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); z-index: 10000; display: none; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s ease; }
-    
-    .vongXoay { width: 60px; height: 60px; border: 5px solid rgba(0, 0, 0, 0.1); border-left-color: #0d6efd; border-top-color: #dc3545; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    .chuTai { font-family: 'Segoe UI', Arial, sans-serif; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; background: linear-gradient(45deg, #0d6efd, #6610f2, #dc3545, #0d6efd); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientMove 3s ease infinite; }
-
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    @keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-
-    #hopLoi { margin-top: 20px; padding: 10px; background: #ffecec; border: 1px solid #f5c6cb; color: #721c24; border-radius: 5px; max-width: 90%; z-index: 10001; position: relative; }
-
-    .tab-content { background-color: rgba(255, 255, 255, 0.95) !important; border-radius: 6px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.1); min-height: calc(100vh - 40px); }
-    .table { --bs-table-bg: transparent; }
-    .bg-white { background-color: rgba(255,255,255,0.6) !important; }
-
-    #bangThop thead th, #bangBcao thead th, #bangNghi thead th, #bangYkien thead th { padding-top: 4px !important; padding-bottom: 4px !important; vertical-align: middle !important; line-height: 1.1 !important; font-size: 13px !important; white-space: normal !important; border: 1.5px solid #444 !important; background-color: rgba(233, 236, 239, 0.9) !important; }
-    
-    .voBocYk { position: relative; width: 100%; height: 100%; }
-    .ndYk { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; color: #333; cursor: help; }
-    .voBocYk:hover .ndYk { position: absolute; top: -5px; left: -5px; min-width: 300px; max-width: 450px; background-color: white; padding: 12px; border: 1px solid #0d6efd; border-radius: 6px; box-shadow: 0 5px 20px rgba(0,0,0,0.25); z-index: 9999; white-space: normal; -webkit-line-clamp: unset; overflow: visible; text-align: left; }
-    .ndKhoa { filter: blur(4px); pointer-events: none; user-select: none; opacity: 0.6; transition: all 0.3s ease; }
-
-    .nut-huong-dan { position: fixed; bottom: 40px; right: 30px; z-index: 10001; width: 45px; height: 45px; border-radius: 50%; background: linear-gradient(135deg, #198754, #20c997); color: white; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.3s ease; }
-    .nut-huong-dan .kytu-hoi { font-size: 32px; font-weight: 900; font-family: 'Arial Black', Arial, sans-serif; line-height: 1; padding-top: 2px; }
-    .nut-huong-dan span { position: absolute; top: 52px; font-size: 11px; font-weight: bold; color: #198754; white-space: nowrap; background: rgba(255,255,255,0.95); padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); pointer-events: none; }
-    .nut-huong-dan:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.25); color: white; }
   </style>
 </head>
 
@@ -546,26 +546,27 @@ function thoatTaik() {
         $(document).on('change', '#locNamBcao', () => { if(typeof veBangBcao === 'function') veBangBcao(); });
     }
 
-    function thuchScript(ptu) {
-    const cack = ptu.querySelectorAll('script');
-    cack.forEach(kc => {
-        const km = document.createElement('script');
-        // Quét và sao chép các thuộc tính, sử dụng try...catch để bỏ qua các thuộc tính lỗi do Extension chèn vào
+    function thuchScript(ptu) { 
+    const cack = ptu.querySelectorAll('script'); 
+    cack.forEach(kc => { 
+        const km = document.createElement('script'); 
         Array.from(kc.attributes).forEach(tt => {
             try {
+                // Thử sao chép thuộc tính gốc
                 km.setAttribute(tt.name, tt.value);
-            } catch (loiThuocTinh) {
-                console.warn("Đã bỏ qua thuộc tính không hợp lệ: " + tt.name);
+            } catch (err) {
+                // Bỏ qua lỗi nếu tên thuộc tính chứa ký tự đặc biệt do tiện ích của máy khách chèn rác
+                console.warn("Đã bỏ qua thuộc tính rác không hợp lệ: ", tt.name);
             }
-        });
-        km.appendChild(document.createTextNode(kc.innerHTML));
-        kc.parentNode.replaceChild(km, kc);
-    });
+        }); 
+        km.appendChild(document.createTextNode(kc.innerHTML)); 
+        kc.parentNode.replaceChild(km, kc); 
+    }); 
 }
 
     function taiDlBdau() { window.khachApi.layDlCanb(null, window.PGV_ID_TC, khiTaiDlXong, khiLoiMayChu); }
 
-    function khiTaiDlXong(kq) {
+   function khiTaiDlXong(kq) {
       // 3. Tắt chặn màn hình ngay khi lấy được thông tin cơ bản
       datTaiDl(false); 
       $('#manhChao').hide(); 
@@ -627,7 +628,7 @@ function thoatTaik() {
       var canAddRow = true;
       
       var giaoViecReadonly = (quyen !== 'xxx');
-      var showChuyenThang = (quyen === 'xx' || quyen === 'xxx');
+      var showChuyenThang = (quyen === 'xxx');
       var showBatchUpdate = (quyen === 'xxx');
       var yearMonthReadonly = (quyen === 'x');
       
@@ -648,6 +649,27 @@ function thoatTaik() {
       
       try {
         $('#chuTenGv').text(kq.tde?.tenn || ''); 
+        
+        // --- [NÂNG CẤP]: BẮT ĐẦU XỬ LÝ HIỂN THỊ CHỨC VỤ ---
+        let maChucVu = "";
+        if (kq.canb && kq.canb.chucvu) {
+            maChucVu = String(kq.canb.chucvu).trim().toLowerCase();
+        } else if (kq.tde && kq.tde.chucvu) {
+            maChucVu = String(kq.tde.chucvu).trim().toLowerCase();
+        }
+
+        let chucVuHienThi = "Chưa xác định";
+        if (maChucVu === "gv") {
+            chucVuHienThi = "GIÁO VIÊN";
+        } else if (maChucVu === "nv") {
+            chucVuHienThi = "Nhân viên";
+        } else if (maChucVu === "ql") {
+            chucVuHienThi = "QUẢN LÝ";
+        }
+        
+        $('#chuChucVu').text(chucVuHienThi);
+        // --- [NÂNG CẤP]: KẾT THÚC XỬ LÝ HIỂN THỊ CHỨC VỤ ---
+
         $('#chuNamHoc').text(kq.tde?.nhoc || ''); 
         $('#chuThoiGian').text(kq.tde?.tgian || ''); 
         $('#nhapSngayNghi').val(kq.tde?.snnghi || 0); 
@@ -1079,6 +1101,36 @@ function taiTepDangXem() {
                       
         window.open(urlDich, '_top');
     }
+/* ========================================================== */
+  /* KHỐI XỬ LÝ ĐÓNG/MỞ MENU TRÊN THIẾT BỊ DI ĐỘNG              */
+  /* ========================================================== */
+  function dongMoMenuMobile() {
+      var menu = document.getElementById('khuVucMenu');
+      var lopPhu = document.getElementById('overlay-menu-mobile');
+      
+      if (menu.classList.contains('mo-menu')) {
+          menu.classList.remove('mo-menu');
+          lopPhu.style.display = 'none';
+      } else {
+          menu.classList.add('mo-menu');
+          lopPhu.style.display = 'block';
+      }
+  }
+
+  // Thuật toán: Tự động đóng menu khi Thầy/Cô bấm chọn một Tab bất kỳ trên điện thoại
+  // (Sử dụng Event Delegation vì menu được fetch động từ Menu_Doc.html)
+  document.addEventListener("DOMContentLoaded", function() {
+      var menuContainer = document.getElementById('khuVucMenu');
+      if(menuContainer) {
+          menuContainer.addEventListener('click', function(e) {
+              if(e.target.closest('a') || e.target.closest('button') || e.target.closest('li')) {
+                  if(window.innerWidth <= 768) {
+                      dongMoMenuMobile();
+                  }
+              }
+          });
+      }
+  });
     
     function khoaTruyCapMaNguon() {
         // 1. Khóa menu chuột phải
@@ -1111,37 +1163,6 @@ function taiTepDangXem() {
         });
     }
     khoaTruyCapMaNguon();
-
-    /* ========================================================== */
-  /* KHỐI XỬ LÝ ĐÓNG/MỞ MENU TRÊN THIẾT BỊ DI ĐỘNG              */
-  /* ========================================================== */
-  function dongMoMenuMobile() {
-      var menu = document.getElementById('khuVucMenu');
-      var lopPhu = document.getElementById('overlay-menu-mobile');
-      
-      if (menu.classList.contains('mo-menu')) {
-          menu.classList.remove('mo-menu');
-          lopPhu.style.display = 'none';
-      } else {
-          menu.classList.add('mo-menu');
-          lopPhu.style.display = 'block';
-      }
-  }
-
-  // Thuật toán: Tự động đóng menu khi Thầy/Cô bấm chọn một Tab bất kỳ trên điện thoại
-  // (Sử dụng Event Delegation vì menu được fetch động từ Menu_Doc.html)
-  document.addEventListener("DOMContentLoaded", function() {
-      var menuContainer = document.getElementById('khuVucMenu');
-      if(menuContainer) {
-          menuContainer.addEventListener('click', function(e) {
-              if(e.target.closest('a') || e.target.closest('button') || e.target.closest('li')) {
-                  if(window.innerWidth <= 768) {
-                      dongMoMenuMobile();
-                  }
-              }
-          });
-      }
-  });
   </script>
 
 <!-- =========================================================================================
