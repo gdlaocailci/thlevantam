@@ -54,15 +54,15 @@
   .diemKhong, .diemKhong:disabled { background-color: #28a745 !important; color: black !important; font-weight: bold; opacity: 1 !important; -webkit-text-fill-color: black !important; }
   button:disabled { cursor: not-allowed !important; opacity: 0.5 !important; filter: grayscale(100%) !important; pointer-events: none !important; box-shadow: none !important; }
   
-  #bangNviec select.form-select.chonKq,
+ #bangNviec select.form-select.chonKq,
   #bangNviec input.chonKq {
       border: 1px solid #adb5bd !important;
       background-color: #ffffff !important;
       border-radius: 6px !important;
       box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
       padding: 5px 8px !important;
-      width: 300px !important;
-      max-width: 300px !important; 
+      width: 100% !important; 
+      max-width: 100% !important; 
       box-sizing: border-box !important;
       font-weight: 500 !important;
       transition: 0.1s ease;
@@ -146,10 +146,10 @@
              </div>
         </div>
             
+        <!-- Hàng 1: Ý kiến tham mưu (Trái) & Báo cáo tóm tắt (Phải) -->
         <div class="row g-1 mb-1">
-            <div class="col-md-6 d-flex flex-column gap-1">
+            <div class="col-md-6">
               <textarea id="nhapYkien" class="form-control border-danger" placeholder="* Ý kiến tham mưu, đề xuất..." style="height: 45px; min-height: 45px; overflow-y: hidden; resize: none; font-size: 13px; border: 1px dashed #dc3545; padding: 3px; border-radius: 4px;" oninput="gdang(this)" onfocus="gdang(this)" onblur="cgon(this, '45px')"></textarea>
-             <textarea id="oNoiDungYkienLanhDao" class="form-control border-success" placeholder="* Ý kiến lãnh đạo hoặc người giám sát..." style="display: none; height: 45px; min-height: 45px; overflow-y: hidden; resize: none; font-size: 13px; border: 1px dashed #198754; padding: 3px; border-radius: 4px;" oninput="gdang(this)" onfocus="gdang(this)" onblur="cgon(this, '45px')"></textarea>
             </div>
             <div class="col-md-6">
               <div style="position: relative;">
@@ -158,6 +158,13 @@
                 <input type="file" id="tepBcao" multiple style="display:none;" onchange="xulyTaiBcao(this)">
               </div>
               <div id="vungDinhkBcao" class="mt-1 d-flex gap-1 flex-wrap justify-content-end"></div>
+            </div>
+        </div>
+        
+        <!-- Hàng 2: Ý kiến lãnh đạo trải dài toàn bộ chiều ngang (col-12) -->
+        <div class="row g-1 mb-1">
+            <div class="col-12">
+              <textarea id="oNoiDungYkienLanhDao" class="form-control border-success" placeholder="* Ý kiến lãnh đạo hoặc người giám sát..." style="display: none; width: 100%; height: 45px; min-height: 45px; overflow-y: hidden; resize: none; font-size: 13px; border: 1px dashed #198754; padding: 3px; border-radius: 4px;" oninput="gdang(this)" onfocus="gdang(this)" onblur="cgon(this, '45px')"></textarea>
             </div>
         </div>
     </div>
@@ -1837,10 +1844,16 @@ $(document).ready(function() {
         }
     }
 
+    let dangChonTuDanhSach = false;
+
     function selectOption(val, text, boQuaLoading = false) {
        if (originalSelect.value === val) {
             input.value = val === "" ? "" : text;
             dropdown.style.display = "none";
+            dangChonTuDanhSach = true;
+            input.blur();
+            originalSelect.blur();
+            dangChonTuDanhSach = false;
             return; 
         }
 
@@ -1863,9 +1876,18 @@ $(document).ready(function() {
                 taiDlBdau(); 
             }
         }
+
+        dangChonTuDanhSach = true;
+        input.blur();
+        originalSelect.blur();
+        dangChonTuDanhSach = false;
     }
 
     input.addEventListener("keyup", (e) => {
+        if (e.key === "Enter") {
+            input.blur();
+            return;
+        }
         dropdown.style.display = "block";
         filterDropdown(e.target.value);
     });
@@ -1877,6 +1899,7 @@ $(document).ready(function() {
     });
 
     input.addEventListener("blur", () => {
+        if (dangChonTuDanhSach) return;
         const typedVal = input.value.trim().toLowerCase();
         
         if (typedVal === "") {
