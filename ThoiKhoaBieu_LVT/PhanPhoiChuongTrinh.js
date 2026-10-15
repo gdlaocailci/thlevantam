@@ -86,9 +86,8 @@ function taoKhungGiaoDienPPCT() {
                 <div class="flex flex-col w-24">
                     <label class="text-[11px] text-gray-500 uppercase font-bold mb-1">Tuần học</label>
                     <input type="number" id="locTuanUI" min="1" max="52" value="1" 
-                           onfocus="this.dataset.oldValue = this.value; this.value = '';" 
-                           onblur="if(this.value === '') this.value = this.dataset.oldValue;" 
-                           onchange="this.blur()" 
+                           onfocus="this.dataset.oldValue = this.value; this.select();" 
+                           onblur="if(this.value === '') this.value = this.dataset.oldValue || '1';" 
                            class="w-full px-2 py-1.5 border border-blue-300 rounded outline-none focus:ring-2 focus:ring-blue-500 font-extrabold text-blue-900 bg-blue-50 text-center">
                 </div>
                 <div class="flex flex-col w-32">
@@ -378,7 +377,9 @@ async function taiDuLieuTkbVaPpct() {
 
     // 4. TIẾN HÀNH FETCH GIAO TIẾP VỚI MÁY CHỦ (CHẠY NỀN)
     try {
-        const tuanHeThong = typeof tuanDangXem !== 'undefined' ? tuanDangXem : 1;
+        const tuanHeThong = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.TUAN_HIEN_TAI)
+            ? thongSoHocVu.TUAN_HIEN_TAI
+            : (typeof tuanDangXem !== 'undefined' ? tuanDangXem : 1);
         const monGoi = (mon === 'Tất cả') ? '' : mon;
         const urlAPI = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTkbVaPpct&tuan=${tuan}&lop=${encodeURIComponent(lop)}&khoi=${khoi}&mon=${encodeURIComponent(monGoi)}&tuanHienTai=${tuanHeThong}`;
         
@@ -386,15 +387,27 @@ async function taiDuLieuTkbVaPpct() {
         
         if (!phanHoi.ok) throw new Error("Mất kết nối máy chủ");
         const ketQua = await phanHoi.json();
+        if (ketQua.trangThai === 'Lỗi' || ketQua.trangThai === 'loi_he_thong') {
+            throw new Error(ketQua.thongBao || "Lỗi truy xuất từ máy chủ");
+        }
         
         const hashMoi = JSON.stringify(ketQua);
         
         // 5. SO SÁNH: CHỈ VẼ LẠI KHI CÓ SỰ THAY ĐỔI
         if (duLieuDem !== hashMoi) {
-            localStorage.setItem(cacheKey, hashMoi); // Lưu đệm mới
             duLieuTkbTuan = ketQua.duLieuTkb || [];
             duLieuPpctGoc = ketQua.duLieuPpct || []; 
-            veBangKhungLichPPCT(mon); // Cập nhật lại UI mượt mà
+            veBangKhungLichPPCT(mon); // Cập nhật lại UI mượt mà trước khi lưu đệm
+
+            // Bọc riêng localStorage.setItem để chống lỗi QuotaExceededError làm sập hiển thị tuần tương lai
+            try {
+                localStorage.setItem(cacheKey, hashMoi);
+            } catch (loiBoNhoDem) {
+                Object.keys(localStorage).forEach(khoaTam => {
+                    if (khoaTam.startsWith('PPCT_CACHE_')) localStorage.removeItem(khoaTam);
+                });
+                try { localStorage.setItem(cacheKey, hashMoi); } catch (boQuaLoi) {}
+            }
         }
     } catch (loi) {
         if (!duLieuDem) {
@@ -431,17 +444,20 @@ function veBangKhungLichPPCT(monDangChon) {
     const isXemTatCa = (monChonChuan === 'tất cả' || monChonChuan === '');
     
     let ngayGocThu2 = null;
-    const tuanHienTaiHeThong = (typeof tuanDangXem !== 'undefined') ? parseInt(tuanDangXem) : 1;
+    const tuanHienTaiHeThong = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.TUAN_HIEN_TAI)
+        ? parseInt(thongSoHocVu.TUAN_HIEN_TAI, 10)
+        : ((typeof tuanDangXem !== 'undefined') ? parseInt(tuanDangXem, 10) : 1);
+    const tuanMocNgayUI = (typeof tuanDangXem !== 'undefined') ? parseInt(tuanDangXem, 10) : tuanHienTaiHeThong;
     const isTuongLai = tuan > tuanHienTaiHeThong;
     
-    if (typeof ngayDauTuanUI !== 'undefined' && ngayDauTuanUI !== '') {
-        let parts = ngayDauTuanUI.split('-');
+    if (typeof ngayDauTuanUI === 'string' && ngayDauTuanUI.trim() !== '') {
+        let parts = ngayDauTuanUI.trim().split('-');
         if (parts.length === 3) {
             let yy = parseInt(parts[0], 10);
             let mm = parseInt(parts[1], 10) - 1; 
             let dd = parseInt(parts[2], 10);
             ngayGocThu2 = new Date(yy, mm, dd);
-            let lechTuan = tuan - tuanHienTaiHeThong;
+            let lechTuan = tuan - tuanMocNgayUI;
             if (lechTuan !== 0) ngayGocThu2.setDate(ngayGocThu2.getDate() + (lechTuan * 7));
         }
     }
