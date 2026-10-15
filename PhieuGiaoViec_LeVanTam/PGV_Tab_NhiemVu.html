@@ -734,6 +734,18 @@ function ktraAnHienTieuDe(ptu) {
     tinhtTdong();
 }
 
+function ganNgayMacDinh(ptu) {
+    if (ptu.disabled || ptu.readOnly || (typeof trangThaiKhoa !== 'undefined' && trangThaiKhoa === "Khóa")) return;
+    if (!ptu.value || ptu.value.trim() === "") {
+        let hnay = new Date();
+        let chuoiNgay = ("0" + hnay.getDate()).slice(-2) + "/" + ("0" + (hnay.getMonth() + 1)).slice(-2) + "/" + hnay.getFullYear();
+        ptu.value = chuoiNgay;
+        if (typeof tinhtTdong === 'function') {
+            tinhtTdong();
+        }
+    }
+}
+
 function tuDongDinhDangNgay(ptu) {
     let giatri = ptu.value.replace(/\D/g, '').substring(0, 8);
     let ketQua = '';
@@ -904,7 +916,7 @@ function veBangNviec(db) {
           <td class="align-middle" style="${dsp}"><input type="text" class="form-control form-control-sm text-center nhapDiemMax" value="${dMax}" readonly></td>
           <td class="align-middle" style="${dsp}"><input type="text" class="form-control form-control-sm text-center nhapTgGiao" placeholder="dd/mm/yyyy" value="${vTgGiao}" readonly></td>
           <td class="align-middle" style="${dsp}"><input type="text" class="form-control form-control-sm text-center nhapTdo" value="${lTdo}" readonly></td>
-          <td class="align-middle" style="${dsp}"><input type="text" class="form-control form-control-sm text-center nhapTgHt" placeholder="dd/mm/yyyy" value="${vTgHt}" oninput="tuDongDinhDangNgay(this)"></td>
+          <td class="align-middle" style="${dsp}"><input type="text" class="form-control form-control-sm text-center nhapTgHt" placeholder="dd/mm/yyyy" value="${vTgHt}" onclick="ganNgayMacDinh(this)" oninput="tuDongDinhDangNgay(this)"></td>
           <td class="align-middle" style="${dsp}">${htmlDiem}</td>
           <td class="text-center align-middle" style="${dspXoa}">${nutx}</td>
          </tr>`;
@@ -1192,7 +1204,7 @@ function addNv() {
             <td class="align-middle"><input type="text" class="form-control form-control-sm text-center nhapDiemMax" readonly></td>
             <td class="align-middle"><input type="text" class="form-control form-control-sm text-center nhapTgGiao" placeholder="dd/mm/yyyy"></td>
             <td class="align-middle"><input type="text" class="form-control form-control-sm text-center nhapTdo"></td>
-            <td class="align-middle"><input type="text" class="form-control form-control-sm text-center nhapTgHt" placeholder="dd/mm/yyyy" oninput="tuDongDinhDangNgay(this)"></td>
+            <td class="align-middle"><input type="text" class="form-control form-control-sm text-center nhapTgHt" placeholder="dd/mm/yyyy" onclick="ganNgayMacDinh(this)" oninput="tuDongDinhDangNgay(this)"></td>
             <td class="align-middle"><input type="text" class="form-control form-control-sm text-center chonKq" data-config=""></td>
             <td class="text-center align-middle" style="${dspXoa}">${nutx}</td>
         </tr>`;
