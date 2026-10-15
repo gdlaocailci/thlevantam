@@ -747,24 +747,141 @@ function ganNgayMacDinh(ptu) {
 }
 
 function tuDongDinhDangNgay(ptu) {
-    let giatri = ptu.value.replace(/\D/g, '').substring(0, 8);
-    let ketQua = '';
-    
-    if (giatri.length >= 1) {
-        ketQua += giatri.substring(0, 2);
+    let val = ptu.value;
+    let viTriConTro = ptu.selectionStart || 0;
+
+    if (val.includes('/')) {
+        let truoc = val.substring(0, viTriConTro);
+        let phanTruoc = truoc.split('/');
+        let chiSoPhan = Math.min(2, phanTruoc.length - 1);
+        let soKyTuTrongPhan = phanTruoc[phanTruoc.length - 1].replace(/\D/g, '').length;
+
+        let phan = val.split('/');
+        let d = (phan[0] || '').replace(/\D/g, '').substring(0, 2);
+        let m = (phan[1] || '').replace(/\D/g, '').substring(0, 2);
+        let y = (phan[2] || '').replace(/\D/g, '').substring(0, 4);
+
+        if (phan.length === 2 && (phan[1] || '').replace(/\D/g, '').length > 2) {
+            let mFull = (phan[1] || '').replace(/\D/g, '');
+            m = mFull.substring(0, 2);
+            y = mFull.substring(2, 6);
+            phan.push(y);
+            if (chiSoPhan === 1 && soKyTuTrongPhan > 2) {
+                chiSoPhan = 2;
+                soKyTuTrongPhan = soKyTuTrongPhan - 2;
+            }
+        }
+
+        let ketQua = '';
+        if (d === '' && m === '' && y === '') {
+            ketQua = '';
+        } else if (phan.length >= 3) {
+            ketQua = d + '/' + m + '/' + y;
+        } else {
+            ketQua = d + '/' + m;
+        }
+
+        if (ptu.value !== ketQua) {
+            ptu.value = ketQua;
+            let viTriMoi = 0;
+            if (ketQua !== '') {
+                if (chiSoPhan === 0) {
+                    viTriMoi = Math.min(soKyTuTrongPhan, d.length);
+                } else if (chiSoPhan === 1) {
+                    viTriMoi = d.length + 1 + Math.min(soKyTuTrongPhan, m.length);
+                } else {
+                    viTriMoi = d.length + 1 + m.length + 1 + Math.min(soKyTuTrongPhan, y.length);
+                }
+            }
+            ptu.setSelectionRange(viTriMoi, viTriMoi);
+        }
+    } else {
+        let giatri = val.replace(/\D/g, '').substring(0, 8);
+        let ketQua = '';
+        
+        if (giatri.length >= 1) {
+            ketQua += giatri.substring(0, 2);
+        }
+        if (giatri.length >= 3) {
+            ketQua += '/' + giatri.substring(2, 4);
+        }
+        if (giatri.length >= 5) {
+            ketQua += '/' + giatri.substring(4, 8);
+        }
+        if (ptu.value !== ketQua) {
+            let chenhLech = ketQua.length - val.length;
+            ptu.value = ketQua;
+            let viTriMoi = Math.max(0, viTriConTro + chenhLech);
+            ptu.setSelectionRange(viTriMoi, viTriMoi);
+        }
     }
-    if (giatri.length >= 3) {
-        ketQua += '/' + giatri.substring(2, 4);
-    }
-    if (giatri.length >= 5) {
-        ketQua += '/' + giatri.substring(4, 8);
-    }
-    ptu.value = ketQua;
     
     if (typeof tinhtTdong === 'function') {
         tinhtTdong();
     }
 }
+
+document.addEventListener('keydown', function(e) {
+    let ptu = e.target;
+    if (!ptu || !ptu.classList || !ptu.classList.contains('nhapTgHt')) return;
+    if (ptu.disabled || ptu.readOnly || (typeof trangThaiKhoa !== 'undefined' && trangThaiKhoa === "Khóa")) return;
+    let val = ptu.value;
+    if (!val || !val.includes('/')) return;
+
+    let start = ptu.selectionStart;
+    let end = ptu.selectionEnd;
+
+    if (start === end) {
+        if (e.key === 'Backspace' && start > 0 && val[start - 1] === '/') {
+            e.preventDefault();
+            ptu.setSelectionRange(start - 1, start - 1);
+        } else if (e.key === 'Delete' && start < val.length && val[start] === '/') {
+            e.preventDefault();
+            ptu.setSelectionRange(start + 1, start + 1);
+        }
+    } else if (!(start === 0 && end === val.length)) {
+        let newStart = start;
+        let newEnd = end;
+        while (newEnd > newStart && val[newEnd - 1] === '/') newEnd--;
+        while (newStart < newEnd && val[newStart] === '/') newStart++;
+        if (val.substring(newStart, newEnd).includes('/') && (e.key === 'Backspace' || e.key === 'Delete')) {
+            e.preventDefault();
+            let giuGach = val.substring(newStart, newEnd).replace(/\d/g, '');
+            let kq = val.substring(0, newStart) + giuGach + val.substring(newEnd);
+            ptu.value = kq.replace(/\D/g, '') === '' ? '' : kq;
+            ptu.setSelectionRange(newStart, newStart);
+            if (typeof tinhtTdong === 'function') tinhtTdong();
+        } else if (newStart !== start || newEnd !== end) {
+            ptu.setSelectionRange(newStart, newEnd);
+        }
+    }
+});
+
+document.addEventListener('focusout', function(e) {
+    let ptu = e.target;
+    if (!ptu || !ptu.classList || !ptu.classList.contains('nhapTgHt')) return;
+    if (ptu.disabled || ptu.readOnly || (typeof trangThaiKhoa !== 'undefined' && trangThaiKhoa === "Khóa")) return;
+    let val = ptu.value ? ptu.value.trim() : '';
+    if (val.includes('/')) {
+        let phan = val.split('/');
+        let d = (phan[0] || '').replace(/\D/g, '').substring(0, 2);
+        let m = (phan[1] || '').replace(/\D/g, '').substring(0, 2);
+        let y = (phan[2] || '').replace(/\D/g, '').substring(0, 4);
+        if (d === '' && m === '' && y === '') {
+            ptu.value = '';
+        } else {
+            if (d.length === 1) d = '0' + d;
+            if (m.length === 1) m = '0' + m;
+            if (y.length === 2) y = '20' + y;
+            if (phan.length >= 3) {
+                ptu.value = d + '/' + m + '/' + y;
+            }
+        }
+        if (typeof tinhtTdong === 'function') {
+            tinhtTdong();
+        }
+    }
+});
 
 function veBangNviec(db) {
     khaBcao(); const bg = $('#bangNviec tbody').empty();
