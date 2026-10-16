@@ -486,7 +486,7 @@
                 '        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-90"></span>',
                 '        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-400 border border-white"></span>',
                 '      </span>',
-                '      <h3 class="text-base md:text-lg font-extrabold uppercase tracking-wide truncate">Danh sách đang Online (Thời gian thực)</h3>',
+                '      <h3 class="text-base md:text-lg font-extrabold uppercase tracking-wide truncate">Danh sách đang Online</h3>',
                 '      <span id="badgeSoLuongOnline" class="bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-white/30 flex-none">0</span>',
                 '    </div>',
                 '    <div class="flex items-center gap-2 flex-none">',
