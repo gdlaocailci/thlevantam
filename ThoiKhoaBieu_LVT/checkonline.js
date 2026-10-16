@@ -1,38 +1,52 @@
 /**
  * =========================================================================
- * FILE: checkonline.js
+ * FILE: checkonline.js (Phiên bản V4 - Cách ly tuyệt đối với TKB & Sổ Đầu Bài)
  * MÔ TẢ: Tính năng "Ai đang online?" hiển thị danh sách Tên và ID (Mã GV)
  *        những người đang trực tuyến theo thời gian thực.
- * NGUYÊN TẮC AN TOÀN:
- *  1. Đóng gói hoàn toàn trong IIFE (Isolated Scope), tuyệt đối không ghi đè
- *     hay xung đột với bất kỳ biến/hàm toàn cục nào của hệ thống.
- *  2. KHÔNG gửi request ngầm khi tải trang. CHỈ kích hoạt kết nối và cập nhật
- *     thời gian thực khi người dùng ấn nút "Ai đang online?".
- *  3. Tự động ngắt bộ đếm thời gian thực (clearInterval) ngay khi đóng Modal.
+ *
+ * NGUYÊN TẮC AN TOÀN TUYỆT ĐỐI CHO HỆ THỐNG:
+ *  1. Không quét toàn bộ localStorage / sessionStorage (tránh chạm vào bộ nhớ
+ *     đệm SDB_DATA_STATIC_ của Sổ đầu bài và dữ liệu TKB các tuần).
+ *  2. Không bắn request khi hệ thống đang chuyển tuần TKB (#spinnerTaiTuan)
+ *     hoặc đang tải/lưu Sổ đầu bài (dangTaiDuLieuSoDauBai).
+ *  3. Không gắn sự kiện visibilitychange hay sendBeacon POST gây tranh chấp
+ *     luồng doPost với nút "Tuần tiếp theo..." và "Lưu Sổ đầu bài".
+ *  4. Phối hợp BroadcastChannel (hỏi-đáp trực tiếp giữa các tab đang mở) và
+ *     RAM CacheService trên máy chủ (tự động xóa ngay khi thoát hoặc sau 45s).
  * =========================================================================
  */
 
 (function () {
     'use strict';
 
-    // ---------------------------------------------------------------------
-    // 1. CẤU HÌNH & TRẠNG THÁI NỘI BỘ (CÁCH LY HOÀN TOÀN)
-    // ---------------------------------------------------------------------
-    var CHU_KY_CAP_NHAT_MS = 12000;      // Làm mới mỗi 12 giây KHI VÀ CHỈ KHI mở Modal
-    var THOI_GIAN_SONG_ONLINE_MS = 120000; // Cửa sổ 2 phút xác nhận đang trực tuyến
-    var KHOA_LOCAL_STORAGE = 'SmartTKB_CheckOnline_Presence_V1';
-    var TEN_KENH_BROADCAST = 'SmartTKB_CheckOnline_Channel_V1';
+    var CHU_KY_CAP_NHAT_MODAL_MS = 8000;   // Chỉ cập nhật mỗi 8s KHI ĐANG MỞ MODAL
+    var CHU_KY_NHIP_TIM_NHE_MS = 30000;    // Nhịp tim nhẹ 30s/lần khi rảnh rỗi
+    var CUA_SO_SONG_SERVER_MS = 45000;     // Tự động hết hạn sau 45s
+    var TEN_KENH_BROADCAST = 'SmartTKB_CheckOnline_LiveChannel_V4';
 
-    var boDemThoiGianThuc = null;
+    var boDemModal = null;
+    var boDemNhipTim = null;
     var dangMoModal = false;
     var dangTaiDuLieu = false;
-    var danhMucGiaoVienCache = null;     // Bộ nhớ đệm DM_GIAOVIEN (chỉ tải khi ấn nút)
-    var danhSachOnlineHienTai = [];      // Danh sách đang hiển thị trong Modal
+    var daGuiTinHieuThoat = false;
+
+    var danhMucGiaoVienCache = null;
+    var danhSachOnlineHienTai = [];
+    var duLieuServerGanNhat = [];
+    var banDoTabCungTrinhDuyet = {};
     var kenhBroadcast = null;
-    var maPhienTamThoi = 'GUEST_' + Math.random().toString(36).substring(2, 7).toUpperCase();
+
+    var maPhienTab = 'TAB_' + Math.random().toString(36).substring(2, 8).toUpperCase() + '_' + Date.now();
+    var dinhDanhTruocDo = '';
+
+    // Dọn dẹp các khóa localStorage cũ từ phiên bản trước
+    try {
+        localStorage.removeItem('SmartTKB_CheckOnline_Presence_V1');
+        localStorage.removeItem('SmartTKB_CheckOnline_Presence_V2');
+    } catch (eClean) {}
 
     // ---------------------------------------------------------------------
-    // 2. HÀM TIỆN ÍCH CHUẨN HÓA & AN TOÀN XSS
+    // 1. HÀM TIỆN ÍCH AN TOÀN & KIỂM TRA TRẠNG THÁI BẬN CỦA TKB / SĐB
     // ---------------------------------------------------------------------
     function maHoaHtml(chuoi) {
         if (chuoi === null || chuoi === undefined) return '';
@@ -61,97 +75,95 @@
         return '';
     }
 
+    // Kiểm tra xem TKB hoặc Sổ đầu bài có đang bận tải/lưu hay không
+    function heThongDangBanTacVuChinh() {
+        try {
+            if (typeof dangTaiDuLieuSoDauBai !== 'undefined' && dangTaiDuLieuSoDauBai === true) return true;
+            if (typeof khoaChuyenTuan !== 'undefined' && khoaChuyenTuan === true) return true;
+            if (typeof khoaTaiTKB !== 'undefined' && khoaTaiTKB === true) return true;
+            var spinnerTuan = document.getElementById('spinnerTaiTuan');
+            if (spinnerTuan && !spinnerTuan.classList.contains('hidden')) return true;
+            var cacNutTacVu = ['btnKhoiPhuc', 'btnLuuTuan', 'btnLuuCoDinh', 'btnLuuSua', 'btnLuuSoDauBai'];
+            for (var i = 0; i < cacNutTacVu.length; i++) {
+                var nut = document.getElementById(cacNutTacVu[i]);
+                if (nut && nut.disabled && (nut.innerText || '').indexOf('Đang') !== -1) return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
     // ---------------------------------------------------------------------
-    // 3. NHẬN DIỆN NGƯỜI DÙNG HIỆN TẠI TRÊN TRÌNH DUYỆT (CHỈ ĐỌC)
+    // 2. NHẬN DIỆN NGƯỜI DÙNG HIỆN TẠI (KHÔNG QUÉT STORAGE CỦA SĐB/TKB)
     // ---------------------------------------------------------------------
     function phatHienDinhDanhHienTai() {
-        var dinhDanh = '';
+        var emailHoacMa = '';
         var tenHienThi = '';
 
         try {
-            // Ưu tiên 1: Các biến định danh toàn cục có sẵn của hệ thống
-            var cacBienToanCuc = [
+            var nutDangNhap = document.getElementById('nutDangNhapG');
+            var textNut = nutDangNhap ? (nutDangNhap.innerText || nutDangNhap.textContent || '').trim() : '';
+            var nutDangHienChuaDangNhap = textNut && (
+                textNut.toLowerCase().indexOf('đăng nhập') !== -1 ||
+                textNut.toLowerCase().indexOf('login') !== -1
+            );
+
+            // Tầng 1: Biến toàn cục nhẹ của hệ thống
+            var cacBienDinhDanh = [
                 window.dinhDanhGiaoVienToanCuc,
                 window.emailGiaoVienToanCuc,
                 window.maGiaoVienHienTai,
                 window.emailNguoiDungHienTai,
                 window.userEmail
             ];
-            for (var i = 0; i < cacBienToanCuc.length; i++) {
-                if (cacBienToanCuc[i] && String(cacBienToanCuc[i]).trim() !== '') {
-                    dinhDanh = String(cacBienToanCuc[i]).trim();
+            for (var i = 0; i < cacBienDinhDanh.length; i++) {
+                if (cacBienDinhDanh[i] && String(cacBienDinhDanh[i]).trim() !== '') {
+                    emailHoacMa = String(cacBienDinhDanh[i]).trim();
                     break;
                 }
             }
 
-            // Ưu tiên 2: Quét chỉ đọc từ localStorage / sessionStorage nếu biến toàn cục chưa gán
-            if (!dinhDanh) {
-                var khoLuuTru = [window.localStorage, window.sessionStorage];
-                for (var s = 0; s < khoLuuTru.length; s++) {
-                    var kho = khoLuuTru[s];
-                    if (!kho) continue;
-                    for (var k = 0; k < kho.length; k++) {
-                        var key = kho.key(k);
-                        if (!key || key === KHOA_LOCAL_STORAGE) continue;
-                        var keyLC = key.toLowerCase();
-                        if (
-                            keyLC.indexOf('email') !== -1 ||
-                            keyLC.indexOf('dinhdanh') !== -1 ||
-                            keyLC.indexOf('taikhoan') !== -1 ||
-                            keyLC.indexOf('dangnhap') !== -1 ||
-                            keyLC.indexOf('user') !== -1 ||
-                            keyLC.indexOf('giaovien') !== -1
-                        ) {
-                            var rawVal = kho.getItem(key);
-                            if (!rawVal) continue;
-                            var trimmed = rawVal.trim();
-                            if (trimmed.indexOf('@') !== -1 && trimmed.length < 100 && trimmed.indexOf('{') === -1) {
-                                dinhDanh = trimmed.replace(/^["']|["']$/g, '');
-                                break;
-                            }
-                            if (trimmed.charAt(0) === '{') {
-                                try {
-                                    var obj = JSON.parse(trimmed);
-                                    var emailObj = obj.email || obj.hopThu || obj.dinhDanh || obj.maGv || obj.MA_GIAO_VIEN;
-                                    if (emailObj) {
-                                        dinhDanh = String(emailObj).trim();
-                                        tenHienThi = String(obj.hoTen || obj.name || obj.TEN_GIAO_VIEN || '').trim();
-                                        break;
-                                    }
-                                } catch (eJson) {}
-                            }
-                        }
-                    }
-                    if (dinhDanh) break;
-                }
+            if (window.tenGiaoVienToanCuc) {
+                tenHienThi = String(window.tenGiaoVienToanCuc).trim();
             }
 
-            // Ưu tiên 3: Kiểm tra nội dung nút Đăng nhập (#nutDangNhapG)
-            var nutDangNhap = document.getElementById('nutDangNhapG');
-            if (nutDangNhap) {
-                var textNut = (nutDangNhap.innerText || nutDangNhap.textContent || '').trim();
-                if (textNut && textNut.toLowerCase().indexOf('đăng nhập') === -1 && textNut.toLowerCase().indexOf('login') === -1) {
-                    var dongText = textNut.split('\n').map(function (t) { return t.trim(); }).filter(Boolean);
-                    var nhanNut = dongText[0] || '';
-                    if (nhanNut) {
-                        if (!dinhDanh) dinhDanh = nhanNut;
-                        if (!tenHienThi) tenHienThi = nhanNut;
-                    }
+            // Tầng 2: Thẻ chốt quyền Sổ đầu bài (nếu đã nạp SĐB)
+            var theChotSDB = document.getElementById('theChotQuyenSDB');
+            if (theChotSDB) {
+                var maSDB = theChotSDB.getAttribute('data-madinhdanh') || '';
+                var tenSDB = theChotSDB.getAttribute('data-tendinhdanh') || '';
+                if (!emailHoacMa && maSDB) emailHoacMa = maSDB.trim();
+                if (!tenHienThi && tenSDB) tenHienThi = tenSDB.trim();
+            }
+
+            // Tầng 3: Nhãn hiển thị trên nút #nutDangNhapG (khi đã đăng nhập)
+            if (!nutDangHienChuaDangNhap && textNut) {
+                var cacDong = textNut.split('\n').map(function (t) { return t.trim(); }).filter(Boolean);
+                var nhanChinh = cacDong[0] || '';
+                if (nhanChinh) {
+                    if (!emailHoacMa) emailHoacMa = nhanChinh;
+                    if (!tenHienThi) tenHienThi = nhanChinh;
                 }
             }
         } catch (err) {}
 
+        // Phát hiện nếu người dùng vừa bấm Đăng xuất
+        if (dinhDanhTruocDo && !emailHoacMa) {
+            guiTinHieuRoiTrangNgayLapTuc(dinhDanhTruocDo);
+            dinhDanhTruocDo = '';
+        } else if (emailHoacMa) {
+            dinhDanhTruocDo = emailHoacMa;
+        }
+
         return {
-            dinhDanh: dinhDanh,
+            dinhDanh: emailHoacMa,
             tenGoiY: tenHienThi
         };
     }
 
     // ---------------------------------------------------------------------
-    // 4. ĐỒNG BỘ DANH MỤC GIÁO VIÊN ĐỂ ÁNH XẠ CHÍNH XÁC [ID (Mã GV) - HỌ TÊN]
+    // 3. ĐỐI CHIẾU VỚI DANH MỤC GIÁO VIÊN TRONG RAM
     // ---------------------------------------------------------------------
-    async function layBanDoDanhMucGV() {
-        // 1. Tận dụng ngay mảng duLieuDanhMucGV nếu phân hệ DanhMucGV đã tải sẵn trên RAM
+    function dongBoDanhMucGvTuRam() {
         try {
             if (typeof duLieuDanhMucGV !== 'undefined' && Array.isArray(duLieuDanhMucGV) && duLieuDanhMucGV.length > 0) {
                 var dsTuRam = [];
@@ -165,7 +177,6 @@
                         maGv: ma || ten,
                         hoTen: ten || ma,
                         toChuyenMon: String(item.toChuyenMon || '').trim(),
-                        trangThai: String(item.trangThai || 'Đang công tác').trim(),
                         hopThu: String(item.hopThu || '').trim().toLowerCase()
                     });
                 }
@@ -175,15 +186,17 @@
                 }
             }
         } catch (e) {}
+        return danhMucGiaoVienCache || [];
+    }
 
-        // 2. Nếu đã có cache trong phiên mở Modal thì dùng lại ngay
-        if (danhMucGiaoVienCache && danhMucGiaoVienCache.length > 0) {
-            return danhMucGiaoVienCache;
+    async function layBanDoDanhMucGV() {
+        var tuRam = dongBoDanhMucGvTuRam();
+        if (tuRam && tuRam.length > 0) {
+            return tuRam;
         }
 
-        // 3. Tải từ API layDanhMucGV (Chỉ gọi khi người dùng ấn nút "Ai đang online?")
         var urlApi = layUrlApiMayChu();
-        if (!urlApi) return [];
+        if (!urlApi || heThongDangBanTacVuChinh()) return [];
 
         try {
             var phanHoi = await fetch(urlApi + '?thaoTac=layDanhMucGV', { method: 'GET' });
@@ -202,7 +215,6 @@
                         maGv: maGv || hoTen,
                         hoTen: hoTen || maGv,
                         toChuyenMon: dong[2] !== undefined && dong[2] !== null ? String(dong[2]).trim() : '',
-                        trangThai: dong[4] ? String(dong[4]).trim() : 'Đang công tác',
                         hopThu: dong[5] !== undefined && dong[5] !== null ? String(dong[5]).trim().toLowerCase() : ''
                     });
                 }
@@ -216,7 +228,6 @@
         }
     }
 
-    // Tra cứu thông tin { maGv, hoTen, toChuyenMon } từ bất kỳ định danh nào (Email, Mã GV, Họ tên)
     function doiChieuGiaoVien(dinhDanhRaw, tenGoiY, dsGiaoVien) {
         var raw = String(dinhDanhRaw || '').trim();
         var rawLC = chuanHoaChuoi(raw);
@@ -237,183 +248,211 @@
                         maGv: gv.maGv || '---',
                         hoTen: gv.hoTen || gv.maGv || 'Giáo viên',
                         toChuyenMon: gv.toChuyenMon || 'Giáo viên',
-                        hopThu: gv.hopThu || ''
+                        hopThu: gv.hopThu || '',
+                        daXacThuc: true
                     };
-                }
-            }
-
-            // Tìm gần đúng nếu chuỗi chứa Mã GV
-            if (rawLC) {
-                for (var j = 0; j < dsGiaoVien.length; j++) {
-                    var gv2 = dsGiaoVien[j];
-                    var maLC2 = chuanHoaChuoi(gv2.maGv);
-                    if (maLC2 && (rawLC.indexOf(maLC2) !== -1 || maLC2.indexOf(rawLC) !== -1)) {
-                        return {
-                            maGv: gv2.maGv,
-                            hoTen: gv2.hoTen || gv2.maGv,
-                            toChuyenMon: gv2.toChuyenMon || 'Giáo viên',
-                            hopThu: gv2.hopThu || ''
-                        };
-                    }
                 }
             }
         }
 
-        // Nếu người dùng đã đăng nhập bằng Email nhưng chưa khai báo trong DM_GIAOVIEN
-        if (raw) {
+        if (raw && raw.indexOf('TAB_') !== 0 && raw.indexOf('SES_') !== 0 && raw.indexOf('GUEST_') !== 0) {
             var maRutGon = raw.indexOf('@') !== -1 ? raw.split('@')[0].toUpperCase() : raw;
             return {
                 maGv: maRutGon,
                 hoTen: tenGoiY || raw,
                 toChuyenMon: 'Tài khoản đăng nhập',
-                hopThu: raw.indexOf('@') !== -1 ? raw : ''
+                hopThu: raw.indexOf('@') !== -1 ? raw : '',
+                daXacThuc: true
             };
         }
 
-        // Trường hợp khách xem TKB chưa bấm Đăng nhập
         return {
-            maGv: maPhienTamThoi,
-            hoTen: 'Người dùng đang xem (Chưa đăng nhập)',
-            toChuyenMon: 'Khách truy cập',
-            hopThu: ''
+            maGv: maPhienTab.substring(0, 9),
+            hoTen: 'Khách đang xem (Chưa đăng nhập)',
+            toChuyenMon: 'Chế độ xem công khai',
+            hopThu: '',
+            daXacThuc: false
         };
     }
 
     // ---------------------------------------------------------------------
-    // 5. ĐỒNG BỘ TRẠNG THÁI ONLINE (LOCAL + BROADCAST + SERVER API)
+    // 4. TÍN HIỆU ĐIỂM DANH NHẸ & THOÁT TỨC THÌ (KHÔNG DÙNG POST SENDBEACON)
     // ---------------------------------------------------------------------
-    function layDanhSachLocalPeers() {
-        try {
-            var raw = localStorage.getItem(KHOA_LOCAL_STORAGE);
-            if (!raw) return {};
-            var parsed = JSON.parse(raw);
-            return (parsed && typeof parsed === 'object') ? parsed : {};
-        } catch (e) {
-            return {};
-        }
+    function layThongTinPhienHienTai() {
+        var raw = phatHienDinhDanhHienTai();
+        var dsGV = dongBoDanhMucGvTuRam();
+        var daMap = doiChieuGiaoVien(raw.dinhDanh, raw.tenGoiY, dsGV);
+        return {
+            maPhienTab: maPhienTab,
+            emailTruyCap: raw.dinhDanh || '',
+            maGv: daMap.maGv,
+            hoTen: daMap.hoTen,
+            toChuyenMon: daMap.toChuyenMon,
+            daXacThuc: daMap.daXacThuc,
+            capNhatLuc: Date.now()
+        };
     }
 
-    function luuCapNhatLocalPeer(thongTinBanThan) {
+    function guiTinHieuRoiTrangNgayLapTuc(dinhDanhCu) {
         try {
-            var peers = layDanhSachLocalPeers();
-            var bayGio = Date.now();
+            var dinhDanhCanXoa = dinhDanhCu || dinhDanhTruocDo || '';
 
-            // Dọn dẹp các phiên đã quá hạn > 2 phút
-            for (var k in peers) {
-                if (Object.prototype.hasOwnProperty.call(peers, k)) {
-                    if (!peers[k] || (bayGio - (peers[k].capNhatLuc || 0)) > THOI_GIAN_SONG_ONLINE_MS) {
-                        delete peers[k];
-                    }
-                }
-            }
-
-            var khoa = String(thongTinBanThan.maGv || maPhienTamThoi).trim().toUpperCase();
-            peers[khoa] = {
-                maGv: thongTinBanThan.maGv,
-                hoTen: thongTinBanThan.hoTen,
-                toChuyenMon: thongTinBanThan.toChuyenMon || '',
-                capNhatLuc: bayGio
-            };
-
-            localStorage.setItem(KHOA_LOCAL_STORAGE, JSON.stringify(peers));
-
+            // 1. Báo ngay qua BroadcastChannel cho các tab khác trên cùng máy (0ms)
             if (kenhBroadcast) {
-                kenhBroadcast.postMessage({
-                    loai: 'PING_ONLINE',
-                    duLieu: peers[khoa]
-                });
+                try {
+                    kenhBroadcast.postMessage({
+                        loai: 'TAB_DA_THOAT',
+                        maPhienTab: maPhienTab,
+                        emailTruyCap: dinhDanhCanXoa
+                    });
+                } catch (eBc) {}
             }
+
+            // 2. Gửi GET nhẹ với keepalive (tuyệt đối không gửi POST sendBeacon để tránh đụng doPost)
+            var urlApi = layUrlApiMayChu();
+            if (!urlApi || !dinhDanhCanXoa) return;
+
+            var urlGetXoa = urlApi +
+                '?thaoTac=roiTrangOnline' +
+                '&emailTruyCap=' + encodeURIComponent(dinhDanhCanXoa) +
+                '&maGv=' + encodeURIComponent(dinhDanhCanXoa) +
+                '&_t=' + Date.now();
+            fetch(urlGetXoa, { method: 'GET', keepalive: true, mode: 'no-cors' }).catch(function () {});
+        } catch (err) {}
+    }
+
+    function guiNhipTimHienDienMayChu() {
+        try {
+            if (document.visibilityState === 'hidden') return;
+            if (heThongDangBanTacVuChinh()) return;
+
+            var urlApi = layUrlApiMayChu();
+            var phien = layThongTinPhienHienTai();
+            if (!urlApi || !phien.emailTruyCap) return;
+
+            var urlPing = urlApi +
+                '?thaoTac=diemDanhOnline' +
+                '&emailTruyCap=' + encodeURIComponent(phien.emailTruyCap) +
+                '&maGv=' + encodeURIComponent(phien.maGv || '') +
+                '&hoTen=' + encodeURIComponent(phien.hoTen || '') +
+                '&toChuyenMon=' + encodeURIComponent(phien.toChuyenMon || '') +
+                '&_t=' + Date.now();
+
+            fetch(urlPing, { method: 'GET', keepalive: true }).catch(function () {});
         } catch (e) {}
     }
 
-    async function thuThapDanhSachOnlineThoiGianThuc() {
-        var dsGV = await layBanDoDanhMucGV();
-        var thongTinRaw = phatHienDinhDanhHienTai();
-        var banThan = doiChieuGiaoVien(thongTinRaw.dinhDanh, thongTinRaw.tenGoiY, dsGV);
+    function khoiTaoKenhBroadcast() {
+        if (kenhBroadcast || typeof BroadcastChannel === 'undefined') return;
+        try {
+            kenhBroadcast = new BroadcastChannel(TEN_KENH_BROADCAST);
+            kenhBroadcast.onmessage = function (ev) {
+                if (!ev || !ev.data) return;
+                var msg = ev.data;
+
+                if (msg.loai === 'PING_AI_DANG_MO_TAB' && !daGuiTinHieuThoat) {
+                    kenhBroadcast.postMessage({
+                        loai: 'PONG_TOI_DANG_MO_TAB',
+                        phien: layThongTinPhienHienTai()
+                    });
+                } else if (msg.loai === 'PONG_TOI_DANG_MO_TAB' && msg.phien) {
+                    banDoTabCungTrinhDuyet[msg.phien.maPhienTab] = msg.phien;
+                    if (dangMoModal) {
+                        capNhatHienThiTuTapHop();
+                    }
+                } else if (msg.loai === 'TAB_DA_THOAT') {
+                    if (msg.maPhienTab && banDoTabCungTrinhDuyet[msg.maPhienTab]) {
+                        delete banDoTabCungTrinhDuyet[msg.maPhienTab];
+                    }
+                    if (msg.emailTruyCap) {
+                        var emailXoaLC = chuanHoaChuoi(msg.emailTruyCap);
+                        duLieuServerGanNhat = duLieuServerGanNhat.filter(function (u) {
+                            return chuanHoaChuoi(u.emailTruyCap) !== emailXoaLC && chuanHoaChuoi(u.maGv) !== emailXoaLC;
+                        });
+                    }
+                    if (dangMoModal) {
+                        capNhatHienThiTuTapHop();
+                    }
+                }
+            };
+        } catch (e) {}
+    }
+
+    // ---------------------------------------------------------------------
+    // 5. TỔNG HỢP DANH SÁCH ĐANG ONLINE KHI MỞ MODAL
+    // ---------------------------------------------------------------------
+    function capNhatHienThiTuTapHop() {
+        var dsGV = dongBoDanhMucGvTuRam();
+        var phienBanThan = layThongTinPhienHienTai();
         var bayGio = Date.now();
-
-        // Cập nhật phiên hiện tại vào bộ nhớ đồng bộ
-        luuCapNhatLocalPeer(banThan);
-
         var banDoTongHop = {};
 
-        function themVaoBanDo(item, laBanThan) {
-            if (!item) return;
-            var ma = String(item.maGv || item.id || '').trim();
-            var ten = String(item.hoTen || item.ten || '').trim();
-            if (!ma && !ten) return;
+        function gopNguoiDung(rawItem, laBanThan) {
+            if (!rawItem) return;
+            var dinhDanhItem = rawItem.emailTruyCap || rawItem.dinhDanh || rawItem.maGv || '';
+            var tenItem = rawItem.hoTen || rawItem.tenGoiY || '';
+            if (!dinhDanhItem && !tenItem) return;
 
-            // Đối chiếu lại với DM_GIAOVIEN để luôn có đủ cả Tên và ID chuẩn
-            var daChuanHoa = doiChieuGiaoVien(ma || ten, ten, dsGV);
-            var maChuan = item.maGv && item.maGv !== '---' ? String(item.maGv).trim() : daChuanHoa.maGv;
-            var tenChuan = (daChuanHoa.hoTen && daChuanHoa.hoTen.indexOf('Người dùng đang xem') === -1)
-                ? daChuanHoa.hoTen
-                : (ten || maChuan);
-            var toCM = item.toChuyenMon || daChuanHoa.toChuyenMon || '';
+            var thongTinChuan = doiChieuGiaoVien(dinhDanhItem, tenItem, dsGV);
+            var maHienThi = (
+                rawItem.maGv &&
+                rawItem.maGv !== '---' &&
+                rawItem.maGv.indexOf('@') === -1 &&
+                rawItem.maGv.indexOf('TAB_') !== 0 &&
+                rawItem.maGv.indexOf('SES_') !== 0
+            )
+                ? String(rawItem.maGv).trim()
+                : thongTinChuan.maGv;
 
-            var key = maChuan.toUpperCase();
-            var capNhatLuc = item.capNhatLuc || item.thoiGianCapNhat || bayGio;
+            var tenHienThi = (thongTinChuan.daXacThuc && thongTinChuan.hoTen)
+                ? thongTinChuan.hoTen
+                : (tenItem || maHienThi);
 
-            if (!banDoTongHop[key] || laBanThan) {
+            var toCM = rawItem.toChuyenMon || thongTinChuan.toChuyenMon || '';
+            var key = String(maHienThi).trim().toUpperCase();
+            var capNhatLuc = Number(rawItem.capNhatLuc || rawItem.thoiGianCapNhat || bayGio);
+
+            if (!laBanThan && (bayGio - capNhatLuc) > CUA_SO_SONG_SERVER_MS) {
+                return;
+            }
+
+            if (!banDoTongHop[key] || laBanThan || capNhatLuc > banDoTongHop[key].capNhatLuc) {
                 banDoTongHop[key] = {
-                    maGv: maChuan,
-                    hoTen: tenChuan,
+                    maGv: maHienThi,
+                    hoTen: tenHienThi,
                     toChuyenMon: toCM,
+                    emailTruyCap: rawItem.emailTruyCap || '',
                     capNhatLuc: capNhatLuc,
                     laBanThan: Boolean(laBanThan || (banDoTongHop[key] && banDoTongHop[key].laBanThan))
                 };
             }
         }
 
-        // 1. Luôn đưa người dùng hiện tại vào danh sách
-        themVaoBanDo(banThan, true);
+        gopNguoiDung(phienBanThan, true);
 
-        // 2. Lấy các phiên đang hoạt động từ LocalStorage / BroadcastChannel
-        var localPeers = layDanhSachLocalPeers();
-        for (var k in localPeers) {
-            if (Object.prototype.hasOwnProperty.call(localPeers, k)) {
-                var p = localPeers[k];
-                if (p && (bayGio - (p.capNhatLuc || 0)) <= THOI_GIAN_SONG_ONLINE_MS) {
-                    var isMe = chuanHoaChuoi(p.maGv) === chuanHoaChuoi(banThan.maGv);
-                    themVaoBanDo(p, isMe);
+        for (var tabId in banDoTabCungTrinhDuyet) {
+            if (Object.prototype.hasOwnProperty.call(banDoTabCungTrinhDuyet, tabId)) {
+                var tabInfo = banDoTabCungTrinhDuyet[tabId];
+                if (tabInfo && (bayGio - (tabInfo.capNhatLuc || 0)) <= 15000) {
+                    var laToiTab = chuanHoaChuoi(tabInfo.maGv) === chuanHoaChuoi(phienBanThan.maGv);
+                    gopNguoiDung(tabInfo, laToiTab);
                 }
             }
         }
 
-        // 3. Thử đồng bộ với máy chủ Google Apps Script (nếu Backend hỗ trợ thaoTac=checkOnline)
-        var urlApi = layUrlApiMayChu();
-        var coHoTroServer = false;
-        if (urlApi) {
-            try {
-                var thamSo = new URLSearchParams({
-                    thaoTac: 'checkOnline',
-                    maGv: banThan.maGv || '',
-                    hoTen: banThan.hoTen || '',
-                    toChuyenMon: banThan.toChuyenMon || '',
-                    emailTruyCap: thongTinRaw.dinhDanh || '',
-                    _t: String(bayGio)
-                });
-                var res = await fetch(urlApi + '?' + thamSo.toString(), { method: 'GET' });
-                var dataServer = await res.json();
-
-                if (dataServer && Array.isArray(dataServer.danhSachOnline)) {
-                    coHoTroServer = true;
-                    for (var s = 0; s < dataServer.danhSachOnline.length; s++) {
-                        var svUser = dataServer.danhSachOnline[s];
-                        var laToi = chuanHoaChuoi(svUser.maGv) === chuanHoaChuoi(banThan.maGv);
-                        themVaoBanDo(svUser, laToi);
-                    }
-                }
-            } catch (errServer) {
-                // Bỏ qua êm ái nếu mạng chậm hoặc Backend chưa gắn hàm checkOnline
-            }
+        for (var i = 0; i < duLieuServerGanNhat.length; i++) {
+            var svItem = duLieuServerGanNhat[i];
+            if (!svItem) continue;
+            var laToiSv =
+                (svItem.maGv && chuanHoaChuoi(svItem.maGv) === chuanHoaChuoi(phienBanThan.maGv)) ||
+                (svItem.emailTruyCap && phienBanThan.emailTruyCap && chuanHoaChuoi(svItem.emailTruyCap) === chuanHoaChuoi(phienBanThan.emailTruyCap));
+            gopNguoiDung(svItem, laToiSv);
         }
 
-        // Chuyển bản đồ thành mảng và sắp xếp (Bản thân lên đầu, sau đó theo Mã GV)
         var ketQua = [];
-        for (var maKey in banDoTongHop) {
-            if (Object.prototype.hasOwnProperty.call(banDoTongHop, maKey)) {
-                ketQua.push(banDoTongHop[maKey]);
+        for (var k in banDoTongHop) {
+            if (Object.prototype.hasOwnProperty.call(banDoTongHop, k)) {
+                ketQua.push(banDoTongHop[k]);
             }
         }
 
@@ -423,20 +462,61 @@
             return String(a.maGv).localeCompare(String(b.maGv), 'vi');
         });
 
+        danhSachOnlineHienTai = ketQua;
+        veBangDanhSachOnline();
+    }
+
+    async function thuThapDanhSachOnlineThoiGianThuc() {
+        await layBanDoDanhMucGV();
+        var phienBanThan = layThongTinPhienHienTai();
+        var bayGio = Date.now();
+
+        banDoTabCungTrinhDuyet = {};
+        if (kenhBroadcast) {
+            try {
+                kenhBroadcast.postMessage({ loai: 'PING_AI_DANG_MO_TAB' });
+            } catch (e) {}
+        }
+
+        var urlApi = layUrlApiMayChu();
+        var coHoTroServer = false;
+
+        if (urlApi && !heThongDangBanTacVuChinh()) {
+            try {
+                var thamSo = new URLSearchParams({
+                    thaoTac: 'checkOnline',
+                    emailTruyCap: phienBanThan.emailTruyCap || '',
+                    maGv: phienBanThan.daXacThuc ? phienBanThan.maGv : '',
+                    hoTen: phienBanThan.daXacThuc ? phienBanThan.hoTen : '',
+                    toChuyenMon: phienBanThan.daXacThuc ? phienBanThan.toChuyenMon : '',
+                    _t: String(bayGio)
+                });
+                var res = await fetch(urlApi + '?' + thamSo.toString(), { method: 'GET', cache: 'no-store' });
+                var dataServer = await res.json();
+
+                if (dataServer && Array.isArray(dataServer.danhSachOnline)) {
+                    coHoTroServer = true;
+                    duLieuServerGanNhat = dataServer.danhSachOnline;
+                }
+            } catch (errSv) {}
+        }
+
+        capNhatHienThiTuTapHop();
+
         return {
-            danhSach: ketQua,
             coHoTroServer: coHoTroServer,
             thoiDiemCapNhat: new Date()
         };
     }
 
     // ---------------------------------------------------------------------
-    // 6. KẾT XUẤT GIAO DIỆN NÚT "AI ĐANG ONLINE?" VÀ MODAL
+    // 6. KẾT XUẤT NÚT "AI ĐANG ONLINE?" & CỬA SỔ MODAL
     // ---------------------------------------------------------------------
     function khoiTaoNutVaModal() {
-        // 6.1. Chèn nút "Ai đang online?" vào bên phải khung <header> (như trong ảnh)
         var header = document.querySelector('header');
-        if (header && !document.getElementById('btnAiDangOnline')) {
+        var nutHienCo = document.getElementById('btnAiDangOnline');
+
+        if (header && !nutHienCo) {
             var khungBenTrong = header.querySelector('.flex.items-center.w-full') || header;
 
             var nutOnline = document.createElement('button');
@@ -459,7 +539,7 @@
                 '<svg class="w-4 h-4 md:w-5 md:h-5 flex-none group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">',
                 '  <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>',
                 '</svg>',
-                '<span class="whitespace-nowrap tracking-wide">Ai đang online?</span>'
+                '<span class="whitespace-nowrap tracking-wide font-sans">Ai đang online?</span>'
             ].join('');
 
             nutOnline.addEventListener('click', function (e) {
@@ -471,7 +551,6 @@
             khungBenTrong.appendChild(nutOnline);
         }
 
-        // 6.2. Tạo Modal hiển thị danh sách Tên và ID đang online (Mặc định ẩn)
         if (!document.getElementById('modalCheckOnline')) {
             var modalWrapper = document.createElement('div');
             modalWrapper.id = 'modalCheckOnline';
@@ -479,7 +558,6 @@
 
             modalWrapper.innerHTML = [
                 '<div id="khungNoiDungModalOnline" class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-300 transition-all duration-200">',
-                '  <!-- Thanh tiêu đề Modal -->',
                 '  <div class="bg-gradient-to-r from-emerald-700 to-teal-700 text-white px-4 py-3.5 flex justify-between items-center border-b shadow-md flex-none">',
                 '    <div class="flex items-center gap-2.5 overflow-hidden">',
                 '      <span class="relative flex h-3 w-3 flex-none">',
@@ -487,7 +565,7 @@
                 '        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-400 border border-white"></span>',
                 '      </span>',
                 '      <h3 class="text-base md:text-lg font-extrabold uppercase tracking-wide truncate">Danh sách đang Online</h3>',
-                '      <span id="badgeSoLuongOnline" class="bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-white/30 flex-none">0</span>',
+                '      <span id="badgeSoLuongOnline" class="bg-white/20 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-white/30 flex-none">0 người</span>',
                 '    </div>',
                 '    <div class="flex items-center gap-2 flex-none">',
                 '      <button type="button" id="btnLamMoiOnline" title="Làm mới ngay lập tức" class="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold border border-white/20">',
@@ -498,7 +576,6 @@
                 '    </div>',
                 '  </div>',
                 '',
-                '  <!-- Thanh tìm kiếm nhanh theo Tên hoặc ID -->',
                 '  <div class="bg-slate-100 px-4 py-2.5 border-b border-slate-300 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 flex-none">',
                 '    <div class="relative flex-1">',
                 '      <input type="text" id="oTimKiemOnline" placeholder="Tìm nhanh theo Tên hoặc ID (Mã GV)..." autocomplete="off" class="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-semibold text-slate-800 bg-white shadow-inner">',
@@ -507,7 +584,6 @@
                 '    <div id="nhanThoiGianCapNhatOnline" class="text-xs font-semibold text-slate-500 text-right whitespace-nowrap">Chưa kích hoạt</div>',
                 '  </div>',
                 '',
-                '  <!-- Bảng danh sách người đang online -->',
                 '  <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 p-0">',
                 '    <table class="w-full text-sm text-center border-collapse" style="font-family:\'Times New Roman\',Times,serif;">',
                 '      <thead class="bg-slate-200 text-slate-800 font-bold sticky top-0 shadow-sm z-10 text-xs md:text-sm uppercase">',
@@ -524,9 +600,8 @@
                 '    </table>',
                 '  </div>',
                 '',
-                '  <!-- Chân Modal -->',
                 '  <div class="bg-gray-100 px-4 py-2.5 border-t border-slate-300 flex flex-col sm:flex-row justify-between items-center gap-2 flex-none">',
-                '    <span id="chuThichCheDoOnline" class="text-xs text-slate-500 italic">Chỉ kích hoạt khi mở bảng • Tự động làm mới mỗi 12 giây</span>',
+                '    <span id="chuThichCheDoOnline" class="text-xs text-slate-500 italic">Chỉ kích hoạt khi mở bảng • Tự động gỡ ngay khi người dùng thoát</span>',
                 '    <button type="button" id="btnDongModalOnlineDuoi" class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-6 py-1.5 rounded-lg shadow transition-colors text-sm cursor-pointer">Đóng</button>',
                 '  </div>',
                 '</div>'
@@ -534,7 +609,6 @@
 
             document.body.appendChild(modalWrapper);
 
-            // Gắn sự kiện đóng Modal khi ấn nút hoặc click ra nền ngoài
             var nutDongX = document.getElementById('btnDongModalOnlineX');
             var nutDongDuoi = document.getElementById('btnDongModalOnlineDuoi');
             var nutLamMoi = document.getElementById('btnLamMoiOnline');
@@ -548,9 +622,7 @@
                 });
             }
             if (oTimKiem) {
-                oTimKiem.addEventListener('input', function () {
-                    veBangDanhSachOnline();
-                });
+                oTimKiem.addEventListener('input', veBangDanhSachOnline);
             }
 
             modalWrapper.addEventListener('click', function (e) {
@@ -568,7 +640,7 @@
     }
 
     // ---------------------------------------------------------------------
-    // 7. VẼ BẢNG DỮ LIỆU TÊN VÀ ID NGƯỜI ĐANG ONLINE
+    // 7. VẼ BẢNG DỮ LIỆU TÊN & ID NGƯỜI ĐANG ONLINE
     // ---------------------------------------------------------------------
     function veBangDanhSachOnline() {
         var tbody = document.getElementById('vungDanhSachOnlineTbody');
@@ -601,7 +673,7 @@
         for (var i = 0; i < dsLoc.length; i++) {
             var ng = dsLoc[i];
             var soGiayTruoc = Math.max(0, Math.floor((bayGio - (ng.capNhatLuc || bayGio)) / 1000));
-            var chuoiThoiGian = soGiayTruoc < 15 ? 'Vừa truy cập' : (soGiayTruoc + ' giây trước');
+            var chuoiThoiGian = soGiayTruoc < 10 ? 'Đang hoạt động' : (soGiayTruoc + ' giây trước');
 
             var nhanBanThan = ng.laBanThan
                 ? '<span class="ml-2 inline-block bg-blue-100 text-blue-800 text-[11px] font-sans font-extrabold px-2 py-0.5 rounded border border-blue-300">Bạn</span>'
@@ -636,7 +708,7 @@
     }
 
     // ---------------------------------------------------------------------
-    // 8. ĐIỀU KHIỂN ĐỒNG BỘ KHI MỞ / ĐÓNG MODAL (CHỈ CHẠY KHI ẤN NÚT)
+    // 8. ĐIỀU KHIỂN MỞ / ĐÓNG MODAL
     // ---------------------------------------------------------------------
     async function lamMoiDanhSachOnline(hienHieuUngQuay) {
         if (!dangMoModal || dangTaiDuLieu) return;
@@ -654,16 +726,13 @@
             tbody.innerHTML = [
                 '<tr><td colspan="4" class="py-10 text-center text-slate-500 font-bold">',
                 '  <div class="w-7 h-7 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-2"></div>',
-                '  Đang kiểm tra danh sách người dùng trực tuyến...',
+                '  Đang kiểm tra người dùng trực tuyến...',
                 '</td></tr>'
             ].join('');
         }
 
         try {
             var ketQua = await thuThapDanhSachOnlineThoiGianThuc();
-            danhSachOnlineHienTai = ketQua.danhSach || [];
-            veBangDanhSachOnline();
-
             if (nhanThoiGian && ketQua.thoiDiemCapNhat) {
                 var d = ketQua.thoiDiemCapNhat;
                 var hh = String(d.getHours()).padStart(2, '0');
@@ -685,44 +754,30 @@
 
     function moModalCheckOnline() {
         khoiTaoNutVaModal();
+        khoiTaoKenhBroadcast();
         var modal = document.getElementById('modalCheckOnline');
         if (!modal) return;
 
         dangMoModal = true;
         modal.classList.remove('hidden');
 
-        // Kích hoạt kênh BroadcastChannel nội bộ khi mở Modal
-        if (!kenhBroadcast && typeof BroadcastChannel !== 'undefined') {
-            try {
-                kenhBroadcast = new BroadcastChannel(TEN_KENH_BROADCAST);
-                kenhBroadcast.onmessage = function (ev) {
-                    if (!dangMoModal || !ev || !ev.data) return;
-                    if (ev.data.loai === 'PING_ONLINE') {
-                        lamMoiDanhSachOnline(false);
-                    }
-                };
-            } catch (e) {}
-        }
-
-        // Thực hiện tải ngay lập tức khi ấn nút
         lamMoiDanhSachOnline(true);
 
-        // Bật bộ đếm cập nhật thời gian thực CHỈ trong lúc Modal đang mở
-        if (boDemThoiGianThuc) {
-            clearInterval(boDemThoiGianThuc);
+        if (boDemModal) {
+            clearInterval(boDemModal);
         }
-        boDemThoiGianThuc = setInterval(function () {
+        boDemModal = setInterval(function () {
             if (dangMoModal) {
                 lamMoiDanhSachOnline(false);
             }
-        }, CHU_KY_CAP_NHAT_MS);
+        }, CHU_KY_CAP_NHAT_MODAL_MS);
     }
 
     function dongModalCheckOnline() {
         dangMoModal = false;
-        if (boDemThoiGianThuc) {
-            clearInterval(boDemThoiGianThuc);
-            boDemThoiGianThuc = null;
+        if (boDemModal) {
+            clearInterval(boDemModal);
+            boDemModal = null;
         }
         var modal = document.getElementById('modalCheckOnline');
         if (modal) {
@@ -731,65 +786,41 @@
     }
 
     // ---------------------------------------------------------------------
-    // 9. KHỞI TẠO NHẸ NHÀNG KHI DOM SẴN SÀNG (KHÔNG GỌI MẠNG, KHÔNG POLLING)
+    // 9. KHỞI ĐỘNG AN TOÀN (KHÔNG CAN THIỆP LUỒNG TKB / SỔ ĐẦU BÀI)
     // ---------------------------------------------------------------------
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', khoiTaoNutVaModal);
-    } else {
+    function khoiDongHeThongCheckOnline() {
         khoiTaoNutVaModal();
+        khoiTaoKenhBroadcast();
+
+        var xuLyThoatTrang = function () {
+            if (daGuiTinHieuThoat) return;
+            daGuiTinHieuThoat = true;
+            guiTinHieuRoiTrangNgayLapTuc();
+        };
+
+        window.addEventListener('pagehide', xuLyThoatTrang);
+        window.addEventListener('beforeunload', xuLyThoatTrang);
+
+        // Chờ 8 giây sau khi trang khởi động hoàn tất mới điểm danh nhẹ (nhường 100% băng thông cho TKB & SĐB)
+        setTimeout(function () {
+            guiNhipTimHienDienMayChu();
+        }, 8000);
+
+        if (boDemNhipTim) clearInterval(boDemNhipTim);
+        boDemNhipTim = setInterval(function () {
+            if (document.visibilityState === 'visible' && !daGuiTinHieuThoat) {
+                guiNhipTimHienDienMayChu();
+            }
+        }, CHU_KY_NHIP_TIM_NHE_MS);
     }
 
-    // Xuất các hàm điều khiển an toàn ra phạm vi window
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', khoiDongHeThongCheckOnline);
+    } else {
+        khoiDongHeThongCheckOnline();
+    }
+
     window.moModalCheckOnline = moModalCheckOnline;
     window.dongModalCheckOnline = dongModalCheckOnline;
     window.lamMoiDanhSachOnline = lamMoiDanhSachOnline;
 })();
-
-/* =========================================================================
- * [TÙY CHỌN MỞ RỘNG CHO BACKEND GOOGLE APPS SCRIPT - codetp.text]
- * Nếu muốn đồng bộ danh sách Online giữa nhiều máy tính khác nhau qua RAM
- * của Google Apps Script (không tốn tài nguyên đọc/ghi Google Sheets):
- *
- * 1. Trong hàm doGet(e) của codetp.text, thêm 1 dòng:
- *    if (thaoTac === 'checkOnline') return xuatDuLieuJson(xuLyCheckOnlineMayChu(e.parameter));
- *
- * 2. Dán hàm dưới đây vào cuối file codetp.text:
- *
- * function xuLyCheckOnlineMayChu(params) {
- *   try {
- *     var cache = CacheService.getScriptCache();
- *     var cacheKey = 'CACHE_DANH_SACH_ONLINE_V1';
- *     var raw = cache.get(cacheKey);
- *     var mapOnline = raw ? JSON.parse(raw) : {};
- *     var now = new Date().getTime();
- *     var ttlMs = 120000; // 2 phút
- *
- *     var maGv = params && params.maGv ? String(params.maGv).trim() : '';
- *     var hoTen = params && params.hoTen ? String(params.hoTen).trim() : '';
- *     var toCM = params && params.toChuyenMon ? String(params.toChuyenMon).trim() : '';
- *
- *     if (maGv || hoTen) {
- *       var key = (maGv || hoTen).toUpperCase();
- *       mapOnline[key] = {
- *         maGv: maGv || key,
- *         hoTen: hoTen || maGv,
- *         toChuyenMon: toCM,
- *         capNhatLuc: now
- *       };
- *     }
- *
- *     var ds = [];
- *     var mapMoi = {};
- *     for (var k in mapOnline) {
- *       if (now - (mapOnline[k].capNhatLuc || 0) <= ttlMs) {
- *         mapMoi[k] = mapOnline[k];
- *         ds.push(mapOnline[k]);
- *       }
- *     }
- *     cache.put(cacheKey, JSON.stringify(mapMoi), 300);
- *     return { trangThai: 'thanh_cong', danhSachOnline: ds };
- *   } catch (e) {
- *     return { trangThai: 'thanh_cong', danhSachOnline: [] };
- *   }
- * }
- * ========================================================================= */
