@@ -522,8 +522,27 @@ async function xuLyLuuTru() {
     });
     
     const payload = { thaoTac: 'luuDuLieuPhanCong', duLieu: mangGhi };
-    const phanHoi = await fetch(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { method: 'POST', body: JSON.stringify(payload) });
-    const ketQua = await phanHoi.json();
+    let ketQua = null;
+    let loiKetNoi = null;
+    for (let lan = 1; lan <= 3; lan++) {
+        try {
+            const urlLuu = (lan === 1) ? CAU_HINH_FRONTEND.URL_API_MAY_CHU : `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}${CAU_HINH_FRONTEND.URL_API_MAY_CHU.includes('?') ? '&' : '?'}_rt=${Date.now()}`;
+            const phanHoi = await fetch(urlLuu, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload),
+                redirect: 'follow',
+                cache: 'no-store'
+            });
+            ketQua = await phanHoi.json();
+            loiKetNoi = null;
+            break;
+        } catch (err) {
+            loiKetNoi = err;
+            if (lan < 3) await new Promise(r => setTimeout(r, 700 * lan));
+        }
+    }
+    if (loiKetNoi) throw loiKetNoi;
     
     if (ketQua.trangThai === 'Thành công') alert("Đã lưu bảng Phân công chuyên môn vào hệ thống thành công!");
     else alert("Lỗi từ máy chủ: " + ketQua.thongBao);
