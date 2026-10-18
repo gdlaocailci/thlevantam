@@ -410,13 +410,42 @@ function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDin
     let mapKeyHienThi = {};
 
     // 1. Khởi tạo trước 100% Giáo viên từ Danh mục Giáo viên (kể cả GV có 0 tiết dạy)
+   // 1. Khởi tạo trước 100% Giáo viên từ Danh mục Giáo viên (kể cả GV có 0 tiết dạy)
     if (mapTenGiaoVien) {
         Object.keys(mapTenGiaoVien).forEach(gvKey => {
             if (!gvKey || gvKey === '---') return;
-            tongHopGv[gvKey] = { sang: 0, chieu: 0, tong: 0 };
-            mapKeyHienThi[gvKey] = (mapMaGoc && mapMaGoc[gvKey]) ? mapMaGoc[gvKey] : gvKey;
+            // [ĐÃ SỬA]: Chuẩn hóa NFC đồng bộ
+            let keyChuan = gvKey.normalize('NFC');
+            tongHopGv[keyChuan] = { sang: 0, chieu: 0, tong: 0 };
+            mapKeyHienThi[keyChuan] = (mapMaGoc && mapMaGoc[gvKey]) ? mapMaGoc[gvKey] : gvKey;
         });
     }
+
+    // 2. Cộng dồn số tiết thực tế từ dữ liệu TKB
+    duLieu.forEach(t => {
+        let rawGv = (t.maGv || '').toString().trim();
+        if (!rawGv || rawGv === '---') return;
+        
+        // [ĐÃ SỬA]: Cần chuẩn hóa NFC mọi chuỗi đầu vào trước khi đếm
+        let gvKey = rawGv.toLowerCase().normalize('NFC');
+
+        // Đối chiếu với bộ từ điển (cũng cần gọi hàm chuẩn hóa cho an toàn)
+        let gvKeySoSanh = gvKey;
+        if (!tongHopGv[gvKeySoSanh] && mapTenSangMaKey && mapTenSangMaKey[rawGv.toLowerCase()]) {
+            gvKeySoSanh = mapTenSangMaKey[rawGv.toLowerCase()].normalize('NFC');
+        }
+
+        if (!tongHopGv[gvKeySoSanh]) {
+            tongHopGv[gvKeySoSanh] = { sang: 0, chieu: 0, tong: 0 };
+            mapKeyHienThi[gvKeySoSanh] = rawGv;
+        }
+        if (String(t.buoi || '').trim().toLowerCase() === "sáng") {
+            tongHopGv[gvKeySoSanh].sang++;
+        } else {
+            tongHopGv[gvKeySoSanh].chieu++;
+        }
+        tongHopGv[gvKeySoSanh].tong++;
+    });
 
     // 2. Cộng dồn số tiết thực tế từ dữ liệu TKB
     duLieu.forEach(t => {
