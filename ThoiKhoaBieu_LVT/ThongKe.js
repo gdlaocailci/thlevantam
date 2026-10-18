@@ -453,54 +453,6 @@ function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDin
         tongHopGv[gvKeySoSanh].tong++;
     });
 
-    // 2. Cộng dồn số tiết thực tế từ dữ liệu TKB
-    duLieu.forEach(t => {
-        let rawGv = (t.maGv || '').toString().trim();
-        if (!rawGv || rawGv === '---') return;
-        
-        // [ĐÃ SỬA]: Cần chuẩn hóa NFC mọi chuỗi đầu vào trước khi đếm
-        let gvKey = rawGv.toLowerCase().normalize('NFC');
-
-        // Đối chiếu với bộ từ điển (cũng cần gọi hàm chuẩn hóa cho an toàn)
-        let gvKeySoSanh = gvKey;
-        if (!tongHopGv[gvKeySoSanh] && mapTenSangMaKey && mapTenSangMaKey[rawGv.toLowerCase()]) {
-            gvKeySoSanh = mapTenSangMaKey[rawGv.toLowerCase()].normalize('NFC');
-        }
-
-        if (!tongHopGv[gvKeySoSanh]) {
-            tongHopGv[gvKeySoSanh] = { sang: 0, chieu: 0, tong: 0 };
-            mapKeyHienThi[gvKeySoSanh] = rawGv;
-        }
-        if (String(t.buoi || '').trim().toLowerCase() === "sáng") {
-            tongHopGv[gvKeySoSanh].sang++;
-        } else {
-            tongHopGv[gvKeySoSanh].chieu++;
-        }
-        tongHopGv[gvKeySoSanh].tong++;
-    });
-
-    // 2. Cộng dồn số tiết thực tế từ dữ liệu TKB
-    duLieu.forEach(t => {
-        let rawGv = (t.maGv || '').toString().trim();
-        if (!rawGv || rawGv === '---') return;
-        let gvKey = rawGv.toLowerCase();
-
-        if (!tongHopGv[gvKey] && mapTenSangMaKey && mapTenSangMaKey[gvKey]) {
-            gvKey = mapTenSangMaKey[gvKey];
-        }
-
-        if (!tongHopGv[gvKey]) {
-            tongHopGv[gvKey] = { sang: 0, chieu: 0, tong: 0 };
-            mapKeyHienThi[gvKey] = rawGv;
-        }
-        if (String(t.buoi || '').trim().toLowerCase() === "sáng") {
-            tongHopGv[gvKey].sang++;
-        } else {
-            tongHopGv[gvKey].chieu++;
-        }
-        tongHopGv[gvKey].tong++;
-    });
-
     let dsGvKey = Object.keys(tongHopGv).sort((a, b) => {
         let maA = mapKeyHienThi[a] || a;
         let maB = mapKeyHienThi[b] || b;
