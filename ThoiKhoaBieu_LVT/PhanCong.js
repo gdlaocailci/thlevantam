@@ -30,6 +30,91 @@ async function taiDuLieuPhanCongTuMayChu() {
 // =========================================================================
 // KHỐI 2: KHỞI TẠO VÀ XỬ LÝ LƯỚI GIAO DIỆN PHÂN CÔNG
 // =========================================================================
+
+// Xử lý nâng cao tương tác các ô chọn giáo viên (mờ giá trị cũ, mở danh sách, tự động thoát chuột khi chọn xong)
+function xuLyFocusOPhanCong(el) {
+    if (el.value) {
+        el.dataset.giaTriCu = el.value;
+        el.placeholder = el.value;
+        el.value = '';
+    }
+    tinhToanTietDay(el.dataset.giaTriCu || el.value);
+}
+
+function xuLyClickOPhanCong(el) {
+    if (el.value) {
+        el.dataset.giaTriCu = el.value;
+        el.placeholder = el.value;
+        el.value = '';
+    }
+    if (el.showPicker) {
+        try { el.showPicker(); } catch (e) {}
+    }
+    tinhToanTietDay(el.dataset.giaTriCu || el.value);
+}
+
+function xuLyInputOPhanCong(el, e) {
+    let val = el.value.trim();
+    if (!val) return;
+    
+    // Kiểm tra nếu là chọn từ datalist (insertReplacementText) hoặc chọn khớp tên/mã từ danh sách (không phải đang gõ phím thông thường insertText)
+    let laChonTuList = (e && e.inputType === 'insertReplacementText') ||
+                      (!e || !e.inputType) ||
+                      (e.inputType !== 'insertText' && danhSachGV.some(gv => (gv.maGv || gv.hoTen).toLowerCase() === val.toLowerCase()));
+
+    if (laChonTuList) {
+        el.dataset.giaTriCu = '';
+        el.placeholder = '--';
+        el.blur(); // Tự động thoát chuột sau khi chọn xong
+        tinhToanTietDay(val);
+        locDuLieuPhanCongThoiGianThuc();
+    }
+}
+
+function xuLyChangeOPhanCong(el) {
+    el.dataset.giaTriCu = '';
+    el.placeholder = '--';
+    tinhToanTietDay(el.value);
+    locDuLieuPhanCongThoiGianThuc();
+}
+
+function xuLyBlurOPhanCong(el) {
+    if (!el.value && el.dataset.giaTriCu) {
+        el.value = el.dataset.giaTriCu;
+    }
+    el.dataset.giaTriCu = '';
+    el.placeholder = '--';
+    tinhToanTietDay(el.value);
+    locDuLieuPhanCongThoiGianThuc();
+}
+
+function xuLyKeydownOPhanCong(el, e) {
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+        el.dataset.giaTriCu = '';
+        el.value = '';
+        el.placeholder = '--';
+        el.blur();
+        tinhToanTietDay('');
+        locDuLieuPhanCongThoiGianThuc();
+    } else if (e.key === 'Enter') {
+        el.blur();
+    } else if (e.key === 'Escape') {
+        if (el.dataset.giaTriCu) {
+            el.value = el.dataset.giaTriCu;
+            el.dataset.giaTriCu = '';
+        }
+        el.placeholder = '--';
+        el.blur();
+    }
+}
+
+window.xuLyFocusOPhanCong = xuLyFocusOPhanCong;
+window.xuLyClickOPhanCong = xuLyClickOPhanCong;
+window.xuLyInputOPhanCong = xuLyInputOPhanCong;
+window.xuLyChangeOPhanCong = xuLyChangeOPhanCong;
+window.xuLyBlurOPhanCong = xuLyBlurOPhanCong;
+window.xuLyKeydownOPhanCong = xuLyKeydownOPhanCong;
+
 function khoiTaoGiaoDienPhanCong(duLieuSever) {
   danhSachGV = duLieuSever.giaoVien || [];
   khungChuongTrinhToanTruong = duLieuSever.khungChuongTrinh || {}; 
@@ -95,11 +180,14 @@ function khoiTaoGiaoDienPhanCong(duLieuSever) {
               let gvHienTai = duLieuCuCuaLop[j + 1] || ''; 
               bodyHtml += `<td class="p-0 border border-gray-400 transition-all duration-300 bg-white group-hover:bg-slate-50">
                               <input type="text" size="1" list="danhSachGiaoVienPhanCong" data-lop="${maLop}" data-mon="${tenMon}" value="${gvHienTai}" 
-                              onchange="tinhToanTietDay(this.value); locDuLieuPhanCongThoiGianThuc();" 
-                              placeholder="--" class="w-full h-full min-h-[26px] min-w-0 outline-none text-center bg-transparent focus:bg-blue-100 cursor-pointer font-semibold text-slate-800" 
+                              placeholder="--" class="w-full h-full min-h-[26px] min-w-0 outline-none text-center bg-transparent focus:bg-blue-100 cursor-pointer font-semibold text-slate-800 placeholder-slate-400" 
                               autocomplete="off" 
-                              onclick="if(this.showPicker) this.showPicker(); tinhToanTietDay(this.value);" 
-                              onfocus="this.select(); tinhToanTietDay(this.value);">
+                              onfocus="xuLyFocusOPhanCong(this)" 
+                              onclick="xuLyClickOPhanCong(this)" 
+                              oninput="xuLyInputOPhanCong(this, event)" 
+                              onchange="xuLyChangeOPhanCong(this)" 
+                              onblur="xuLyBlurOPhanCong(this)" 
+                              onkeydown="xuLyKeydownOPhanCong(this, event)">
                            </td>`;
           } else {
               bodyHtml += `<td class="p-0 border border-gray-300 bg-slate-200 opacity-70" title="Môn học không có trong Khung chương trình của lớp ${maLop}">
@@ -168,7 +256,8 @@ function locDuLieuPhanCongThoiGianThuc() {
         } else {
             let cacSelect = dong.querySelectorAll('input[data-lop]');
             for (let i = 0; i < cacSelect.length; i++) {
-                if (cacSelect[i].value.trim().toLowerCase().includes(tuKhoaGV)) {
+                let val = cacSelect[i].value.trim() || (cacSelect[i].dataset.giaTriCu ? cacSelect[i].dataset.giaTriCu.trim() : '');
+                if (val.toLowerCase().includes(tuKhoaGV)) {
                     thapGV = true;
                     break;
                 }
@@ -229,7 +318,7 @@ function tinhToanTietDay(maGVVuaChon = null) {
   const cacTheSelect = document.querySelectorAll('input[data-lop]');
   
   cacTheSelect.forEach(sl => {
-    let maGV_nhap = sl.value.trim();
+    let maGV_nhap = sl.value.trim() || (sl.dataset.giaTriCu ? sl.dataset.giaTriCu.trim() : '');
     if (!maGV_nhap) return;
 
     let maGVKhop = Object.keys(thongKe).find(k => k.toLowerCase() === maGV_nhap.toLowerCase());
@@ -411,7 +500,7 @@ window.moKhungPhanCongNhanh = function(maGV, tenGV) {
         if(sl.disabled) return; 
         let mon = sl.getAttribute('data-mon');
         let lop = sl.getAttribute('data-lop');
-        let gvDangDay = sl.value.trim();
+        let gvDangDay = sl.value.trim() || (sl.dataset.giaTriCu ? sl.dataset.giaTriCu.trim() : '');
         
         if(!mapData[mon]) mapData[mon] = [];
         mapData[mon].push({ lop: lop, gvDangDay: gvDangDay });
@@ -479,6 +568,8 @@ window.xuLyTichPhanCongNhanh = function(checkbox, maLop, mon, maGV) {
     if (inputLoi) {
         if (checkbox.checked) inputLoi.value = maGV;
         else inputLoi.value = "";
+        inputLoi.dataset.giaTriCu = '';
+        inputLoi.placeholder = '--';
         
         let tdCha = inputLoi.closest('td');
         if (tdCha) {
@@ -516,7 +607,7 @@ async function xuLyLuuTru() {
         if (tdLop) {
             dongDuLieu.push(tdLop.innerText.trim());
             let cacSelect = tr.querySelectorAll('input[data-lop]');
-            cacSelect.forEach(sl => dongDuLieu.push(sl.value.trim()));
+            cacSelect.forEach(sl => dongDuLieu.push(sl.value.trim() || (sl.dataset.giaTriCu ? sl.dataset.giaTriCu.trim() : '')));
             mangGhi.push(dongDuLieu);
         }
     });
@@ -591,7 +682,7 @@ async function xuatExcelPhanCong() {
             if (tdLop) {
                 dong.push(tdLop.innerText.trim());
                 let cacSelect = tr.querySelectorAll('input[data-lop]');
-                cacSelect.forEach(sl => dong.push(sl.value.trim()));
+                cacSelect.forEach(sl => dong.push(sl.value.trim() || (sl.dataset.giaTriCu ? sl.dataset.giaTriCu.trim() : '')));
                 worksheet.addRow(dong);
 
                 for (let c = 2; c <= dongTieuDe.length; c++) {
@@ -666,7 +757,11 @@ function xuLyTaiLenExcelPhanCong(e) {
             cacTheSelect.forEach(sl => {
                 let lop = sl.getAttribute('data-lop');
                 let mon = sl.getAttribute('data-mon');
-                if (mapExcel[lop] && mapExcel[lop][mon] !== undefined) sl.value = mapExcel[lop][mon];
+                if (mapExcel[lop] && mapExcel[lop][mon] !== undefined) {
+                    sl.value = mapExcel[lop][mon];
+                    sl.dataset.giaTriCu = '';
+                    sl.placeholder = '--';
+                }
             });
 
             tinhToanTietDay();
