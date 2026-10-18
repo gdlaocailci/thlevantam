@@ -297,11 +297,11 @@ async function goiTraCuuThongKe() {
                 }
             } catch(e) { console.warn("Lỗi tải định mức:", e); }
         }
-
-        // Đếm tần suất Họ tên để ánh xạ an toàn các dòng TKB cũ lưu bằng Họ tên
+       // Đếm tần suất Họ tên để ánh xạ an toàn các dòng TKB cũ lưu bằng Họ tên
         let demTen = {};
         danhSachGvNguon.forEach(g => {
-            let tenLC = (g.hoTen || '').toString().trim().toLowerCase();
+            // [GỌI HÀM NẮN TÊN]
+            let tenLC = chuanHoaTenGiaoVien(g.hoTen);
             if (tenLC !== '') demTen[tenLC] = (demTen[tenLC] || 0) + 1;
         });
 
@@ -311,16 +311,17 @@ async function goiTraCuuThongKe() {
             let dinhDanh = ma !== '' ? ma : ten;
             if (dinhDanh === '' || dinhDanh === '---') return;
 
-            let maKey = dinhDanh.toLowerCase();
+            // [GỌI HÀM NẮN TÊN]
+            let maKey = chuanHoaTenGiaoVien(dinhDanh);
             mangDinhMucChuan[maKey] = parseInt(g.dinhMuc, 10) || 0;
             mapTenGiaoVien[maKey] = ten !== '' ? ten : dinhDanh;
             mapMaGoc[maKey] = dinhDanh;
 
-            if (ten !== '' && demTen[ten.toLowerCase()] === 1) {
-                mapTenSangMaKey[ten.toLowerCase()] = maKey;
+            if (ten !== '' && demTen[chuanHoaTenGiaoVien(ten)] === 1) {
+                mapTenSangMaKey[chuanHoaTenGiaoVien(ten)] = maKey;
             }
             if (ma !== '') {
-                mapTenSangMaKey[ma.toLowerCase()] = maKey;
+                mapTenSangMaKey[chuanHoaTenGiaoVien(ma)] = maKey;
             }
         });
 
@@ -639,4 +640,17 @@ function veMaTranThongKeCaNhan(duLieu, gv, nam, thang, tuan) {
 
     htmlArr.push(`</tbody></table></div>`);
     document.getElementById('vungKetQuaThongKe').innerHTML = htmlArr.join('');
+}
+// Hàm triệt tiêu mọi sự khác biệt về chữ hoa/thường và vị trí đặt dấu Tiếng Việt
+function chuanHoaTenGiaoVien(ten) {
+    if (!ten) return '';
+    var s = String(ten).toLowerCase().normalize('NFC');
+    
+    // Nắn lại toàn bộ dấu kiểu cũ về kiểu chuẩn mới
+    s = s.replace(/uỳ/g, 'ùy').replace(/uý/g, 'úy').replace(/uỷ/g, 'ủy').replace(/uỹ/g, 'ũy').replace(/uỵ/g, 'ụy');
+    s = s.replace(/oà/g, 'òa').replace(/oá/g, 'óa').replace(/oả/g, 'ỏa').replace(/oã/g, 'õa').replace(/oạ/g, 'ọa');
+    s = s.replace(/oè/g, 'òe').replace(/oé/g, 'óe').replace(/oẻ/g, 'ỏe').replace(/oẽ/g, 'õe').replace(/oẹ/g, 'ọe');
+    s = s.replace(/uà/g, 'ùa').replace(/uá/g, 'úa').replace(/uả/g, 'ủa').replace(/uã/g, 'ũa').replace(/uạ/g, 'ụa');
+    
+    return s.trim();
 }
