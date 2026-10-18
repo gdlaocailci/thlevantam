@@ -279,16 +279,8 @@ async function goiTraCuuThongKe() {
         const fetchFunc = (typeof fetchVoiCoCheThuLai === 'function') ? fetchVoiCoCheThuLai : fetch;
 
         let danhSachGvNguon = [];
-        // [ĐÃ SỬA LỖI MẢNG 2 CHIỀU]: Chuyển đổi dữ liệu thô thành object an toàn
-        if (typeof duLieuDanhMucGV !== 'undefined' && duLieuDanhMucGV.length > 1) {
-            for (let i = 1; i < duLieuDanhMucGV.length; i++) {
-                danhSachGvNguon.push({
-                    maGv: duLieuDanhMucGV[i][0] !== undefined && duLieuDanhMucGV[i][0] !== null ? String(duLieuDanhMucGV[i][0]).trim() : '',
-                    hoTen: duLieuDanhMucGV[i][1] !== undefined && duLieuDanhMucGV[i][1] !== null ? String(duLieuDanhMucGV[i][1]).trim() : '',
-                    dinhMuc: duLieuDanhMucGV[i][3],
-                    trangThai: duLieuDanhMucGV[i][4] ? String(duLieuDanhMucGV[i][4]).trim() : 'Đang công tác'
-                });
-            }
+        if (typeof duLieuDanhMucGV !== 'undefined' && duLieuDanhMucGV.length > 0) {
+            danhSachGvNguon = duLieuDanhMucGV;
         } else {
             try {
                 const resDM = await fetchFunc(`${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDanhMucGV`);
@@ -309,7 +301,7 @@ async function goiTraCuuThongKe() {
         // Đếm tần suất Họ tên để ánh xạ an toàn các dòng TKB cũ lưu bằng Họ tên
         let demTen = {};
         danhSachGvNguon.forEach(g => {
-            let tenLC = chuanHoaTenGiaoVien(g.hoTen);
+            let tenLC = (g.hoTen || '').toString().trim().toLowerCase();
             if (tenLC !== '') demTen[tenLC] = (demTen[tenLC] || 0) + 1;
         });
 
@@ -319,17 +311,16 @@ async function goiTraCuuThongKe() {
             let dinhDanh = ma !== '' ? ma : ten;
             if (dinhDanh === '' || dinhDanh === '---') return;
 
-            // [GỌI HÀM NẮN TÊN]
-            let maKey = chuanHoaTenGiaoVien(dinhDanh);
+            let maKey = dinhDanh.toLowerCase();
             mangDinhMucChuan[maKey] = parseInt(g.dinhMuc, 10) || 0;
             mapTenGiaoVien[maKey] = ten !== '' ? ten : dinhDanh;
             mapMaGoc[maKey] = dinhDanh;
 
-            if (ten !== '' && demTen[chuanHoaTenGiaoVien(ten)] === 1) {
-                mapTenSangMaKey[chuanHoaTenGiaoVien(ten)] = maKey;
+            if (ten !== '' && demTen[ten.toLowerCase()] === 1) {
+                mapTenSangMaKey[ten.toLowerCase()] = maKey;
             }
             if (ma !== '') {
-                mapTenSangMaKey[chuanHoaTenGiaoVien(ma)] = maKey;
+                mapTenSangMaKey[ma.toLowerCase()] = maKey;
             }
         });
 
@@ -418,11 +409,10 @@ function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDin
     let tongHopGv = {};
     let mapKeyHienThi = {};
 
-// 1. Khởi tạo trước 100% Giáo viên từ Danh mục Giáo viên (kể cả GV có 0 tiết dạy)
+    // 1. Khởi tạo trước 100% Giáo viên từ Danh mục Giáo viên (kể cả GV có 0 tiết dạy)
     if (mapTenGiaoVien) {
         Object.keys(mapTenGiaoVien).forEach(gvKey => {
             if (!gvKey || gvKey === '---') return;
-            // Lúc này gvKey đã được chuẩn hóa sạch sẽ từ Bước 2
             tongHopGv[gvKey] = { sang: 0, chieu: 0, tong: 0 };
             mapKeyHienThi[gvKey] = (mapMaGoc && mapMaGoc[gvKey]) ? mapMaGoc[gvKey] : gvKey;
         });
@@ -432,25 +422,22 @@ function veBangThongKeToanTruong(duLieu, nam, thang, tuan, soTuanTraCuu, mangDin
     duLieu.forEach(t => {
         let rawGv = (t.maGv || '').toString().trim();
         if (!rawGv || rawGv === '---') return;
-        
-        // [GỌI HÀM NẮN TÊN]: Ép tên giáo viên từ TKB về chuẩn để đối chiếu
-        let gvKey = chuanHoaTenGiaoVien(rawGv);
+        let gvKey = rawGv.toLowerCase();
 
-        let gvKeySoSanh = gvKey;
-        if (!tongHopGv[gvKeySoSanh] && mapTenSangMaKey && mapTenSangMaKey[gvKey]) {
-            gvKeySoSanh = mapTenSangMaKey[gvKey];
+        if (!tongHopGv[gvKey] && mapTenSangMaKey && mapTenSangMaKey[gvKey]) {
+            gvKey = mapTenSangMaKey[gvKey];
         }
 
-        if (!tongHopGv[gvKeySoSanh]) {
-            tongHopGv[gvKeySoSanh] = { sang: 0, chieu: 0, tong: 0 };
-            mapKeyHienThi[gvKeySoSanh] = rawGv;
+        if (!tongHopGv[gvKey]) {
+            tongHopGv[gvKey] = { sang: 0, chieu: 0, tong: 0 };
+            mapKeyHienThi[gvKey] = rawGv;
         }
         if (String(t.buoi || '').trim().toLowerCase() === "sáng") {
-            tongHopGv[gvKeySoSanh].sang++;
+            tongHopGv[gvKey].sang++;
         } else {
-            tongHopGv[gvKeySoSanh].chieu++;
+            tongHopGv[gvKey].chieu++;
         }
-        tongHopGv[gvKeySoSanh].tong++;
+        tongHopGv[gvKey].tong++;
     });
 
     let dsGvKey = Object.keys(tongHopGv).sort((a, b) => {
@@ -623,25 +610,4 @@ function veMaTranThongKeCaNhan(duLieu, gv, nam, thang, tuan) {
 
     htmlArr.push(`</tbody></table></div>`);
     document.getElementById('vungKetQuaThongKe').innerHTML = htmlArr.join('');
-}
-// Hàm triệt tiêu mọi sự khác biệt về chữ hoa/thường, vị trí gõ dấu, khoảng trắng kép và ký tự ẩn
-function chuanHoaTenGiaoVien(ten) {
-    if (!ten) return '';
-    
-    // 1. Loại bỏ các ký tự ẩn (zero-width spaces)
-    var s = String(ten).replace(/[\u200B-\u200D\uFEFF]/g, '');
-    
-    // 2. Thu gọn tất cả các loại khoảng trắng (kể cả khoảng trắng cứng NBSP) thành 1 dấu cách duy nhất
-    s = s.replace(/\s+/g, ' ');
-    
-    // 3. Chuyển chữ thường và chuẩn hóa Unicode (NFC)
-    s = s.toLowerCase().normalize('NFC');
-    
-    // 4. Nắn lại toàn bộ dấu kiểu cũ về kiểu chuẩn mới (xử lý triệt để Thuỳ/Thùy, Hoà/Hòa)
-    s = s.replace(/uỳ/g, 'ùy').replace(/uý/g, 'úy').replace(/uỷ/g, 'ủy').replace(/uỹ/g, 'ũy').replace(/uỵ/g, 'ụy');
-    s = s.replace(/oà/g, 'òa').replace(/oá/g, 'óa').replace(/oả/g, 'ỏa').replace(/oã/g, 'õa').replace(/oạ/g, 'ọa');
-    s = s.replace(/oè/g, 'òe').replace(/oé/g, 'óe').replace(/oẻ/g, 'ỏe').replace(/oẽ/g, 'õe').replace(/oẹ/g, 'ọe');
-    s = s.replace(/uà/g, 'ùa').replace(/uá/g, 'úa').replace(/uả/g, 'ủa').replace(/uã/g, 'ũa').replace(/uạ/g, 'ụa');
-    
-    return s.trim();
 }
