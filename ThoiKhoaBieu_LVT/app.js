@@ -568,10 +568,11 @@ window.dongBoDanhMucMonVaGiaoVien = async function(hienThongBao = false) {
             // Tái tạo ngay lập tức datalist Môn học và Giáo viên
             window.capNhatDatalistTKB();
             
+            // Đã bỏ thông báo thành công theo yêu cầu
             if (hienThongBao) {
                 let soMon = (thongSoHocVu.DANH_SACH_MON_HOC || []).length;
                 let soGv = (thongSoHocVu.DANH_SACH_GIAO_VIEN || []).length;
-                alert(`✅ Đồng bộ thành công!\n- Môn học: ${soMon} môn\n- Giáo viên: ${soGv} người\nĐã cập nhật vào toàn bộ ô chọn của Thời khóa biểu.`);
+                console.log(`Đồng bộ danh mục thành công: ${soMon} môn, ${soGv} giáo viên.`);
             }
             return true;
         }
@@ -1026,16 +1027,52 @@ function locTheoGiaoVien() {
         let oMon = document.getElementById(oGv.id.replace('gv_', 'mon_'));
         let tdMon = oMon ? oMon.closest('td') : null;
 
-        if (isTarget) {
-            if(tdGv) tdGv.classList.remove('bg-gray-100/50');
-            if(tdMon) tdMon.classList.remove('bg-gray-100/50');
-            oGv.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
-            if(oMon) oMon.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
+        let dangLocGV = (gvLoc !== "" && gvLoc !== "Toàn trường");
+        if (dangLocGV) {
+            if (isTarget) {
+                // [SỰ KIỆN TÌM KIẾM / LỌC GV]: Tô màu nổi bật để dễ dàng xác định lịch dạy của giáo viên
+                if (tdGv) {
+                    tdGv.classList.remove('bg-gray-100/50', 'bg-slate-50/60', 'bg-white');
+                    tdGv.classList.add('bg-amber-100', 'text-amber-950', 'font-bold');
+                }
+                if (tdMon) {
+                    tdMon.classList.remove('bg-gray-100/50', 'bg-slate-50/60', 'bg-white');
+                    tdMon.classList.add('bg-amber-100', 'text-amber-950', 'font-bold');
+                }
+                oGv.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
+                if (oMon) oMon.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
+            } else {
+                // Các ô còn lại làm mờ nhẹ để hướng tiêu điểm vào các ô cần tìm
+                if (tdGv) {
+                    tdGv.classList.remove('bg-amber-100', 'text-amber-950', 'font-bold');
+                    tdGv.classList.add('bg-slate-50/60');
+                }
+                if (tdMon) {
+                    tdMon.classList.remove('bg-amber-100', 'text-amber-950', 'font-bold');
+                    tdMon.classList.add('bg-slate-50/60');
+                }
+                oGv.classList.add('opacity-0', 'pointer-events-none', 'select-none');
+                if (oMon) oMon.classList.add('opacity-0', 'pointer-events-none', 'select-none');
+            }
         } else {
-            if(tdGv) tdGv.classList.add('bg-gray-100/50');
-            if(tdMon) tdMon.classList.add('bg-gray-100/50');
-            oGv.classList.add('opacity-0', 'pointer-events-none', 'select-none');
-            if(oMon) oMon.classList.add('opacity-0', 'pointer-events-none', 'select-none');
+            // [CHẾ ĐỘ MẶC ĐỊNH / TOÀN TRƯỜNG]: Bỏ toàn bộ màu, trả về nền trắng sạch sẽ tối ưu tốc độ
+            if (tdGv) {
+                tdGv.classList.remove('bg-amber-100', 'text-amber-950', 'font-bold', 'bg-gray-100/50', 'bg-slate-50/60');
+                if (!tdGv.classList.contains('bg-yellow-400') && !tdGv.classList.contains('bg-amber-50') && !tdGv.classList.contains('bg-teal-100') && !tdGv.classList.contains('bg-red-200')) {
+                    tdGv.classList.add('bg-white');
+                }
+            }
+            if (tdMon) {
+                tdMon.classList.remove('bg-amber-100', 'text-amber-950', 'font-bold', 'bg-gray-100/50', 'bg-slate-50/60');
+                let laCanLich = oMon && oMon.value.includes('CẤN LỊCH');
+                if (laCanLich) {
+                    tdMon.classList.add('bg-yellow-400');
+                } else if (!tdMon.classList.contains('bg-amber-50') && !tdMon.classList.contains('bg-teal-100') && !tdMon.classList.contains('bg-red-200')) {
+                    tdMon.classList.add('bg-white');
+                }
+            }
+            oGv.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
+            if (oMon) oMon.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
         }
     });
 }
@@ -1045,7 +1082,7 @@ window.danhDauDongThayDoiTKB = function(inputEl) {
     let td = inputEl.closest('td');
     if (td && td.getAttribute('data-thaydoi') !== 'true') {
         td.setAttribute('data-thaydoi', 'true');
-        td.classList.add('relative'); 
+        td.classList.add('relative', 'bg-amber-50'); // SỰ KIỆN SỬA ĐỔI: Tô màu nhẹ nhận diện ô đã sửa
         
         if (!td.querySelector('.icon-sua-chua')) {
             inputEl.insertAdjacentHTML('afterend', `<svg class="icon-sua-chua w-[14px] h-[14px] absolute top-1 right-1 text-amber-600 animate-pulse pointer-events-none drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>`);
@@ -1373,6 +1410,7 @@ function xuatMaTranBang(danhSachTiet) {
     const bangMauGV = ['bg-red-200', 'bg-blue-200', 'bg-green-200', 'bg-yellow-200', 'bg-purple-200', 'bg-pink-200', 'bg-teal-200', 'bg-orange-200', 'bg-cyan-200', 'bg-lime-200', 'bg-fuchsia-200', 'bg-rose-200'];
     let mauGiaoVien = {}; 
     if (thongSoHocVu.DANH_SACH_GIAO_VIEN) { thongSoHocVu.DANH_SACH_GIAO_VIEN.forEach((gv, idx) => { mauGiaoVien[gv] = bangMauGV[idx % bangMauGV.length]; }); }
+    window.mauGiaoVien = mauGiaoVien;
     
     let gvcnLop = {};
     mangLopHienThi.forEach(lop => {
@@ -1490,9 +1528,9 @@ function xuatMaTranBang(danhSachTiet) {
                     
                     let monGoc = (duLieuO && duLieuO.monHoc) ? String(duLieuO.monHoc) : ((duLieuO && duLieuO.mon) ? String(duLieuO.mon) : ""); let gvGoc = (duLieuO && duLieuO.maGv) ? String(duLieuO.maGv) : "";
 
+                    // [TỐI ƯU HÓA BĂNG THÔNG & TỐC ĐỘ]: Khởi động với nền trắng sạch sẽ, không tải màu nền giáo viên
                     let bgLop = 'bg-white'; let textClass = 'text-slate-900';
-                    if (monGoc.includes('CẤN LỊCH')) { bgLop = 'bg-yellow-400'; textClass = 'text-red-700 font-extrabold'; } 
-                    else if (gvGoc && gvGoc !== gvcnLop[lop]) { bgLop = mauGiaoVien[gvGoc] || 'bg-gray-200'; textClass = 'text-slate-900 font-semibold'; }
+                    if (monGoc.includes('CẤN LỊCH')) { bgLop = 'bg-yellow-400'; textClass = 'text-red-700 font-extrabold'; }
 
                     let idMon = `mon_${thu}_${buoi}_${tiet}_${lop}`; let idGv = `gv_${thu}_${buoi}_${tiet}_${lop}`;
                     
@@ -1591,21 +1629,8 @@ async function luuDuLieu(event, loaiLuu, tuDongLuu = false) {
                 let namHocDung = namHocChuan || thongTinNgay.nam; 
                 let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
                 
-                let indexTrongRam = duLieuTkbHienTai.findIndex(t => 
-                    String(t.tuan).trim() === String(tuanDangXem).trim() &&
-                    String(t.thu).trim() === thu && 
-                    String(t.buoi).trim() === buoi && 
-                    String(t.tiet).trim() === String(tiet) && 
-                    String(t.maLop).trim() === lop &&
-                    (String(t.ngay).trim() === thongTinNgay.ngayDayDu || String(t.ngay).trim() === '') 
-                );
-
-                let maTietNguyenBan = '';
-                if (indexTrongRam !== -1 && duLieuTkbHienTai[indexTrongRam].maTiet) {
-                    maTietNguyenBan = duLieuTkbHienTai[indexTrongRam].maTiet;
-                } else {
-                    maTietNguyenBan = `${namHocDung}_${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`;
-                }
+                // [NÂNG CẤP ĐỒNG BỘ MÃ TIẾT]: Luôn ép tạo mã tiết chuẩn chứa tiền tố năm học thay vì lấy từ RAM
+                let maTietNguyenBan = `${namHocDung}_${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`;
                 
                 dsTietLuoi.push({
                     maTiet: maTietNguyenBan, 
@@ -1626,7 +1651,27 @@ async function luuDuLieu(event, loaiLuu, tuDongLuu = false) {
         let mangLopDangHienThi = Array.from(setLopDangHienThi);
         if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) {
             duLieuTkbHienTai.forEach(tietGoc => {
-                if (!mangLopDangHienThi.includes(tietGoc.maLop)) dsTietLuoi.push(tietGoc);
+                // [NÂNG CẤP ĐỒNG BỘ ẨN]: Tính toán lại Ngày, Tháng và ép Mã tiết có Năm học cho các lớp đang bị ẩn khỏi UI do bộ lọc
+                if (!mangLopDangHienThi.includes(tietGoc.maLop)) {
+                    let thongTinNgayAn = tinhNgayDocLap(ngayDauTuanUI, tietGoc.thu, tuanDangXem);
+                    let namHocAn = namHocChuan || thongTinNgayAn.nam;
+                    let tienToAn = (tietGoc.buoi === "Sáng") ? "S" : "C";
+                    let maTietAn = `${namHocAn}_${tuanDangXem}_${tietGoc.thu}_${tienToAn}_${tietGoc.tiet}_${tietGoc.maLop}`;
+
+                    dsTietLuoi.push({
+                        maTiet: maTietAn,
+                        namHoc: namHocAn,
+                        thang: thongTinNgayAn.thang,
+                        ngay: thongTinNgayAn.ngayDayDu,
+                        tuan: tuanDangXem,
+                        thu: tietGoc.thu,
+                        buoi: tietGoc.buoi,
+                        tiet: tietGoc.tiet,
+                        maLop: tietGoc.maLop,
+                        monHoc: tietGoc.monHoc,
+                        maGv: tietGoc.maGv
+                    });
+                }
             });
         }
 
@@ -1647,16 +1692,15 @@ async function luuDuLieu(event, loaiLuu, tuDongLuu = false) {
             if (loaiLuu === 'khoiphuc') {
                 await chuyenTuan(1); 
                 let btnAn = document.createElement('button'); btnAn.innerHTML = "Auto Save";
-                // Chạy lưu ngầm cho tuần mới: Bỏ hoàn toàn thông báo xác nhận lặp lại và thông báo thành công
                 await luuDuLieu({ currentTarget: btnAn }, 'tuan', true);
             } else {
                 if (!tuDongLuu) {
-                    alert("Đã lưu mới toàn bộ dữ liệu Thời khóa biểu tuần thành công!");
+                    console.log("Đã lưu mới toàn bộ dữ liệu Thời khóa biểu tuần thành công!");
                 }
                 duLieuTkbHienTai = dsTietLuoi;
                 
                 document.querySelectorAll('td[data-thaydoi="true"]').forEach(td => {
-                    td.removeAttribute('data-thaydoi');
+                    td.removeAttribute('data-thaydoi'); td.classList.remove('bg-amber-50');
                     let icon = td.querySelector('.icon-sua-chua');
                     if (icon) icon.remove();
                 });
@@ -1665,7 +1709,6 @@ async function luuDuLieu(event, loaiLuu, tuDongLuu = false) {
 
                 if (typeof window.lamSachBoNhoSoDauBai === 'function') window.lamSachBoNhoSoDauBai();
                 
-                // [BẢN VÁ]: Chỉ kết xuất lại lưới TKB từ RAM, bỏ qua lệnh tải từ máy chủ để giảm độ trễ
                 xuatMaTranBang(duLieuTkbHienTai);
                 localStorage.setItem(layKhoaCachLy('KhoaDongBo_TKB'), Date.now().toString());
             }
@@ -2248,7 +2291,8 @@ async function nhapExcelTKB(event) {
                 }
                 
                 if (typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang();
-                alert("Đã kết xuất dữ liệu từ Excel lên giao diện thành công! Vui lòng kiểm tra đối chiếu và bấm [Lưu TKB Tuần] để lưu hệ thống.");
+                // Đã bỏ thông báo thành công theo yêu cầu: Dữ liệu Excel đã nạp trực tiếp lên lưới TKB
+                console.log("Đã kết xuất dữ liệu từ Excel lên giao diện thành công!");
             } catch (errParse) { console.error("Lỗi phân tích cú pháp tệp Excel: ", errParse); alert("Sự cố xảy ra khi trích xuất dữ liệu biểu mẫu."); }
         };
         reader.readAsArrayBuffer(file);
@@ -2290,22 +2334,10 @@ async function luuSuaCucBoTKB(event) {
             let namHocDung = namHocChuan || thongTinNgay.nam;
             let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
             
-            let indexTrongRam = duLieuTkbHienTai.findIndex(t => 
-                parseInt(String(t.tuan).replace(/\D/g, ''), 10) === parseInt(String(tuanDangXem).replace(/\D/g, ''), 10) &&
-                String(t.maLop).trim().toUpperCase() === lop.trim().toUpperCase() &&
-                String(t.thu).trim().toLowerCase() === thu.trim().toLowerCase() &&
-                String(t.buoi).trim().toLowerCase() === buoi.trim().toLowerCase() &&
-                String(t.tiet).trim() === String(tiet).trim()
-            );
-
-            let maTietNguyenBan = '';
-            if (indexTrongRam !== -1 && duLieuTkbHienTai[indexTrongRam].maTiet) {
-                maTietNguyenBan = duLieuTkbHienTai[indexTrongRam].maTiet;
-            } else {
-                maTietNguyenBan = `${namHocDung}_${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`;
-            }
+            // [NÂNG CẤP ĐỒNG BỘ MÃ TIẾT]: Luôn ép tạo mã tiết chuẩn chứa tiền tố năm học
+            let maTietNguyenBan = `${namHocDung}_${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`;
             
-            let tietGoc = indexTrongRam !== -1 ? duLieuTkbHienTai[indexTrongRam] : duLieuTkbHienTai.find(t => String(t.maTiet).trim() === maTietNguyenBan);
+            let tietGoc = duLieuTkbHienTai.find(t => String(t.maTiet).trim() === maTietNguyenBan);
             let monGoc = tietGoc ? (tietGoc.monHoc || "").trim() : "";
             let gvGoc = tietGoc ? (tietGoc.maGv || "").trim() : "";
             
@@ -2354,15 +2386,9 @@ async function luuSuaCucBoTKB(event) {
         
         if(ketQua.trangThai !== 'thanh_cong') alert("Lưu thất bại: " + ketQua.thongBao);
         else { 
-            alert("Đã cập nhật các thay đổi vào Thời khóa biểu Hiện tại!");
+            console.log("Đã cập nhật các thay đổi vào Thời khóa biểu Hiện tại!");
             dsThayDoi.forEach(tietMoi => {
-                let idx = duLieuTkbHienTai.findIndex(t => 
-                    parseInt(String(t.tuan).replace(/\D/g, ''), 10) === parseInt(String(tietMoi.tuan).replace(/\D/g, ''), 10) &&
-                    String(t.maLop).trim().toUpperCase() === String(tietMoi.maLop).trim().toUpperCase() &&
-                    String(t.thu).trim().toLowerCase() === String(tietMoi.thu).trim().toLowerCase() &&
-                    String(t.buoi).trim().toLowerCase() === String(tietMoi.buoi).trim().toLowerCase() &&
-                    String(t.tiet).trim() === String(tietMoi.tiet).trim()
-                );
+                let idx = duLieuTkbHienTai.findIndex(t => String(t.maTiet).trim() === String(tietMoi.maTiet).trim());
                 if (idx !== -1) {
                     duLieuTkbHienTai[idx] = { ...duLieuTkbHienTai[idx], ...tietMoi };
                 } else {
@@ -2371,7 +2397,7 @@ async function luuSuaCucBoTKB(event) {
             });
             
             document.querySelectorAll('td[data-thaydoi="true"]').forEach(td => {
-                td.removeAttribute('data-thaydoi');
+                td.removeAttribute('data-thaydoi'); td.classList.remove('bg-amber-50');
                 let icon = td.querySelector('.icon-sua-chua');
                 if (icon) icon.remove();
             });
@@ -2593,16 +2619,13 @@ window.dongBoChuanHoaDuLieuUI = async function() {
     if (typeof window.khoaNutThaoTacTKB === 'function') window.khoaNutThaoTacTKB(false);
     if (typeof window.capNhatDatalistTKB === 'function') window.capNhatDatalistTKB();
 
-    if (demSuaLoi > 0 || danhSachLoiChiTiet.length > 0) {
-        let thongBao = `Báo cáo Đồng bộ:\n- Đã nắn chỉnh: ${demSuaLoi} ô (Xanh).\n- Cảnh báo rác: ${danhSachLoiChiTiet.length} ô (Đỏ).\n`;
-        
-        if (danhSachLoiChiTiet.length > 0) {
-            thongBao += `\n📍 CHI TIẾT VỊ TRÍ LỖI:\n` + danhSachLoiChiTiet.slice(0, 15).join('\n');
-            if (danhSachLoiChiTiet.length > 15) thongBao += `\n... và ${danhSachLoiChiTiet.length - 15} lỗi khác.`;
-        }
+    if (danhSachLoiChiTiet.length > 0) {
+        let thongBao = `Cảnh báo dữ liệu rác/lỗi (${danhSachLoiChiTiet.length} ô):\n` + danhSachLoiChiTiet.slice(0, 15).join('\n');
+        if (danhSachLoiChiTiet.length > 15) thongBao += `\n... và ${danhSachLoiChiTiet.length - 15} lỗi khác.`;
         alert(thongBao);
     } else {
-        alert("Tuyệt vời! Toàn bộ dữ liệu trên lưới Thời khóa biểu đã khớp chuẩn 100% với danh mục máy chủ.");
+        // Đã bỏ thông báo thành công theo yêu cầu
+        console.log(`Đồng bộ chuẩn hóa hoàn tất: đã nắn chỉnh ${demSuaLoi} ô, 0 lỗi rác.`);
     }
 };
 
@@ -2943,7 +2966,8 @@ window.thaoTacKhoaMoTKB = async function() {
         const kq = await res.json();
 
         if (kq.trangThai === 'thanh_cong') {
-            alert("✅ " + kq.thongBao);
+            // Đã bỏ thông báo thành công theo yêu cầu (Giao diện UI đã chuyển trạng thái trực quan)
+            console.log(kq.thongBao);
 
             if (!thongSoHocVu.TRANG_THAI_KHOA_TKB) thongSoHocVu.TRANG_THAI_KHOA_TKB = {};
             thongSoHocVu.TRANG_THAI_KHOA_TKB[tuanHienTai] = {
@@ -3159,7 +3183,8 @@ window.luuDuLieuPhanQuyenSangMayChu = async function() {
         });
         const kq = await phanHoi.json();
         if (kq.trangThai === 'Thành công') {
-            alert(kq.thongBao + " Cập nhật an toàn hoàn tất.");
+            // Đã bỏ thông báo thành công theo yêu cầu
+            console.log(kq.thongBao + " Cập nhật an toàn hoàn tất.");
             window.duLieuBangPhanQuyen = mangGhi; 
             window.hienThiBangPhanQuyen();
         } else {
