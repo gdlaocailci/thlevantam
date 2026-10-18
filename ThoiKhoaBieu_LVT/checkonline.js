@@ -36,6 +36,7 @@
     var duLieuServerGanNhat = [];
     var banDoTabCungTrinhDuyet = {};
     var kenhBroadcast = null;
+    var tenKenhBroadcastHienTai = '';
 
     // Định danh phiên làm việc của tab hiện tại
     var maPhienTab = 'TAB_' + Math.random().toString(36).substring(2, 8).toUpperCase() + '_' + Date.now();
@@ -60,16 +61,76 @@
     } catch (eClean) {}
 
     // ---------------------------------------------------------------------
-    // 0. HÀM ĐỊNH DANH KHÁCH CHƯA ĐĂNG NHẬP (AN TOÀN - KHÔNG QUÉT STORAGE)
+    // 0. HÀM CÁCH LY ĐA DỰ ÁN & ĐỊNH DANH KHÁCH CHƯA ĐĂNG NHẬP
     // ---------------------------------------------------------------------
-    function layMaDinhDanhKhach() {
+    function layMaCachLyDuAn() {
+        var cacThanhPhan = [];
         try {
-            var maCu = sessionStorage.getItem('SmartTKB_CheckOnline_GuestId');
+            var cfg = (typeof CAU_HINH_FRONTEND !== 'undefined' && CAU_HINH_FRONTEND)
+                ? CAU_HINH_FRONTEND
+                : (window.CAU_HINH_FRONTEND || null);
+            if (cfg) {
+                if (cfg.MA_DU_AN && String(cfg.MA_DU_AN).trim() !== '' && String(cfg.MA_DU_AN).trim() !== 'MAC_DINH') {
+                    cacThanhPhan.push(String(cfg.MA_DU_AN).trim());
+                }
+                if (cfg.URL_API_MAY_CHU) {
+                    var urlStr = String(cfg.URL_API_MAY_CHU).trim();
+                    var match = urlStr.match(/\/s\/([a-zA-Z0-9_-]+)/);
+                    if (match && match[1]) {
+                        cacThanhPhan.push(match[1].substring(0, 24));
+                    } else {
+                        cacThanhPhan.push(urlStr.replace(/[^a-zA-Z0-9_-]/g, '').slice(-24));
+                    }
+                }
+                if (cfg.TEN_DU_AN) {
+                    cacThanhPhan.push(loaiBoDauTiengViet(cfg.TEN_DU_AN).substring(0, 20));
+                }
+            }
+            if (typeof window.layKhoaCachLy === 'function') {
+                var khoaApp = String(window.layKhoaCachLy('DUAN') || '').replace(/^DUAN_/, '').trim();
+                if (khoaApp && khoaApp !== 'MAC_DINH' && cacThanhPhan.indexOf(khoaApp) === -1) {
+                    cacThanhPhan.push(khoaApp);
+                }
+            }
+            if (window.location && window.location.pathname) {
+                var pathClean = String(window.location.pathname)
+                    .replace(/\/index\.html?$/i, '')
+                    .replace(/[^a-zA-Z0-9_-]/g, '_')
+                    .replace(/^_+|_+$/g, '');
+                if (pathClean) {
+                    cacThanhPhan.push(pathClean.substring(0, 30));
+                }
+            }
+        } catch (e) {}
+        return cacThanhPhan.length > 0 ? cacThanhPhan.join('_') : 'MAC_DINH';
+    }
+
+    function layKhoaStorageCachLy(tenKhoaGoc) {
+        return tenKhoaGoc + '_' + layMaCachLyDuAn();
+    }
+
+    function cungDuAnHienTai(maDuAnKhac, urlApiKhac) {
+        var urlHienTai = chuanHoaChuoi(layUrlApiMayChu());
+        var urlDoiChieu = chuanHoaChuoi(urlApiKhac);
+        if (urlHienTai && urlDoiChieu && urlHienTai !== urlDoiChieu) {
+            return false;
+        }
+        var maHienTai = layMaCachLyDuAn();
+        if (!maDuAnKhac || String(maDuAnKhac).trim() === '') {
+            return false;
+        }
+        return String(maDuAnKhac).trim() === maHienTai;
+    }
+
+    function layMaDinhDanhKhach() {
+        var khoaGuest = layKhoaStorageCachLy('SmartTKB_CheckOnline_GuestId');
+        try {
+            var maCu = sessionStorage.getItem(khoaGuest);
             if (maCu && String(maCu).trim() !== '') {
                 return String(maCu).trim();
             }
             var maMoi = 'GUEST_' + Math.random().toString(36).substring(2, 8).toUpperCase();
-            sessionStorage.setItem('SmartTKB_CheckOnline_GuestId', maMoi);
+            sessionStorage.setItem(khoaGuest, maMoi);
             return maMoi;
         } catch (e) {
             return 'GUEST_' + maPhienTab.substring(4, 10);
@@ -402,11 +463,14 @@
     function kichHoatDongBoThaoTac(thaoTacMoi, batBuocGui) {
         if (!thaoTacMoi) return;
 
-        // 1. Đồng bộ 0ms qua BroadcastChannel cho các tab khác trên cùng máy
+        // 1. Đồng bộ 0ms qua BroadcastChannel cho các tab khác thuộc CÙNG DỰ ÁN trên cùng máy
+        khoiTaoKenhBroadcast();
         if (kenhBroadcast) {
             try {
                 kenhBroadcast.postMessage({
                     loai: 'CAP_NHAT_THAO_TAC_TAB',
+                    maDuAn: layMaCachLyDuAn(),
+                    urlApiMayChu: layUrlApiMayChu(),
                     maPhienTab: maPhienTab,
                     thaoTacHienTai: thaoTacMoi,
                     capNhatLuc: Date.now()
@@ -560,27 +624,28 @@
             }
         } catch (err) {}
 
-        // XỬ LÝ QUAN TRỌNG: Phát hiện người dùng vừa bấm Thoát/Đăng xuất (kể cả sau khi tải lại trang F5)
+        // XỬ LÝ QUAN TRỌNG: Phát hiện người dùng vừa bấm Thoát/Đăng xuất (cách ly riêng theo từng dự án)
+        var khoaDangNhapCu = layKhoaStorageCachLy('SmartTKB_DinhDanhDangNhapCu');
         var dinhDanhLuuTru = '';
         try {
-            dinhDanhLuuTru = sessionStorage.getItem('SmartTKB_DinhDanhDangNhapCu') || '';
+            dinhDanhLuuTru = sessionStorage.getItem(khoaDangNhapCu) || '';
         } catch (eStorage) {}
 
         if ((dinhDanhTruocDo || dinhDanhLuuTru) && !emailHoacMa) {
             var dinhDanhCanBaoXoa = dinhDanhTruocDo || dinhDanhLuuTru;
             guiTinHieuChuyenTrangThaiDangXuat(dinhDanhCanBaoXoa);
             dinhDanhTruocDo = '';
-            try { sessionStorage.removeItem('SmartTKB_DinhDanhDangNhapCu'); } catch (eRem) {}
+            try { sessionStorage.removeItem(khoaDangNhapCu); } catch (eRem) {}
         } else if ((!dinhDanhTruocDo && !dinhDanhLuuTru) && emailHoacMa) {
             dinhDanhTruocDo = emailHoacMa;
-            try { sessionStorage.setItem('SmartTKB_DinhDanhDangNhapCu', emailHoacMa); } catch (eSet) {}
+            try { sessionStorage.setItem(khoaDangNhapCu, emailHoacMa); } catch (eSet) {}
             guiTinHieuChuyenTrangThaiDangNhap(emailHoacMa);
         } else if (emailHoacMa) {
             if (dinhDanhLuuTru && dinhDanhLuuTru !== emailHoacMa) {
                 guiTinHieuChuyenTrangThaiDangNhap(emailHoacMa);
             }
             dinhDanhTruocDo = emailHoacMa;
-            try { sessionStorage.setItem('SmartTKB_DinhDanhDangNhapCu', emailHoacMa); } catch (eSet2) {}
+            try { sessionStorage.setItem(khoaDangNhapCu, emailHoacMa); } catch (eSet2) {}
         }
 
         return {
@@ -737,6 +802,8 @@
         var maKhach = layMaDinhDanhKhach();
 
         return {
+            maDuAn: layMaCachLyDuAn(),
+            urlApiMayChu: layUrlApiMayChu(),
             maPhienTab: maPhienTab,
             maDinhDanhKhach: maKhach,
             emailTruyCap: daMap.daXacThuc ? (raw.dinhDanh || '') : maKhach,
@@ -770,11 +837,14 @@
             phienKhachMoi.toChuyenMon = 'Khách truy cập (Chế độ xem công khai)';
             banDoTabCungTrinhDuyet[maPhienTab] = phienKhachMoi;
 
-            // 3. Thông báo cho các tab khác cùng trình duyệt chuyển tab này thành khách (vẫn hiển thị người dạng không đăng nhập)
+            // 3. Thông báo cho các tab khác cùng dự án trên trình duyệt chuyển tab này thành khách
+            khoiTaoKenhBroadcast();
             if (kenhBroadcast) {
                 try {
                     kenhBroadcast.postMessage({
                         loai: 'TAB_DANG_XUAT',
+                        maDuAn: layMaCachLyDuAn(),
+                        urlApiMayChu: layUrlApiMayChu(),
                         dinhDanhCu: dinhDanhCu,
                         maPhienTab: maPhienTab,
                         phienMoi: phienKhachMoi
@@ -818,10 +888,13 @@
 
             setTimeout(function () {
                 guiNhipTimHienDienMayChu();
+                khoiTaoKenhBroadcast();
                 if (kenhBroadcast) {
                     try {
                         kenhBroadcast.postMessage({
                             loai: 'PONG_TOI_DANG_MO_TAB',
+                            maDuAn: layMaCachLyDuAn(),
+                            urlApiMayChu: layUrlApiMayChu(),
                             phien: layThongTinPhienHienTai()
                         });
                     } catch (eBc) {}
@@ -843,6 +916,8 @@
                 try {
                     kenhBroadcast.postMessage({
                         loai: 'TAB_DA_THOAT',
+                        maDuAn: layMaCachLyDuAn(),
+                        urlApiMayChu: layUrlApiMayChu(),
                         maPhienTab: maPhienTab,
                         emailTruyCap: dinhDanhCanXoa
                     });
@@ -892,19 +967,34 @@
     }
 
     function khoiTaoKenhBroadcast() {
-        if (kenhBroadcast || typeof BroadcastChannel === 'undefined') return;
+        if (typeof BroadcastChannel === 'undefined') return;
         try {
-            kenhBroadcast = new BroadcastChannel(TEN_KENH_BROADCAST);
+            var tenKenhMucTieu = TEN_KENH_BROADCAST + '_' + layMaCachLyDuAn();
+            if (kenhBroadcast && tenKenhBroadcastHienTai === tenKenhMucTieu) return;
+            if (kenhBroadcast) {
+                try { kenhBroadcast.close(); } catch (eClose) {}
+                kenhBroadcast = null;
+            }
+            tenKenhBroadcastHienTai = tenKenhMucTieu;
+            kenhBroadcast = new BroadcastChannel(tenKenhMucTieu);
             kenhBroadcast.onmessage = function (ev) {
                 if (!ev || !ev.data) return;
                 var msg = ev.data;
 
+                // Chốt chặn cách ly đa dự án: Bỏ qua hoàn toàn tín hiệu từ dự án khác
+                var maDuAnMsg = msg.maDuAn || (msg.phien && msg.phien.maDuAn) || (msg.phienMoi && msg.phienMoi.maDuAn) || '';
+                var urlApiMsg = msg.urlApiMayChu || (msg.phien && msg.phien.urlApiMayChu) || (msg.phienMoi && msg.phienMoi.urlApiMayChu) || '';
+                if (!cungDuAnHienTai(maDuAnMsg, urlApiMsg)) return;
+
                 if (msg.loai === 'PING_AI_DANG_MO_TAB' && !daGuiTinHieuThoat) {
                     kenhBroadcast.postMessage({
                         loai: 'PONG_TOI_DANG_MO_TAB',
+                        maDuAn: layMaCachLyDuAn(),
+                        urlApiMayChu: layUrlApiMayChu(),
                         phien: layThongTinPhienHienTai()
                     });
                 } else if (msg.loai === 'PONG_TOI_DANG_MO_TAB' && msg.phien) {
+                    if (!cungDuAnHienTai(msg.phien.maDuAn || maDuAnMsg, msg.phien.urlApiMayChu || urlApiMsg)) return;
                     banDoTabCungTrinhDuyet[msg.phien.maPhienTab] = msg.phien;
                     if (dangMoModal) {
                         capNhatHienThiTuTapHop();
@@ -958,6 +1048,9 @@
 
         function gopNguoiDung(rawItem, laBanThan) {
             if (!rawItem) return;
+            if (!laBanThan && (rawItem.maDuAn || rawItem.urlApiMayChu)) {
+                if (!cungDuAnHienTai(rawItem.maDuAn, rawItem.urlApiMayChu)) return;
+            }
             var dinhDanhItem = rawItem.emailTruyCap || rawItem.dinhDanh || rawItem.maGv || '';
             var tenItem = rawItem.hoTen || rawItem.tenGoiY || '';
             if (!dinhDanhItem && !tenItem) return;
@@ -1098,9 +1191,14 @@
         var bayGio = Date.now();
 
         banDoTabCungTrinhDuyet = {};
+        khoiTaoKenhBroadcast();
         if (kenhBroadcast) {
             try {
-                kenhBroadcast.postMessage({ loai: 'PING_AI_DANG_MO_TAB' });
+                kenhBroadcast.postMessage({
+                    loai: 'PING_AI_DANG_MO_TAB',
+                    maDuAn: layMaCachLyDuAn(),
+                    urlApiMayChu: layUrlApiMayChu()
+                });
             } catch (e) {}
         }
 
