@@ -52,7 +52,7 @@
                 <img id="logoMenuDoc" src="" alt="Logo" class="w-20 h-20 rounded-full object-cover">
             </div>
             <h2 id="tenDonViMenu" class="text-center text-white font-bold text-base uppercase tracking-wide leading-relaxed">
-                Trường Tiểu học<br>Lê Văn Tám
+                Trường TIỂU HỌC<br>LÊ VĂN TÁM
             </h2>
         </div>
         <div class="px-6 my-2 flex-none"><hr class="border-dashed border-blue-300 opacity-40"></div>
@@ -861,9 +861,9 @@
     <script src="PhanQuyenAdmin.js"></script>
     <script src="KiemTraSoDauBai.js"></script>
     <script src="TienDoDayHoc.js"></script>
-    <script src="checkonline.js"></script>
+  //  <script src="checkonline.js"></script>
    <script>
- async function thucThiLamMoiNgam() {
+async function thucThiLamMoiNgam() {
         let vungHienThi = document.getElementById('vungHienThiSoDauBai');
         
         // KHÓA BẢO VỆ 1: Đang tải lần đầu
@@ -873,54 +873,59 @@
         let tabSDB = document.getElementById('khungSoDauBai');
         if (!tabSDB || tabSDB.classList.contains('hidden')) return;
 
-        // KHÓA BẢO VỆ 2: Đang gõ dở TRƯỚC KHI kết nối
+        // KHÓA BẢO VỆ 2: Đang gõ dở TRƯỚC KHI kết nối (kiểm tra cả tr và td)
         if (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true) return;
-        if (tabSDB.querySelector('td[data-thaydoi="true"]')) return;
+        if (tabSDB.querySelector('[data-thaydoi="true"]')) return;
 
-        // An toàn biến định danh
         let idGiaoVienGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : (typeof window.emailGiaoVienToanCuc !== 'undefined' ? window.emailGiaoVienToanCuc : '');
         if (!idGiaoVienGoiLen || typeof CAU_HINH_FRONTEND === 'undefined') return;
 
         try {
-            // Dùng fetchVoiCoCheThuLai phá vỡ Cache (Kế thừa nguyên vẹn nâng cấp trước đó)
+            let cacheKey = typeof window.layKhoaCachLy === 'function' ? window.layKhoaCachLy(`SDB_DATA_STATIC_${idGiaoVienGoiLen}`) : `SDB_DATA_STATIC_${idGiaoVienGoiLen}`;
+            let duLieuTinhCache = sessionStorage.getItem(cacheKey);
+            let yeuCauTaiToanBo = duLieuTinhCache ? false : true;
+
             const phanHoi = await fetchVoiCoCheThuLai(
-                `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(idGiaoVienGoiLen)}`,
+                `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(idGiaoVienGoiLen)}&taiToanBo=${yeuCauTaiToanBo}`,
                 {}, 3, 60000
             );
             
-            // =========================================================================
-            // [NHẬN DIỆN THÔNG MINH 2]: KIỂM TRA LẠI CỜ CHỈNH SỬA SAU KHI TẢI MẠNG XONG
-            // =========================================================================
-            // Trọng tâm bảo vệ: Trong thời gian mạng tải (1-3 giây), nếu người dùng vừa kịp gõ 
-            // thêm dữ liệu (cờ bật lên) -> HỦY NGAY TIẾN TRÌNH GÁN DỮ LIỆU ĐỂ BẢO VỆ CÔNG SỨC!
             let coThayDoiSDB_SauTai = (typeof coThayDoiChuaLuu_SDB !== 'undefined' && coThayDoiChuaLuu_SDB === true);
-            let coOThayDoiDOM_SauTai = tabSDB.querySelector('td[data-thaydoi="true"]');
+            let coOThayDoiDOM_SauTai = tabSDB.querySelector('[data-thaydoi="true"]');
             
             if (coThayDoiSDB_SauTai || coOThayDoiDOM_SauTai) {
                 console.warn("Hủy đồng bộ: Bắt được tín hiệu chỉnh sửa trong lúc đang tải ngầm. Dữ liệu gõ dở đã được bảo vệ!");
-                return; // Ngắt luồng lập tức, bỏ qua gói dữ liệu vừa lấy về
+                return;
             }
 
             const phanHoiText = await phanHoi.text();
-            let duLieuSever;
+            let duLieuMoi;
             try { 
-                duLieuSever = JSON.parse(phanHoiText); 
+                duLieuMoi = JSON.parse(phanHoiText); 
             } catch (loiParse) { 
                 throw new Error("Dữ liệu JSON máy chủ trả về bị nhiễu."); 
             }
             
-            if (duLieuSever && duLieuSever.trangThai !== 'loi_he_thong') {
+            if (duLieuMoi && duLieuMoi.trangThai !== 'loi_he_thong') {
+                let duLieuSever = duLieuMoi;
+                if (!yeuCauTaiToanBo && duLieuTinhCache) {
+                    let cacheParsed = JSON.parse(duLieuTinhCache);
+                    duLieuSever = {
+                        ...duLieuMoi,
+                        KHUNG_CHUONG_TRINH: cacheParsed.KHUNG_CHUONG_TRINH,
+                        PPCT: cacheParsed.PPCT
+                    };
+                }
+
                 if (vungHienThi) vungHienThi.id = 'vungHienThiSoDauBai_DangDongBoNgam';
                 
                 if (typeof khoiTaoDuLieuSoDauBai === 'function') {
                     khoiTaoDuLieuSoDauBai(duLieuSever);
                 }
                 
-                // Trả lại ID trước khi render (Khắc phục lỗi không vẽ lại UI)
                 let vungTemp = document.getElementById('vungHienThiSoDauBai_DangDongBoNgam');
                 if (vungTemp) vungTemp.id = 'vungHienThiSoDauBai';
 
-                // Kích hoạt vẽ UI
                 let theTuan = document.getElementById('chonTuanSo');
                 let theLop = document.getElementById('chonLopSo');
                 if (theTuan && theTuan.value && theLop && theLop.value) {
