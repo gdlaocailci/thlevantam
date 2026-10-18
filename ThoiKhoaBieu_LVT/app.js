@@ -1661,7 +1661,20 @@ async function luuDuLieu(event, loaiLuu, tuDongLuu = false) {
         let mangLopDangHienThi = Array.from(setLopDangHienThi);
         if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) {
             duLieuTkbHienTai.forEach(tietGoc => {
-                if (!mangLopDangHienThi.includes(tietGoc.maLop)) dsTietLuoi.push(tietGoc);
+                if (!mangLopDangHienThi.includes(tietGoc.maLop) && tietGoc.monHoc && String(tietGoc.monHoc).trim() !== "") {
+                    let thongTinNgayAn = tinhNgayDocLap(ngayDauTuanUI, tietGoc.thu, tuanDangXem);
+                    let namHocAn = namHocChuan || tietGoc.namHoc || thongTinNgayAn.nam;
+                    let tienToBuoiAn = (tietGoc.buoi === "Sáng") ? "S" : "C";
+                    let maTietAn = `${namHocAn}_${tuanDangXem}_${tietGoc.thu}_${tienToBuoiAn}_${tietGoc.tiet}_${tietGoc.maLop}`;
+                    dsTietLuoi.push({
+                        ...tietGoc,
+                        maTiet: (tietGoc.maTiet && String(tietGoc.maTiet).startsWith(namHocAn + '_' + tuanDangXem + '_')) ? tietGoc.maTiet : maTietAn,
+                        namHoc: namHocAn,
+                        tuan: tuanDangXem,
+                        thang: thongTinNgayAn.thang,
+                        ngay: thongTinNgayAn.ngayDayDu
+                    });
+                }
             });
         }
 
@@ -1682,6 +1695,11 @@ async function luuDuLieu(event, loaiLuu, tuDongLuu = false) {
             if (loaiLuu === 'khoiphuc') {
                 await chuyenTuan(1); 
                 thongSoHocVu.TUAN_HIEN_TAI = tuanDangXem;
+                let thongTinThu2Moi = tinhNgayDocLap(ngayDauTuanUI, "Thứ 2", tuanDangXem);
+                if (thongTinThu2Moi && thongTinThu2Moi.ngayDayDu) {
+                    thongSoHocVu.NGAY_K2 = thongTinThu2Moi.ngayDayDu;
+                    thongSoHocVu.THU_K2 = "Thứ 2";
+                }
                 localStorage.setItem(layKhoaCachLy('SmartTKB_CauHinh'), JSON.stringify(thongSoHocVu));
                 let btnAn = document.createElement('button'); btnAn.innerHTML = "Auto Save";
                 // Chạy lưu ngầm cho tuần mới: Bỏ hoàn toàn thông báo xác nhận lặp lại và thông báo thành công
@@ -2305,6 +2323,8 @@ async function luuSuaCucBoTKB(event) {
     const textGoc = btn.innerHTML;
     
     let dsThayDoi = [];
+    let dsTietLuoi = [];
+    let setLopDangHienThi = new Set();
     let danhSachThongBao = []; 
     let namHocChuan = thongSoHocVu.NAM_HOC || "";
     let cacOMon = document.querySelectorAll('input[id^="mon_"]');
@@ -2312,38 +2332,55 @@ async function luuSuaCucBoTKB(event) {
     cacOMon.forEach(oMon => {
         let parts = oMon.id.split('_'); 
         let thu = parts[1], buoi = parts[2], tiet = parts[3], lop = parts.slice(4).join('_'); 
+        setLopDangHienThi.add(lop);
         
         let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
         let tdMon = oMon.closest('td');
         let tdGv = oGv ? oGv.closest('td') : null;
 
+        let valMon = oMon.value.trim();
+        let valGv = oGv ? oGv.value.trim() : "";
+        
+        let thongTinNgay = tinhNgayDocLap(ngayDauTuanUI, thu, tuanDangXem);
+        let namHocDung = namHocChuan || thongTinNgay.nam;
+        let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
+        
+        let indexTrongRam = duLieuTkbHienTai.findIndex(t => 
+            parseInt(String(t.tuan).replace(/\D/g, ''), 10) === parseInt(String(tuanDangXem).replace(/\D/g, ''), 10) &&
+            String(t.maLop).trim().toUpperCase() === lop.trim().toUpperCase() &&
+            String(t.thu).trim().toLowerCase() === thu.trim().toLowerCase() &&
+            String(t.buoi).trim().toLowerCase() === buoi.trim().toLowerCase() &&
+            String(t.tiet).trim() === String(tiet).trim()
+        );
+
+        // Chuẩn hóa mã tiết đồng nhất: ${namHoc}_${tuan}_${thu}_${buoi}_${tiet}_${lop}
+        let maTietNguyenBan = `${namHocDung}_${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`;
+        if (indexTrongRam !== -1 && duLieuTkbHienTai[indexTrongRam].maTiet) {
+            let maCu = String(duLieuTkbHienTai[indexTrongRam].maTiet).trim();
+            if (maCu.startsWith(namHocDung + '_' + tuanDangXem + '_')) {
+                maTietNguyenBan = maCu;
+            }
+        }
+
+        if (valMon !== "") {
+            dsTietLuoi.push({
+                maTiet: maTietNguyenBan, 
+                namHoc: namHocDung, 
+                thang: thongTinNgay.thang, 
+                ngay: thongTinNgay.ngayDayDu, 
+                tuan: tuanDangXem, 
+                thu: thu, 
+                buoi: buoi, 
+                tiet: tiet, 
+                maLop: lop, 
+                monHoc: valMon, 
+                maGv: valGv 
+            });
+        }
+
         let coSuThayDoiDOM = (tdMon && tdMon.getAttribute('data-thaydoi') === 'true') || (tdGv && tdGv.getAttribute('data-thaydoi') === 'true');
 
         if (coSuThayDoiDOM) {
-            let valMon = oMon.value.trim();
-            let valGv = oGv ? oGv.value.trim() : "";
-            
-            let thongTinNgay = tinhNgayDocLap(ngayDauTuanUI, thu, tuanDangXem);
-            let namHocDung = namHocChuan || thongTinNgay.nam;
-            let tienToBuoi = (buoi === "Sáng") ? "S" : "C";
-            
-            let indexTrongRam = duLieuTkbHienTai.findIndex(t => 
-                parseInt(String(t.tuan).replace(/\D/g, ''), 10) === parseInt(String(tuanDangXem).replace(/\D/g, ''), 10) &&
-                String(t.maLop).trim().toUpperCase() === lop.trim().toUpperCase() &&
-                String(t.thu).trim().toLowerCase() === thu.trim().toLowerCase() &&
-                String(t.buoi).trim().toLowerCase() === buoi.trim().toLowerCase() &&
-                String(t.tiet).trim() === String(tiet).trim()
-            );
-
-            // Chuẩn hóa mã tiết đồng nhất: ${namHoc}_${tuan}_${thu}_${buoi}_${tiet}_${lop}
-            let maTietNguyenBan = `${namHocDung}_${tuanDangXem}_${thu}_${tienToBuoi}_${tiet}_${lop}`;
-            if (indexTrongRam !== -1 && duLieuTkbHienTai[indexTrongRam].maTiet) {
-                let maCu = String(duLieuTkbHienTai[indexTrongRam].maTiet).trim();
-                if (maCu.startsWith(namHocDung + '_' + tuanDangXem + '_')) {
-                    maTietNguyenBan = maCu;
-                }
-            }
-            
             let tietGoc = indexTrongRam !== -1 ? duLieuTkbHienTai[indexTrongRam] : duLieuTkbHienTai.find(t => String(t.maTiet).trim() === maTietNguyenBan);
             let monGoc = tietGoc ? (tietGoc.monHoc || "").trim() : "";
             let gvGoc = tietGoc ? (tietGoc.maGv || "").trim() : "";
@@ -2376,10 +2413,38 @@ async function luuSuaCucBoTKB(event) {
         }
     });
 
-    if (dsThayDoi.length === 0) { alert("Lưới Thời khóa biểu chưa có thay đổi nào để lưu."); return; }
+    let mangLopDangHienThi = Array.from(setLopDangHienThi);
+    if (duLieuTkbHienTai && duLieuTkbHienTai.length > 0) {
+        duLieuTkbHienTai.forEach(tietGoc => {
+            if (!mangLopDangHienThi.includes(tietGoc.maLop) && tietGoc.monHoc && String(tietGoc.monHoc).trim() !== "") {
+                let thongTinNgayAn = tinhNgayDocLap(ngayDauTuanUI, tietGoc.thu, tuanDangXem);
+                let namHocAn = namHocChuan || tietGoc.namHoc || thongTinNgayAn.nam;
+                let tienToBuoiAn = (tietGoc.buoi === "Sáng") ? "S" : "C";
+                let maTietAn = `${namHocAn}_${tuanDangXem}_${tietGoc.thu}_${tienToBuoiAn}_${tietGoc.tiet}_${tietGoc.maLop}`;
+                dsTietLuoi.push({
+                    ...tietGoc,
+                    maTiet: (tietGoc.maTiet && String(tietGoc.maTiet).startsWith(namHocAn + '_' + tuanDangXem + '_')) ? tietGoc.maTiet : maTietAn,
+                    namHoc: namHocAn,
+                    tuan: tuanDangXem,
+                    thang: thongTinNgayAn.thang,
+                    ngay: thongTinNgayAn.ngayDayDu
+                });
+            }
+        });
+    }
 
-    let thongBaoGiaoDien = `Hệ thống ghi nhận ${dsThayDoi.length} tiết có sự thay đổi:\n\n` + danhSachThongBao.slice(0, 15).join('\n') + (danhSachThongBao.length > 15 ? `\n... và ${danhSachThongBao.length - 15} thay đổi khác.` : "") + `\n\nĐồng chí có chắc chắn muốn chốt ghi đè dữ liệu này?`;
-    if (!confirm(thongBaoGiaoDien)) return;
+    let tuanHeThong = parseInt(thongSoHocVu.TUAN_HIEN_TAI, 10) || 1;
+    let laTuanHienTai = (parseInt(tuanDangXem, 10) === tuanHeThong);
+
+    if (dsThayDoi.length === 0 && (!laTuanHienTai || dsTietLuoi.length === 0)) {
+        alert("Lưới Thời khóa biểu chưa có thay đổi nào để lưu.");
+        return;
+    }
+
+    if (dsThayDoi.length > 0) {
+        let thongBaoGiaoDien = `Hệ thống ghi nhận ${dsThayDoi.length} tiết có sự thay đổi:\n\n` + danhSachThongBao.slice(0, 15).join('\n') + (danhSachThongBao.length > 15 ? `\n... và ${danhSachThongBao.length - 15} thay đổi khác.` : "") + `\n\nĐồng chí có chắc chắn muốn chốt ghi đè dữ liệu này?`;
+        if (!confirm(thongBaoGiaoDien)) return;
+    }
 
     if (typeof window.khoaNutThaoTacTKB === 'function') window.khoaNutThaoTacTKB(true, 'Đang lưu sửa TKB');
     if (btn && btn.disabled !== undefined) {
@@ -2388,26 +2453,42 @@ async function luuSuaCucBoTKB(event) {
     }
 
     try {
-        const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, { method: 'POST', body: JSON.stringify({ thaoTac: 'luuSuaTkbHienTai', duLieu: dsThayDoi }) });
+        const phanHoi = await fetchVoiCoCheThuLai(CAU_HINH_FRONTEND.URL_API_MAY_CHU, {
+            method: 'POST',
+            body: JSON.stringify({
+                thaoTac: 'luuSuaTkbHienTai',
+                tuan: tuanDangXem,
+                laTuanHienTai: laTuanHienTai,
+                duLieu: dsThayDoi,
+                duLieuToanLuoi: dsTietLuoi
+            })
+        });
         const ketQua = await phanHoi.json();
         
-        if(ketQua.trangThai !== 'thanh_cong') alert("Lưu thất bại: " + ketQua.thongBao);
-        else { 
-            alert("Đã cập nhật các thay đổi vào Thời khóa biểu Hiện tại!");
-            dsThayDoi.forEach(tietMoi => {
-                let idx = duLieuTkbHienTai.findIndex(t => 
-                    parseInt(String(t.tuan).replace(/\D/g, ''), 10) === parseInt(String(tietMoi.tuan).replace(/\D/g, ''), 10) &&
-                    String(t.maLop).trim().toUpperCase() === String(tietMoi.maLop).trim().toUpperCase() &&
-                    String(t.thu).trim().toLowerCase() === String(tietMoi.thu).trim().toLowerCase() &&
-                    String(t.buoi).trim().toLowerCase() === String(tietMoi.buoi).trim().toLowerCase() &&
-                    String(t.tiet).trim() === String(tietMoi.tiet).trim()
-                );
-                if (idx !== -1) {
-                    duLieuTkbHienTai[idx] = { ...duLieuTkbHienTai[idx], ...tietMoi };
-                } else {
-                    duLieuTkbHienTai.push(tietMoi);
-                }
-            });
+        if (ketQua.trangThai === 'khong_thay_doi') {
+            alert("Lưới Thời khóa biểu chưa có thay đổi nào để lưu.");
+        } else if (ketQua.trangThai !== 'thanh_cong') {
+            alert("Lưu thất bại: " + ketQua.thongBao);
+        } else { 
+           // alert("Đã cập nhật các thay đổi vào Thời khóa biểu Hiện tại!");
+            if (ketQua.daGhiToanBo) {
+                duLieuTkbHienTai = dsTietLuoi;
+            } else {
+                dsThayDoi.forEach(tietMoi => {
+                    let idx = duLieuTkbHienTai.findIndex(t => 
+                        parseInt(String(t.tuan).replace(/\D/g, ''), 10) === parseInt(String(tietMoi.tuan).replace(/\D/g, ''), 10) &&
+                        String(t.maLop).trim().toUpperCase() === String(tietMoi.maLop).trim().toUpperCase() &&
+                        String(t.thu).trim().toLowerCase() === String(tietMoi.thu).trim().toLowerCase() &&
+                        String(t.buoi).trim().toLowerCase() === String(tietMoi.buoi).trim().toLowerCase() &&
+                        String(t.tiet).trim() === String(tietMoi.tiet).trim()
+                    );
+                    if (idx !== -1) {
+                        duLieuTkbHienTai[idx] = { ...duLieuTkbHienTai[idx], ...tietMoi };
+                    } else {
+                        duLieuTkbHienTai.push(tietMoi);
+                    }
+                });
+            }
             
             document.querySelectorAll('td[data-thaydoi="true"]').forEach(td => {
                 td.removeAttribute('data-thaydoi');
