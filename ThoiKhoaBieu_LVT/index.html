@@ -52,7 +52,7 @@
                 <img id="logoMenuDoc" src="" alt="Logo" class="w-20 h-20 rounded-full object-cover">
             </div>
             <h2 id="tenDonViMenu" class="text-center text-white font-bold text-base uppercase tracking-wide leading-relaxed">
-                Trường Tiểu học<br>Lê Văn Tám
+                Trường TH&THCS<br>Cấp Tiểu học
             </h2>
         </div>
         <div class="px-6 my-2 flex-none"><hr class="border-dashed border-blue-300 opacity-40"></div>
@@ -161,6 +161,11 @@
             </button>
             <p class="text-xs text-blue-200 font-bold uppercase tracking-widest">Thiết kế và phát triển</p>
             <p class="text-sm font-bold text-white mt-1">Hoàng Ngọc Lâm</p>
+
+            <!-- NÚT TRÒN NHỎ ! XÓA BỘ NHỚ ĐỆM (GÓC DƯỚI PHẢI MENU DỌC) -->
+            <button id="btnXoaBoNhoDem" onclick="xoaBoNhoDemHeThong()" title="Xóa bộ nhớ đệm và làm mới hệ thống" class="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs flex items-center justify-center shadow-lg border border-amber-300 cursor-pointer transition-all duration-150 z-30" aria-label="Xóa bộ nhớ đệm">
+                !
+            </button>
         </div>
     </div>
 
@@ -772,6 +777,23 @@
     </div>
     
     <script>
+    // =========================================================================
+    // HÀM XÓA BỘ NHỚ ĐỆM KHI BẤM NÚT TRÒN ! TRÊN MENU DỌC
+    // =========================================================================
+    async function xoaBoNhoDemHeThong() {
+        if (!confirm("Bạn có chắc chắn muốn xóa bộ nhớ đệm và tải lại ứng dụng không?")) return;
+        try {
+            localStorage.clear();
+            sessionStorage.clear();
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(key => caches.delete(key)));
+            }
+        } catch (e) {
+            console.warn("Lỗi khi xóa bộ nhớ đệm:", e);
+        }
+        window.location.reload(true);
+    }
         
     // =========================================================================
     // KHỐI ĐIỀU KHIỂN MENU 3 GẠCH (THAO TÁC TKB) TRỰC TIẾP TRÊN HTML
@@ -814,7 +836,7 @@
     window.dongMenuThaoTacTKB = dongMenuThaoTacTKB;
 
         function chuyenHuongHeThong() {
-            var urlDich = 'https://gdlaocailci.github.io/thlevantam/';
+            var urlDich = 'https://gdlaocailci.github.io/he-thong/';
             window.open(urlDich, '_top');
         }
         function moDongMenuMobile() {
