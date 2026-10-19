@@ -44,7 +44,7 @@ function capNhatHienThiPhanQuyen() {
         let menuCongKhai = quyenCongKhai.menu || [];
         let nutCongKhai = quyenCongKhai.nut || [];
 
-        // 1. Kiểm soát hiển thị Menu 8: Phân quyền Hệ thống
+        // 1. Menu 8: Phân quyền Hệ thống
         let menuPQ = document.getElementById('menuPhanQuyen');
         let duocXemMenu = false;
         if (menuPQ) {
@@ -54,7 +54,7 @@ function capNhatHienThiPhanQuyen() {
             menuPQ.style.display = duocXemMenu ? 'flex' : 'none';
         }
 
-        // 2. Kiểm soát hiển thị Menu 7: Phân phối Chương trình (Hỗ trợ mở công khai 1-click)
+        // 2. Menu 7: Phân phối Chương trình
         let menuPPCT = document.getElementById('menuPhanPhoiChuongTrinh');
         let duocXemPPCT = false;
         if (menuPPCT) {
@@ -69,7 +69,20 @@ function capNhatHienThiPhanQuyen() {
             nhanHT.style.display = 'flex';
         }
 
-        // 3a. Kiểm soát hiển thị Nút Khóa TKB Tuần (vùng quyền Admin / Ma trận)
+        // [NÂNG CẤP BẮT BUỘC]: 3a. Nút Nhập Excel TKB (btnNhapExcelTKB)
+        if (typeof window.khoiTaoNutNhapExcelTKBUI === 'function') {
+            window.khoiTaoNutNhapExcelTKBUI();
+        }
+        let btnNhapExcel = document.getElementById('btnNhapExcelTKB');
+        if (btnNhapExcel) {
+            let duocBamNhapExcel = coQuyenQuanTri || 
+                                   (typeof quyenChiTiet !== 'undefined' && quyenChiTiet.nut && quyenChiTiet.nut.includes('btnNhapExcelTKB')) ||
+                                   nutCongKhai.includes('btnNhapExcelTKB');
+            btnNhapExcel.style.display = duocBamNhapExcel ? 'flex' : 'none';
+            btnNhapExcel.disabled = !duocBamNhapExcel;
+        }
+
+        // 3b. Nút Khóa TKB Tuần (btnKhoaTKB)
         let btnKhoaTKB = document.getElementById('btnKhoaTKB');
         if (btnKhoaTKB) {
             let duocBamKhoaTKB = coQuyenQuanTri || 
@@ -78,7 +91,7 @@ function capNhatHienThiPhanQuyen() {
             btnKhoaTKB.style.display = duocBamKhoaTKB ? 'flex' : 'none';
         }
 
-        // 3b. Kiểm soát hiển thị Nút Khóa Sổ Đầu Bài Tuần
+        // 3c. Nút Khóa Sổ Đầu Bài Tuần (btnKhoaSoDauBai)
         let btnKhoaSo = document.getElementById('btnKhoaSoDauBai');
         if (btnKhoaSo) {
             let duocBamKhoaSo = coQuyenQuanTri || 
@@ -87,12 +100,12 @@ function capNhatHienThiPhanQuyen() {
             btnKhoaSo.style.display = duocBamKhoaSo ? 'inline-flex' : 'none';
         }
 
-        // 4. Đồng bộ giao diện thanh công cụ 1-click nếu đang mở Ma trận phân quyền
-        capNhatTrangThaiNutCongKhaiNhanhUI();
+        if (typeof capNhatTrangThaiNutCongKhaiNhanhUI === 'function') capNhatTrangThaiNutCongKhaiNhanhUI();
     } finally {
         _dangCapNhatPhanQuyen = false;
     }
 }
+window.capNhatHienThiPhanQuyen = capNhatHienThiPhanQuyen;
 
 // Cập nhật trạng thái hiển thị của các nút chuyển đổi công khai 1-click
 function capNhatTrangThaiNutCongKhaiNhanhUI() {
