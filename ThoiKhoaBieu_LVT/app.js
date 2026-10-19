@@ -2257,6 +2257,25 @@ async function nhapExcelTKB(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    // 1. Kiểm tra an ninh bảo mật kép (Chống hack mở DOM UI)
+    let quyenCongKhai = (typeof window.layQuyenCongKhaiHienTai === 'function') ? window.layQuyenCongKhaiHienTai() : { nut: [] };
+    let nutCongKhai = quyenCongKhai.nut || [];
+    let nutDuocCap = (typeof quyenChiTiet !== 'undefined' && quyenChiTiet.nut) ? quyenChiTiet.nut : [];
+    let coQuyenNhap = (typeof quyenSuaChua !== 'undefined' && quyenSuaChua) || nutDuocCap.includes('btnNhapExcelTKB') || nutCongKhai.includes('btnNhapExcelTKB');
+
+    if (!coQuyenNhap) {
+        alert("⛔ TỪ CHỐI TRUY CẬP:\nTài khoản của đồng chí chưa được cấp quyền [Nhập Excel] trong Ma trận phân quyền!");
+        event.target.value = "";
+        return;
+    }
+
+    // 2. Chặn can thiệp nếu Tuần đang bị Khóa (Niêm phong)
+    if (typeof window.kiemTraTuanTkbDaKhoa === 'function' && window.kiemTraTuanTkbDaKhoa(tuanDangXem)) {
+        alert(`⚠️ Thời khóa biểu Tuần ${tuanDangXem} đang bị KHÓA (Niêm phong). Đồng chí vui lòng Mở khóa trước khi nhập Excel!`);
+        event.target.value = "";
+        return;
+    }
+
     if (typeof window.khoaNutThaoTacTKB === 'function') window.khoaNutThaoTacTKB(true, 'Đang nạp Excel');
     try {
         if (typeof XLSX === 'undefined') { alert("Thư viện hệ thống chưa sẵn sàng."); return; }
@@ -2266,7 +2285,8 @@ async function nhapExcelTKB(event) {
             try {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
-                const sheetName = workbook.SheetNames[0]; 
+                // Nhận diện tự động đúng sheet TKB thay vì cố định sheet 0
+                const sheetName = workbook.SheetNames.find(n => n.toUpperCase().includes('TKB')) || workbook.SheetNames[0]; 
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ""});
 
@@ -2280,6 +2300,7 @@ async function nhapExcelTKB(event) {
                 }
 
                 let thuHienTai = ""; let buoiHienTai = "";
+                let soOThayDoi = 0;
 
                 for (let r = 2; r < jsonData.length; r++) {
                     const row = jsonData[r];
@@ -2293,17 +2314,39 @@ async function nhapExcelTKB(event) {
                     danhSachLopCol.forEach(lopInfo => {
                         let monVal = row[lopInfo.colIndex] ? row[lopInfo.colIndex].toString().trim() : "";
                         let gvVal = row[lopInfo.colIndex + 1] ? row[lopInfo.colIndex + 1].toString().trim() : "";
+                        
+                        // Nắn chỉnh khoảng trống (Dấu gạch ngang biểu diễn xóa trống)
+                        if (monVal === "---" || monVal === "--") monVal = "";
+                        if (gvVal === "---" || gvVal === "--") gvVal = "";
 
                         let theMon = document.getElementById(`mon_${thuHienTai}_${buoiHienTai}_${tiet}_${lopInfo.tenLop}`);
                         let theGv = document.getElementById(`gv_${thuHienTai}_${buoiHienTai}_${tiet}_${lopInfo.tenLop}`);
 
-                        if (theMon) theMon.value = monVal;
-                        if (theGv) theGv.value = gvVal;
+                        // [LÕI SỬA LỖI]: Bắt buộc đánh dấu cờ thay đổi để hệ thống nhận diện thao tác Lưu (Chỉ áp dụng với ô được sửa đổi)
+                        let oBiDoi = false;
+                        if (theMon && !theMon.disabled && theMon.value !== monVal) {
+                            theMon.value = monVal;
+                            if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(theMon);
+                            oBiDoi = true;
+                        }
+                        if (theGv && !theGv.disabled && theGv.value !== gvVal) {
+                            theGv.value = gvVal;
+                            if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(theGv);
+                            oBiDoi = true;
+                        }
+                        
+                        if (oBiDoi) {
+                            soOThayDoi++;
+                            if (typeof window.xacThucGiaTriHopLe === 'function') {
+                                if (theMon) window.xacThucGiaTriHopLe(theMon, 'mon');
+                                if (theGv) window.xacThucGiaTriHopLe(theGv, 'gv');
+                            }
+                        }
                     });
                 }
                 
-                if (typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang();
-                alert("Đã kết xuất dữ liệu từ Excel lên giao diện thành công! Vui lòng kiểm tra đối chiếu và bấm [Lưu TKB Tuần] để lưu hệ thống.");
+                if (typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang(true);
+                alert(`✅ Đã kết xuất dữ liệu từ Excel lên giao diện thành công!\n- Số vị trí ô được cập nhật: ${soOThayDoi}\n\nĐồng chí vui lòng kiểm tra lại trên lưới và bấm [Lưu Sửa] hoặc [Lưu TKB Tuần] để chốt dữ liệu vào máy chủ.`);
             } catch (errParse) { console.error("Lỗi phân tích cú pháp tệp Excel: ", errParse); alert("Sự cố xảy ra khi trích xuất dữ liệu biểu mẫu."); }
         };
         reader.readAsArrayBuffer(file);
@@ -3409,3 +3452,61 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+// =========================================================================
+// HÀM BỔ SUNG: TỰ ĐỘNG KHỞI TẠO NÚT NHẬP EXCEL TRÊN GIAO DIỆN TKB (UI)
+// =========================================================================
+window.khoiTaoNutNhapExcelTKBUI = function() {
+    // 1. Kiểm tra và tạo thẻ input[type="file"] ẩn để chọn tệp Excel nếu chưa có
+    let inputExcel = document.getElementById('fileInputExcelTKB');
+    if (!inputExcel) {
+        inputExcel = document.createElement('input');
+        inputExcel.type = 'file';
+        inputExcel.id = 'fileInputExcelTKB';
+        inputExcel.accept = '.xlsx, .xls';
+        inputExcel.className = 'hidden';
+        inputExcel.setAttribute('onchange', 'nhapExcelTKB(event)');
+        document.body.appendChild(inputExcel);
+    }
+
+    // 2. Kiểm tra xem nút btnNhapExcelTKB đã có trên giao diện chưa, nếu chưa thì chèn vào menu thao tác TKB
+    let btnNhap = document.getElementById('btnNhapExcelTKB');
+    if (!btnNhap) {
+        let dropdown = document.getElementById('dropdownMenuThaoTacTKB');
+        if (dropdown) {
+            btnNhap = document.createElement('button');
+            btnNhap.id = 'btnNhapExcelTKB';
+            btnNhap.type = 'button';
+            // Mặc định ban đầu ẩn (để hàm kiemSoatGiaoDien kiểm soát quyền sau)
+            btnNhap.style.display = 'none'; 
+            btnNhap.className = 'w-full text-left px-3 py-2 text-emerald-800 hover:bg-emerald-50 font-bold text-sm transition duration-150 flex items-center gap-2.5 rounded-lg whitespace-nowrap cursor-pointer group';
+            btnNhap.title = 'Tải Thời khóa biểu từ file Excel (.xlsx) lên lưới giao diện';
+            btnNhap.onclick = function() {
+                // Kiểm tra khóa TKB tuần trước khi cho chọn file
+                if (typeof window.kiemTraTuanTkbDaKhoa === 'function' && window.kiemTraTuanTkbDaKhoa(tuanDangXem)) {
+                    alert(`⚠️ Thời khóa biểu Tuần ${tuanDangXem} đang bị KHÓA (Niêm phong). Đồng chí vui lòng Mở khóa trước khi tải file Excel lên lưới!`);
+                    return;
+                }
+                if (typeof window.dongMenuThaoTacTKB === 'function') window.dongMenuThaoTacTKB();
+                let fileIn = document.getElementById('fileInputExcelTKB');
+                if (fileIn) { fileIn.value = ''; fileIn.click(); }
+            };
+            btnNhap.innerHTML = `
+                <div class="w-7 h-7 rounded-md bg-emerald-100 group-hover:bg-emerald-200 flex items-center justify-center text-emerald-700 flex-none transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                </div>
+                <span>Nhập Excel</span>
+            `;
+            // Chèn lên vị trí đầu tiên trong menu 3 gạch thao tác TKB
+            dropdown.insertBefore(btnNhap, dropdown.firstChild);
+        }
+    }
+};
+
+// Gọi tự động khi trang vừa nạp xong
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(window.khoiTaoNutNhapExcelTKBUI, 300);
+    });
+} else {
+    setTimeout(window.khoiTaoNutNhapExcelTKBUI, 300);
+}
