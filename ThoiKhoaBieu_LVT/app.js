@@ -1,6 +1,3 @@
-// =========================================================================
-// HÀM TIỆN ÍCH: XỬ LÝ NGÀY THỨ 2 TUẦN 1 TỪ SHEET CÀI ĐẶT
-// =========================================================================
 window.chuyenChuoiThanhDate = function(val) {
     if (!val) return null;
     if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
