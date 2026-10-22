@@ -113,7 +113,7 @@ function taoKhungGiaoDienPPCT() {
                     <datalist id="listMonPPCT"></datalist>
                 </div>
                <button onclick="taiDuLieuTkbVaPpct()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-6 rounded shadow transition duration-200 text-sm ml-auto flex items-center gap-2 h-[34px]">
-                    Xác nhận
+                    Xem
                 </button>
             </div>
 
