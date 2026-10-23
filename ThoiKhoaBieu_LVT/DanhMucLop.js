@@ -1,12 +1,11 @@
 let duLieuDanhMucLop = [];
-const TIEU_DE_DM_LOP = ['MaLop', 'TenLop'];
+const TIEU_DE_DM_LOP = ['MaLop', 'TenLop', 'GVCN'];
 
-// Đã loại bỏ vòng lặp DOMContentLoaded kiểm tra menu thủ công. 
 // Giao diện đã được quản lý chuẩn mực tại kiemSoatGiaoDien() trong app.js.
 
 async function taiDuLieuDanhMucLop() {
     const tbody = document.getElementById('vungDuLieuDanhMucLop');
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-10 text-slate-500 font-bold"><div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang tải Danh mục Lớp...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-500 font-bold"><div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang tải Danh mục Lớp...</td></tr>`;
     
     try {
         const urlAPI = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDanhMucLop`;
@@ -20,13 +19,14 @@ async function taiDuLieuDanhMucLop() {
             for (let i = 1; i < duLieuS.length; i++) {
                 duLieuDanhMucLop.push({
                     maLop: duLieuS[i][0] !== undefined ? String(duLieuS[i][0]).trim() : '',
-                    tenLop: duLieuS[i][1] !== undefined ? String(duLieuS[i][1]).trim() : ''
+                    tenLop: duLieuS[i][1] !== undefined ? String(duLieuS[i][1]).trim() : '',
+                    gvcn: duLieuS[i][2] !== undefined ? String(duLieuS[i][2]).trim() : ''
                 });
             }
         }
         veBangDanhMucLop();
     } catch (loi) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-10 text-red-600 font-bold">
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-600 font-bold">
             ⚠️ Lỗi kết nối máy chủ dữ liệu.<br>
             <span class="text-sm font-normal text-slate-500">Hệ thống đang bận hoặc gián đoạn mạng. Vui lòng chuyển qua tab khác và quay lại để tải lại.</span>
         </td></tr>`;
@@ -35,8 +35,19 @@ async function taiDuLieuDanhMucLop() {
 
 function veBangDanhMucLop() {
     const tbody = document.getElementById('vungDuLieuDanhMucLop');
+    // Bổ sung thẻ tiêu đề cột GVCN trên giao diện
+    const thead = document.querySelector('#khungDanhMucLop thead tr');
+    if (thead && thead.children.length === 4) {
+        thead.innerHTML = `
+            <th class="py-2 w-16">STT</th>
+            <th class="py-2 w-1/4">Mã Lớp</th>
+            <th class="py-2 w-1/4">Tên Lớp</th>
+            <th class="py-2 w-1/4">GV Chủ Nhiệm</th>
+            <th class="py-2 w-32">Điều Chỉnh</th>`;
+    }
+
     if (duLieuDanhMucLop.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-10 text-slate-500 font-bold italic">Danh sách đang trống. Hãy thêm lớp học mới.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-500 font-bold italic">Danh sách đang trống. Hãy thêm lớp học mới.</td></tr>`;
         return;
     }
 
@@ -47,6 +58,7 @@ function veBangDanhMucLop() {
             <td class="py-1 px-2 border border-gray-300 font-bold text-slate-500">${index + 1}</td>
             <td class="p-0 border border-gray-300"><input type="text" value="${lop.maLop}" onchange="capNhatLop(${index}, 'maLop', this.value)" class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-center font-extrabold text-blue-900 uppercase"></td>
             <td class="p-0 border border-gray-300"><input type="text" value="${lop.tenLop}" onchange="capNhatLop(${index}, 'tenLop', this.value)" class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-center font-bold text-slate-800 uppercase"></td>
+            <td class="p-0 border border-gray-300"><input type="text" list="datalistChung_GV" value="${lop.gvcn}" onchange="capNhatLop(${index}, 'gvcn', this.value)" placeholder="Chọn/Nhập mã GV..." class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-center font-bold text-slate-800"></td>
             <td class="py-1 px-2 border border-gray-300 space-x-1">
                 <button onclick="diChuyenLop(${index}, -1)" title="Lên" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold p-1.5 rounded leading-none transition">▲</button>
                 <button onclick="diChuyenLop(${index}, 1)" title="Xuống" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold p-1.5 rounded leading-none transition">▼</button>
@@ -62,10 +74,11 @@ function dongBoDomLopSangState() {
     duLieuDanhMucLop = [];
     document.querySelectorAll('#vungDuLieuDanhMucLop tr').forEach(tr => {
         let cacInput = tr.querySelectorAll('input');
-        if (cacInput && cacInput.length === 2) {
+        if (cacInput && cacInput.length === 3) {
             duLieuDanhMucLop.push({ 
                 maLop: cacInput[0].value, 
-                tenLop: cacInput[1].value 
+                tenLop: cacInput[1].value,
+                gvcn: cacInput[2].value
             });
         }
     });
@@ -87,13 +100,27 @@ function capNhatLop(index, truong, giaTri) {
             duLieuDanhMucLop[index].tenLop = maMoi;
             veBangDanhMucLop();
         }
+    } else if (truong === 'gvcn') {
+        duLieuDanhMucLop[index][truong] = giaTri.trim(); 
     } else {
         duLieuDanhMucLop[index][truong] = giaTri.trim().toUpperCase(); 
     }
 }
 
-function themDongLopMoi() { dongBoDomLopSangState(); duLieuDanhMucLop.push({ maLop: '', tenLop: '' }); veBangDanhMucLop(); }
-function xoaLop(index) { if (confirm("Đồng chí chắc chắn muốn xoá lớp này khỏi hệ thống?")) { dongBoDomLopSangState(); duLieuDanhMucLop.splice(index, 1); veBangDanhMucLop(); } }
+function themDongLopMoi() { 
+    dongBoDomLopSangState(); 
+    duLieuDanhMucLop.push({ maLop: '', tenLop: '', gvcn: '' }); 
+    veBangDanhMucLop(); 
+}
+
+function xoaLop(index) { 
+    if (confirm("Đồng chí chắc chắn muốn xoá lớp này khỏi hệ thống?")) { 
+        dongBoDomLopSangState(); 
+        duLieuDanhMucLop.splice(index, 1); 
+        veBangDanhMucLop(); 
+    } 
+}
+
 function diChuyenLop(index, huong) {
     if (index + huong < 0 || index + huong >= duLieuDanhMucLop.length) return;
     dongBoDomLopSangState();
@@ -114,7 +141,7 @@ async function luuDuLieuDanhMucLopSangMayChu() {
         let mangGhi = [TIEU_DE_DM_LOP]; 
         duLieuDanhMucLop.forEach(lop => {
             if (lop.maLop.trim() !== '') {
-                mangGhi.push([lop.maLop.trim(), lop.tenLop.trim()]);
+                mangGhi.push([lop.maLop.trim(), lop.tenLop.trim(), lop.gvcn.trim()]);
             }
         });
 
@@ -128,12 +155,21 @@ async function luuDuLieuDanhMucLopSangMayChu() {
         const ketQua = await phanHoi.json();
         
         if (ketQua.trangThai === 'Thành công') { 
-            alert("Đã lưu Danh mục Lớp lên hệ thống an toàn!"); 
+            alert("Đã lưu Danh mục Lớp (bao gồm phân công GVCN) lên hệ thống an toàn!"); 
             
-            // [KHẮC PHỤC KẾ THỪA]: Bơm danh sách Lớp mới vào biến toàn cục
+            // Bơm danh sách Lớp và GVCN mới vào biến toàn cục của Frontend
             if (typeof thongSoHocVu !== 'undefined') {
                 thongSoHocVu.DANH_SACH_LOP = duLieuDanhMucLop.map(lop => lop.maLop.trim()).filter(String);
+                if (!thongSoHocVu.GVCN_THEO_LOP) thongSoHocVu.GVCN_THEO_LOP = {};
+                duLieuDanhMucLop.forEach(lop => {
+                    if (lop.maLop.trim() !== '') {
+                        thongSoHocVu.GVCN_THEO_LOP[lop.maLop.trim()] = lop.gvcn.trim();
+                    }
+                });
             }
+            // Cập nhật lại các datalist và giao diện lưới
+            if (typeof window.capNhatDatalistTKB === 'function') window.capNhatDatalistTKB();
+            
             // Xóa Cache các phân hệ phụ thuộc để ép chúng tái tạo cấu trúc khi bấm sang
             if (typeof duLieuBangKCT !== 'undefined') duLieuBangKCT = []; 
             if (typeof danhSachGV !== 'undefined') danhSachGV = []; 
@@ -162,14 +198,14 @@ function xuatExcelDanhMucLop() {
     
     let mangXuat = [TIEU_DE_DM_LOP];
     duLieuDanhMucLop.forEach(lop => { 
-        mangXuat.push([lop.maLop, lop.tenLop]); 
+        mangXuat.push([lop.maLop, lop.tenLop, lop.gvcn]); 
     });
     
     let wb = XLSX.utils.book_new();
     let ws = XLSX.utils.aoa_to_sheet(mangXuat);
     
     // Tinh chỉnh độ rộng các cột hiển thị
-    ws['!cols'] = [{wch: 15}, {wch: 25}];
+    ws['!cols'] = [{wch: 15}, {wch: 25}, {wch: 25}];
     XLSX.utils.book_append_sheet(wb, ws, "DM_LOP");
     XLSX.writeFile(wb, "DanhMucLop.xlsx");
 }
@@ -206,6 +242,7 @@ function nhapExcelDanhMucLop(event) {
                 let row = duLieuExcel[i];
                 let maLopMoi = row[0] ? String(row[0]).trim().toUpperCase() : '';
                 let tenLopMoi = row[1] ? String(row[1]).trim().toUpperCase() : '';
+                let gvcnMoi = row[2] ? String(row[2]).trim() : '';
                 
                 if (maLopMoi !== '') {
                     // Thuật toán kiểm tra và chặn trùng lặp mã lớp nếu chọn chế độ nối tiếp
@@ -220,7 +257,8 @@ function nhapExcelDanhMucLop(event) {
                     
                     duLieuDanhMucLop.push({
                         maLop: maLopMoi,
-                        tenLop: tenLopMoi
+                        tenLop: tenLopMoi,
+                        gvcn: gvcnMoi
                     });
                 }
             }
