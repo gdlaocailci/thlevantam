@@ -161,7 +161,7 @@
             </div>
         </div>
         
-        <!-- Hàng 2: Ý kiến lãnh đạo đa người dùng (col-12) -->
+       <!-- Hàng 2: Ý kiến lãnh đạo đa người dùng (col-12) -->
         <div class="row g-1 mb-1">
             <div class="col-12" id="vungYkienLanhDaoToanBo" style="display: none;">
               <!-- Vùng hiển thị ý kiến của các giám sát khác (Chỉ đọc) -->
@@ -538,7 +538,7 @@ function apDungKhoaGiaoDien() {
         $('#bangNviec tbody tr').find('.chonKq').prop('disabled', false); 
     }
 
-   if (daChonGvKhac) {
+  if (daChonGvKhac) {
         $('#vungYkienLanhDaoToanBo').show();
         if (isBGH || isGS) {
             $('#nhapYkien, #nhapBcao').prop('disabled', true);
@@ -1607,7 +1607,7 @@ window.tepdinhkBcao = window.tepdinhkBcao || [];
         }
     }
 
- const oYkien = document.getElementById('nhapYkien');
+   const oYkien = document.getElementById('nhapYkien');
     if (oYkien) {
         window.yKienCuaNguoiKhac = "";
 
@@ -1731,7 +1731,7 @@ window.tepdinhkBcao = window.tepdinhkBcao || [];
             });
         }
     }
-
+  
     if (typeof jQuery !== 'undefined') {
         const originalValHook = $.valHooks.textarea;
         $.valHooks.textarea = {
