@@ -1,3 +1,6 @@
+// =========================================================================
+// HÀM TIỆN ÍCH: XỬ LÝ NGÀY THỨ 2 TUẦN 1 TỪ SHEET CÀI ĐẶT
+// =========================================================================
 window.chuyenChuoiThanhDate = function(val) {
     if (!val) return null;
     if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
@@ -919,15 +922,78 @@ async function taiDuLieuTKB(coCache = false, nguonTruyXuat = 'TKB_HIEN_TAI', epD
 
 function napDuLieuBoLocGiaoVien() {
     let dtList = document.getElementById('danhSachGvList');
-    if (!dtList) return;
-    
-    dtList.innerHTML = '';
-    dtList.innerHTML += `<option value="Toàn trường"></option>`;
+    let locGiaoVienInput = document.getElementById('locGiaoVien');
+    if (!dtList || !locGiaoVienInput) return;
 
-    if (thongSoHocVu.DANH_SACH_GIAO_VIEN && thongSoHocVu.DANH_SACH_GIAO_VIEN.length > 0) {
-        thongSoHocVu.DANH_SACH_GIAO_VIEN.forEach(gv => {
-            dtList.innerHTML += `<option value="${gv}"></option>`;
+    let dsGV = thongSoHocVu.DANH_SACH_GIAO_VIEN || [];
+
+    // [NÂNG CẤP]: Cập nhật Datalist động. Cộng dồn tiền tố (các giáo viên đã chọn) vào danh sách gợi ý mới
+    const capNhatDatalist = (tienTo) => {
+        dtList.innerHTML = '';
+        if (tienTo === '') {
+            dtList.innerHTML += `<option value="Toàn trường"></option>`;
+            dsGV.forEach(gv => dtList.innerHTML += `<option value="${gv}"></option>`);
+        } else {
+            let mangDaChon = tienTo.split(',').map(s => s.trim()).filter(s => s !== "");
+            dsGV.forEach(gv => {
+                // Lọc bỏ những giáo viên đã được chọn trước đó để danh sách gọn hơn
+                if (!mangDaChon.includes(gv)) {
+                    dtList.innerHTML += `<option value="${tienTo}${gv}"></option>`;
+                }
+            });
+        }
+    };
+
+    // Khởi tạo datalist lúc mới load trang
+    capNhatDatalist('');
+
+    if (!locGiaoVienInput.dataset.daGanSuKienBoLoc) {
+        locGiaoVienInput.dataset.daGanSuKienBoLoc = "true";
+
+        // Bắt sự kiện khi đang gõ phím
+        locGiaoVienInput.addEventListener('input', function() {
+            let val = this.value;
+            if (val === "Toàn trường") {
+                capNhatDatalist('');
+                if (typeof locTheoGiaoVien === 'function') locTheoGiaoVien();
+                return;
+            }
+
+            // Dò tìm vị trí dấu phẩy cuối cùng để cắt lớp tiền tố đã chọn
+            let lastCommaIndex = val.lastIndexOf(',');
+            if (lastCommaIndex !== -1) {
+                let mangTienTo = val.substring(0, lastCommaIndex).split(',').map(s => s.trim()).filter(s => s !== "");
+                let tienToChuan = mangTienTo.join(', ') + (mangTienTo.length > 0 ? ', ' : '');
+                capNhatDatalist(tienToChuan); // Cấp lại danh sách kèm tiền tố
+            } else {
+                capNhatDatalist(''); // Nếu bị xóa hết dấu phẩy, quay lại datalist gốc
+            }
+
+            if (typeof locTheoGiaoVien === 'function') locTheoGiaoVien();
         });
+
+        // Bắt sự kiện khi click chọn một mục từ danh sách xổ xuống
+        locGiaoVienInput.addEventListener('change', function() {
+            let valMoi = this.value;
+            if (valMoi === "Toàn trường" || valMoi.trim() === "") {
+                this.value = valMoi.trim();
+                capNhatDatalist('');
+            } else {
+                // Kiểm tra xem mục vừa chọn có phải là giáo viên chuẩn không
+                let mangCu = valMoi.split(',').map(s => s.trim()).filter(s => s !== "");
+                let lastGv = mangCu[mangCu.length - 1];
+                
+                if (dsGV.includes(lastGv)) {
+                    // Nối thêm dấu phẩy và khoảng trắng chuẩn bị sẵn cho việc chọn người tiếp theo
+                    this.value = mangCu.join(', ') + ', ';
+                    capNhatDatalist(this.value);
+                }
+            }
+            if (typeof locTheoGiaoVien === 'function') locTheoGiaoVien();
+        });
+    }
+    if (typeof window.napDuLieuBoLocLop === 'function') {
+        window.napDuLieuBoLocLop();
     }
 }
 
@@ -951,19 +1017,26 @@ async function goiThuatToanXepLich() {
 }
 
 function locTheoGiaoVien() {
-    let gvLoc = document.getElementById('locGiaoVien') ? document.getElementById('locGiaoVien').value.trim() : '';
-    let gvLocLC = gvLoc.toLowerCase(); 
+    let theLoc = document.getElementById('locGiaoVien');
+    let gvLoc = theLoc ? theLoc.value.trim() : '';
+    
+    // Tách chuỗi thành mảng các giáo viên dựa vào dấu phẩy
+    let danhSachLocLC = gvLoc.toLowerCase().split(',').map(s => s.trim()).filter(s => s !== "");
 
     let tapHopLopCuaGV = new Set();
     let coTietNaoKhong = false;
+    let dangLocGiaoVien = (danhSachLocLC.length > 0 && !danhSachLocLC.includes("toàn trường"));
 
-    if (gvLoc !== "" && gvLoc !== "Toàn trường" && typeof duLieuTkbHienTai !== 'undefined') {
+    if (dangLocGiaoVien && typeof duLieuTkbHienTai !== 'undefined') {
         duLieuTkbHienTai.forEach(t => {
             if (t.maGv) {
                 let gvTkb = t.maGv.trim().toLowerCase();
                 let tapHopGvTkb = gvTkb.split(/[,;&-]/).map(g => g.trim());
                 
-                if (tapHopGvTkb.includes(gvLocLC)) {
+                // Kiểm tra xem giáo viên trong ô TKB có khớp với BẤT KỲ giáo viên nào đang lọc không
+                let coKhop = tapHopGvTkb.some(g => danhSachLocLC.includes(g));
+                
+                if (coKhop) {
                     tapHopLopCuaGV.add(t.maLop);
                     coTietNaoKhong = true;
                 }
@@ -974,6 +1047,7 @@ function locTheoGiaoVien() {
     let tbody = document.getElementById('vungHienThiDuLieu');
     let thead = document.getElementById('tieuDeBang');
     
+    // Xóa cảnh báo rỗng cũ nếu có
     if (tbody && tbody.querySelector('.canh-bao-trong-lich')) {
         let cacDong = tbody.querySelectorAll('tr:not(.canh-bao-trong-lich)');
         cacDong.forEach(dong => dong.style.display = '');
@@ -982,7 +1056,8 @@ function locTheoGiaoVien() {
         if (thead) thead.style.display = '';
     }
 
-    if (gvLoc !== "" && gvLoc !== "Toàn trường" && !coTietNaoKhong) {
+    // Hiển thị cảnh báo nếu không giáo viên nào trong danh sách lọc có tiết
+    if (dangLocGiaoVien && !coTietNaoKhong) {
         if (thead) thead.style.display = 'none';
 
         if (tbody) {
@@ -993,7 +1068,7 @@ function locTheoGiaoVien() {
             trCanhBao.className = 'canh-bao-trong-lich bg-orange-50/50';
             trCanhBao.innerHTML = `<td colspan="3" class="text-center py-12">
                 <div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg></div>
-                <p class="text-orange-600 font-bold text-lg mb-1">Đồng chí ${gvLoc} không có lịch lên lớp trong tuần này.</p>
+                <p class="text-orange-600 font-bold text-lg mb-1">Không tìm thấy lịch lên lớp của: ${gvLoc} trong tuần này.</p>
                 <p class="text-sm text-slate-500 font-medium">Vui lòng xóa ô tìm kiếm hoặc chọn "Toàn trường" để hiển thị lại lưới TKB.</p>
             </td>`;
             tbody.appendChild(trCanhBao);
@@ -1001,17 +1076,18 @@ function locTheoGiaoVien() {
         return;
     }
 
+    // Ẩn/hiện các cột lớp
     let tatCaCacCot = document.querySelectorAll('[data-cotlop]');
     tatCaCacCot.forEach(cot => {
         let lopCuaCot = cot.getAttribute('data-cotlop');
-        if (gvLoc === "" || gvLoc === "Toàn trường" || tapHopLopCuaGV.has(lopCuaCot)) {
+        if (!dangLocGiaoVien || tapHopLopCuaGV.has(lopCuaCot)) {
             cot.classList.remove('hidden'); 
         } else {
             cot.classList.add('hidden'); 
         }
     });
 
-    let dangLocGiaoVien = (gvLoc !== "" && gvLoc !== "Toàn trường");
+    // Tô màu các ô khớp với mục tiêu lọc
     let cacOGiaoVien = document.querySelectorAll('input[id^="gv_"]');
     cacOGiaoVien.forEach(oGv => {
         let gvGoc = oGv.value.trim().toLowerCase();
@@ -1019,9 +1095,7 @@ function locTheoGiaoVien() {
         
         if (dangLocGiaoVien) {
             let tapHopGvGoc = gvGoc.split(/[,;&-]/).map(g => g.trim());
-            if (!tapHopGvGoc.includes(gvLocLC)) {
-                isTarget = false;
-            }
+            isTarget = tapHopGvGoc.some(g => danhSachLocLC.includes(g));
         }
         
         let tdGv = oGv.closest('td');
@@ -1030,7 +1104,6 @@ function locTheoGiaoVien() {
         let laCanLich = oMon && oMon.value.includes('CẤN LỊCH');
 
         if (!dangLocGiaoVien) {
-            // Khi không lọc (khởi động hoặc chọn Toàn trường): trả toàn bộ ô về nền trắng mặc định
             if (tdGv) {
                 tdGv.classList.remove('bg-gray-100/50', 'bg-amber-200', 'bg-amber-100');
                 if (!laCanLich) tdGv.classList.add('bg-white');
@@ -1042,7 +1115,6 @@ function locTheoGiaoVien() {
             oGv.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
             if (oMon) oMon.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
         } else if (isTarget) {
-            // Khi đang lọc và trùng khớp giáo viên cần tìm: tô màu nổi bật ô Môn và ô Giáo viên
             if (tdGv) {
                 tdGv.classList.remove('bg-gray-100/50', 'bg-white');
                 if (!laCanLich) tdGv.classList.add('bg-amber-200');
@@ -1054,7 +1126,6 @@ function locTheoGiaoVien() {
             oGv.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
             if (oMon) oMon.classList.remove('opacity-0', 'pointer-events-none', 'select-none');
         } else {
-            // Khi đang lọc nhưng ô không thuộc giáo viên đang tìm: làm mờ
             if (tdGv) {
                 tdGv.classList.remove('bg-amber-200', 'bg-amber-100', 'bg-white');
                 tdGv.classList.add('bg-gray-100/50');
@@ -1577,10 +1648,14 @@ function xuatMaTranBang(danhSachTiet) {
 async function luuDuLieu(event, loaiLuu, tuDongLuu = false) {
     let coQuyenThaoTac = quyenSuaChua || (quyenChiTiet && (quyenChiTiet.lop.length > 0 || quyenChiTiet.nut.length > 0));
     if (!coQuyenThaoTac) return;
+    if (loaiLuu === 'khoiphuc') {
+        if (typeof thucThiChuyenTuanTiepTheo === 'function') {
+            return await thucThiChuyenTuanTiepTheo(event);
+        }
+    }
     
     if (!tuDongLuu) {
         if (loaiLuu === 'codinh') { if (!confirm("CẢNH BÁO: Thao tác này sẽ ghi đè toàn bộ TKB hiện tại làm TKB Gốc Cố Định cho toàn trường. Bấm OK để tiếp tục.")) return; }
-        if (loaiLuu === 'khoiphuc') { if (!confirm(`Xác nhận: Lưu trữ toàn bộ TKB Tuần ${tuanDangXem}, tự động chuyển sang tuần tiếp theo?`)) return; }
         if (loaiLuu === 'tuan') { if (!confirm(`Xác nhận: Xóa trắng và ghi đè toàn bộ dữ liệu Tuần ${tuanDangXem} trên máy chủ bằng nội dung Thời khoá biểu mặc định?`)) return; }
     }
     if (loaiLuu === 'tuan' || loaiLuu === 'khoiphuc') {
@@ -2776,8 +2851,11 @@ window.locTheoLop = function() {
         let chuoiLoc = theLocLop.value.trim().toUpperCase(); 
         let tatCaCacCot = document.querySelectorAll('[data-cotlop]');
 
-        if (chuoiLoc === "") {
+        // Nếu xóa trắng hoặc chọn "Toàn trường", hiển thị lại tất cả các cột
+        if (chuoiLoc === "" || chuoiLoc === "TOÀN TRƯỜNG") {
             tatCaCacCot.forEach(cot => cot.classList.remove('hidden'));
+            
+            // Kích hoạt lại lọc giáo viên (nếu đang lọc dở) để đồng bộ 2 bộ lọc
             let locGV = document.getElementById('locGiaoVien');
             if (locGV && locGV.value.trim() !== "" && locGV.value.trim() !== "Toàn trường") {
                 if (typeof locTheoGiaoVien === 'function') locTheoGiaoVien();
@@ -2785,23 +2863,138 @@ window.locTheoLop = function() {
             return;
         }
 
-        let chuoiAnToan = chuoiLoc.split('*').map(s => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&'));
-        let regexHinhThai = new RegExp("^" + chuoiAnToan.join('.*') + "$");
+        // Tách chuỗi đa lớp bằng dấu phẩy
+        let danhSachLoc = chuoiLoc.split(',').map(s => s.trim()).filter(s => s !== "");
 
+        // Hỗ trợ mảng Regex để bắt ký tự đại diện * (Ví dụ: 6A, 7* sẽ lọc lớp 6A và toàn bộ khối 7)
+        let mangRegex = danhSachLoc.map(chuoi => {
+            let chuoiAnToan = chuoi.split('*').map(s => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&'));
+            return new RegExp("^" + chuoiAnToan.join('.*') + "$");
+        });
+
+        // Ẩn/hiện cột lớp
         tatCaCacCot.forEach(cot => {
             let tenLopCuaCot = cot.getAttribute('data-cotlop').toUpperCase();
-            if (regexHinhThai.test(tenLopCuaCot)) {
+            
+            // Nếu cột khớp với BẤT KỲ điều kiện lớp nào trong mảng tìm kiếm
+            let coKhop = mangRegex.some(regex => regex.test(tenLopCuaCot));
+            
+            if (coKhop) {
                 cot.classList.remove('hidden'); 
             } else {
                 cot.classList.add('hidden');    
             }
         });
+
+        // Sau khi xử lý lớp, áp dụng đè bộ lọc giáo viên (Lọc giao thoa)
+        let locGV = document.getElementById('locGiaoVien');
+        if (locGV && locGV.value.trim() !== "" && locGV.value.trim() !== "Toàn trường") {
+            if (typeof locTheoGiaoVien === 'function') locTheoGiaoVien();
+        }
     }, 100);
 };
+// =========================================================================
+// HÀM BỔ SUNG: KHỞI TẠO DATALIST ĐỘNG CHO BỘ LỌC LỚP
+// =========================================================================
+window.napDuLieuBoLocLop = function() {
+    let locLopInput = document.getElementById('locLopHoc');
+    if (!locLopInput) return;
 
+    // [NÂNG CẤP UI]: Tự động bôi đen toàn bộ dữ liệu khi nhấp chuột (Giống ô Giáo viên)
+    if (!locLopInput.dataset.daGanSuKienChonAll) {
+        locLopInput.dataset.daGanSuKienChonAll = "true";
+        locLopInput.addEventListener('click', function() {
+            this.select();
+        });
+        locLopInput.addEventListener('focus', function() {
+            this.select();
+        });
+    }
+
+    // Tự động kiểm tra và gắn datalist nếu trên giao diện HTML chưa có
+    let listId = locLopInput.getAttribute('list');
+    let dtList = document.getElementById(listId);
+    
+    if (!dtList) {
+        listId = 'danhSachLopList';
+        locLopInput.setAttribute('list', listId);
+        dtList = document.createElement('datalist');
+        dtList.id = listId;
+        document.body.appendChild(dtList);
+    }
+
+    let dsLop = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.DANH_SACH_LOP) ? thongSoHocVu.DANH_SACH_LOP : [];
+
+    // Kỹ thuật cập nhật Datalist tiền tố
+    const capNhatDatalistLop = (tienTo) => {
+        dtList.innerHTML = '';
+        if (tienTo === '') {
+            dtList.innerHTML += `<option value="Toàn trường"></option>`;
+            dsLop.forEach(lop => dtList.innerHTML += `<option value="${lop}"></option>`);
+        } else {
+            let mangDaChon = tienTo.split(',').map(s => s.trim().toUpperCase()).filter(s => s !== "");
+            dsLop.forEach(lop => {
+                if (!mangDaChon.includes(lop.toUpperCase())) {
+                    dtList.innerHTML += `<option value="${tienTo}${lop}"></option>`;
+                }
+            });
+        }
+    };
+
+    capNhatDatalistLop(''); // Gọi lần đầu
+
+    if (!locLopInput.dataset.daGanSuKienBoLoc) {
+        locLopInput.dataset.daGanSuKienBoLoc = "true";
+
+        locLopInput.addEventListener('input', function() {
+            let val = this.value;
+            if (val === "Toàn trường") {
+                capNhatDatalistLop('');
+                if (typeof window.locTheoLop === 'function') window.locTheoLop();
+                return;
+            }
+
+            let lastCommaIndex = val.lastIndexOf(',');
+            if (lastCommaIndex !== -1) {
+                let mangTienTo = val.substring(0, lastCommaIndex).split(',').map(s => s.trim()).filter(s => s !== "");
+                let tienToChuan = mangTienTo.join(', ') + (mangTienTo.length > 0 ? ', ' : '');
+                capNhatDatalistLop(tienToChuan);
+            } else {
+                capNhatDatalistLop('');
+            }
+
+            if (typeof window.locTheoLop === 'function') window.locTheoLop();
+        });
+
+        locLopInput.addEventListener('change', function() {
+            let valMoi = this.value;
+            if (valMoi === "Toàn trường" || valMoi.trim() === "") {
+                this.value = valMoi.trim();
+                capNhatDatalistLop('');
+            } else {
+                let mangCu = valMoi.split(',').map(s => s.trim()).filter(s => s !== "");
+                let lastLop = mangCu[mangCu.length - 1];
+                
+                // Khớp chuẩn hoa/thường với danh sách gốc
+                let lopChuan = dsLop.find(l => l.toUpperCase() === (lastLop || '').toUpperCase());
+                if (lopChuan) {
+                    mangCu[mangCu.length - 1] = lopChuan;
+                    this.value = mangCu.join(', ') + ', ';
+                    capNhatDatalistLop(this.value);
+                }
+            }
+            if (typeof window.locTheoLop === 'function') window.locTheoLop();
+        });
+    }
+};
 async function thucThiChuyenTuanTiepTheo(event) {
-    if (!quyenSuaChua) {
-        alert("Từ chối truy cập: Đồng chí không có quyền quản trị để thực hiện tịnh tiến thời khóa biểu toàn trường.");
+    // [CẬP NHẬT QUAN TRỌNG]: Ai được check quyền Nút "Tuần mới" (btnKhoiPhuc) đều có thể chạy
+    let quyenCongKhai = (typeof window.layQuyenCongKhaiHienTai === 'function') ? window.layQuyenCongKhaiHienTai() : { nut: [] };
+    let nutDuocCap = (typeof quyenChiTiet !== 'undefined' && quyenChiTiet.nut) ? quyenChiTiet.nut : [];
+    let coQuyenChuyen = quyenSuaChua || nutDuocCap.includes('btnKhoiPhuc') || quyenCongKhai.nut.includes('btnKhoiPhuc');
+
+    if (!coQuyenChuyen) {
+        alert("Từ chối truy cập: Đồng chí không có quyền để thực hiện tịnh tiến thời khóa biểu toàn trường.");
         return;
     }
 
@@ -2810,8 +3003,8 @@ async function thucThiChuyenTuanTiepTheo(event) {
 
     let canhBao = `⛔ XÁC NHẬN CHUYỂN TUẦN ${tuanMoi}:\n\n` +
                   `Hệ thống sẽ thực hiện:\n` +
-                  `1. Xóa toàn bộ dữ liệu của Tuần ${tuanHeThong} tại Sheet TKB_HIEN_TAI.\n` +
-                  `2. Chép toàn bộ TKB chuẩn từ Sheet TKB_CoDinh sang Tuần ${tuanMoi}.\n` +
+                  `1. Lưu trữ an toàn toàn bộ dữ liệu Tuần ${tuanHeThong} vào lịch sử.\n` +
+                  `2. Chép toàn bộ TKB chuẩn từ TKB Cố Định sang Tuần ${tuanMoi}.\n` +
                   `3. Tịnh tiến tuần làm việc của toàn trường lên Tuần ${tuanMoi}.\n\n` +
                   `Đồng chí có chắc chắn muốn thực hiện?`;
 
@@ -2840,10 +3033,8 @@ async function thucThiChuyenTuanTiepTheo(event) {
         const ketQua = await phanHoi.json();
         
         if (ketQua.trangThai === 'thanh_cong') {
-            // Đã bỏ thông báo thành công theo yêu cầu (chỉ giữ thông báo xác nhận lần đầu)
             localStorage.removeItem(layKhoaCachLy('SmartTKB_CauHinh'));
             localStorage.removeItem(layKhoaCachLy('SmartTKB_DuLieuTuan'));
-            
             window.location.reload(); 
         } else {
             throw new Error(ketQua.thongBao);
