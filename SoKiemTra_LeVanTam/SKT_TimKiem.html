@@ -172,7 +172,7 @@
   .design-footer {
     text-align: center;
     margin-top: 4px;
-    padding: 4px 0 2px 0;
+    padding: 4px 0 10px 0; /* Tăng lề dưới lên 10px để không bị sát mép */
     border-top: 1px solid #e5e7eb;
     font-size: 11px;
     color: #1e3a8a;
@@ -180,6 +180,7 @@
     font-style: italic;
     font-family: "Times New Roman", serif;
     flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
@@ -389,7 +390,7 @@
               }
               const tkFooter = document.getElementById('footer_timkiem');
               if (tkFooter && typeof SKT_TAC_GIA !== 'undefined') {
-                  tkFooter.innerText = SKT_TAC_GIA;
+                  tkFooter.innerHTML = SKT_TAC_GIA.replace(/<br\s*[\/]?>/gi, " - ").replace(/\n/g, " - ");
               }
           } catch(e) {}
       }, 50);
