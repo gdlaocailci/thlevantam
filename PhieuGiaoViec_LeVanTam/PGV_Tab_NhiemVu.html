@@ -140,7 +140,7 @@
              <div class="d-flex align-items-center justify-content-end gap-2" style="flex: auto;">
                <span id="hienThiNgayKhoa" class="badge bg-warning text-dark border me-2" style="display: none !important; height: 30px; font-size: 12px; align-items: center;"></span>
                 <button id="nutMoKhoa" class="btn btn-sm fw-bold text-nowrap w-auto btn-reactbits-shiny" style="display: none; height: 30px; font-size: 12px; justify-content: center; align-items: center;" onclick="doiTrangThaiKhoa()"></button>
-                <select id="hopChonGv" class="form-select form-select-sm border-primary fw-bold text-primary shadow-sm text-nowrap w-auto" style="display: none; height: 30px; font-size: 12px;" onchange="kiemTraQuyenTruyCap()"><option value="">--LĐ, BGS đánh giá--</option></select>
+                <select id="hopChonGv" class="form-select form-select-sm border-primary fw-bold text-primary shadow-sm text-nowrap w-auto" style="display: none; height: 30px; font-size: 12px;" onchange="kiemTraQuyenTruyCap()"><option value="">-LĐ, BGS đánh giá-</option></select>
                 <button id="nutLuuTam" class="btn btn-success btn-sm fw-bold d-flex align-items-center px-3 text-nowrap w-auto btn-reactbits-shiny" onclick="xulyLuuTam()" style="height: 30px; justify-content: center;"><i class="bi bi-save me-1"></i> Lưu nhật ký</button>
                 <button id="nutNopBcao" class="btn btn-primary btn-sm fw-bold d-flex align-items-center px-3 text-nowrap w-auto btn-reactbits-shiny" onclick="nopBcaoChinh()" disabled style="height: 30px; justify-content: center;"><i class="bi bi-send me-1"></i> Nộp báo cáo</button>
              </div>
@@ -1937,12 +1937,12 @@ $(document).ready(function() {
     
     const input = document.createElement("input");
     input.type = "text";
-    input.className = "form-control form-control-sm border-primary fw-bold text-primary shadow-sm text-nowrap";
+    input.className = "form-control form-control-sm border-primary fw-bold text-primary shadow-sm text-nowrap text-center";
     input.style.height = "30px";
     input.style.fontSize = "12px";
     input.style.width = "220px";
     input.style.paddingRight = "25px";
-    input.placeholder = "-- Lựa chọn giáo viên --";
+    input.placeholder = "-- LĐ, BGS đánh giá --";
     input.autocomplete = "off";
 
     const icon = document.createElement("i");
