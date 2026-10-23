@@ -769,7 +769,7 @@ function taiDsTrang() {
         danhSachBo.forEach(pt => {
             if (pt.tenn) { window.PGV_MAP_TEN_ID[pt.tenn.trim().toLowerCase()] = pt.ttrg; }
             let qy = String(pt.quyen || "").trim().toLowerCase();
-            if (qy === "" || qy === "x" || qy === "xx") {
+            if (qy === "" || qy === "x" || qy === "xx" || qy === "xxx") {
                 hs.append(`<option value="${pt.ttrg}">${pt.tenn}</option>`);
             }
             dsIdTainNgam.push(pt.ttrg); 
