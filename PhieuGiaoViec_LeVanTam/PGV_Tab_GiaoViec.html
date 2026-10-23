@@ -776,6 +776,10 @@ function gvTaiCanb() {
         const ttGiao = gvTrichXuatNguoiGiaoTuGhiChu(chuoiGhiChu);
         if (!ttGiao.coNguoiGiao) return { biKhoa: false, chuSoHuu: "" };
         const ngDangNhap = gvLayThongTinNguoiDangNhap();
+        // Quản trị VIP (xxx) có toàn quyền quản lý
+        if (ngDangNhap.quyen === 'xxx') {
+            return { biKhoa: false, chuSoHuu: ttGiao.hienThi };
+        }
         const idGiao = String(ttGiao.id || "").trim().toLowerCase();
         const tenGiao = String(ttGiao.ten || "").trim().toLowerCase();
         const idHt = String(ngDangNhap.id || "").trim().toLowerCase();
@@ -1021,19 +1025,33 @@ function gvTaiCanb() {
 
     function gvKiemTraTieuDe(ptu) {
         if (!ptu) return;
-        let isHeader = ptu.value.trim().startsWith('*');
+        let val = ptu.value.trim();
+        let isHeader = val.startsWith('*') || val.includes('(*)');
         let tr = ptu.closest('tr');
         let tdNoiDung = ptu.closest('td');
         if (!tr || !tdNoiDung) return;
         
+        let tdHdong = tr.querySelector('.oHdong');
         if (isHeader) {
             ptu.classList.add('fw-bold', 'text-primary', 'text-uppercase');
             tdNoiDung.colSpan = 6;
             tr.querySelectorAll('td:nth-child(n+4)').forEach(td => { if (td) td.style.display = 'none'; });
+            if (tdHdong) {
+                tdHdong.innerHTML = '<i class="bi bi-lock-fill text-secondary" title="Dòng tiêu đề - Không được phép xóa"></i>';
+            }
         } else {
             ptu.classList.remove('fw-bold', 'text-primary', 'text-uppercase');
             tdNoiDung.colSpan = 1;
             tr.querySelectorAll('td:nth-child(n+4)').forEach(td => { if (td) td.style.display = ''; });
+            if (tdHdong) {
+                const oGchu = tr.querySelector('.oGchuGv');
+                const ktraSoHuu = gvLaGiaoViecCuaNguoiKhac(oGchu ? oGchu.value : '');
+                if (ktraSoHuu.biKhoa) {
+                    tdHdong.innerHTML = `<i class="bi bi-shield-lock-fill text-danger" title="Nhiệm vụ do ${ktraSoHuu.chuSoHuu} giao - Không có quyền xóa hoặc thay đổi"></i>`;
+                } else {
+                    tdHdong.innerHTML = '<button type="button" class="btn btn-danger btn-sm p-0" style="width:24px; height:24px;" onclick="gvXoaDong(this)" title="Xóa dòng nhiệm vụ này">X</button>';
+                }
+            }
         }
         gvAutoResizeAllTextareas();
     }
@@ -1043,6 +1061,8 @@ function gvVeDong(dong = null) {
     if (!tb) return;
     const tr = document.createElement('tr');
     
+    let ndungGoc = (dong && dong[1]) ? String(dong[1]).trim() : "";
+    let laTieuDe = ndungGoc.startsWith('*') || ndungGoc.includes('(*)');
     let ngnth = (dong && dong[6]) ? dong[6] : "";
     let gchuGoc = (dong && dong[8]) ? dong[8] : "";
 
@@ -1053,12 +1073,13 @@ function gvVeDong(dong = null) {
     const roKhac = biKhoaKhac ? "readonly" : "";
 
     let btnxoa = "";
-    if (biKhoaKhac) {
+    if (laTieuDe) {
+        // Dòng tiêu đề mục: Khóa cố định, tuyệt đối không cho phép xóa
+        btnxoa = `<i class="bi bi-lock-fill text-secondary" title="Dòng tiêu đề - Không được phép xóa"></i>`;
+    } else if (biKhoaKhac) {
         btnxoa = `<i class="bi bi-shield-lock-fill text-danger" title="Nhiệm vụ do ${ktraSoHuu.chuSoHuu} giao - Không có quyền xóa hoặc thay đổi"></i>`;
-    } else if (dong) {
-        btnxoa = `<i class="bi bi-lock-fill text-secondary"></i>`;
     } else {
-        btnxoa = `<button class="btn btn-danger btn-sm p-0" style="width:24px; height:24px;" onclick="gvXoaDong(this)">X</button>`;
+        btnxoa = `<button type="button" class="btn btn-danger btn-sm p-0" style="width:24px; height:24px;" onclick="gvXoaDong(this)" title="Xóa dòng nhiệm vụ này">X</button>`;
     }
     
     // NÂNG CẤP: Phân tích danh sách người thực hiện (hỗ trợ 1 người, nhiều người và ALL)
@@ -1183,7 +1204,7 @@ function gvVeDong(dong = null) {
         $newRow.find('.oColM').val(lastRow.find('.oColM').val());
         
         $newRow.find('select').removeAttr('disabled'); 
-        $newRow.find('.oHdong').html('<button class="btn btn-danger btn-sm p-0" style="width:24px; height:24px;" onclick="gvXoaDong(this)">X</button>');
+        $newRow.find('.oHdong').html('<button type="button" class="btn btn-danger btn-sm p-0" style="width:24px; height:24px;" onclick="gvXoaDong(this)" title="Xóa dòng nhiệm vụ này">X</button>');
         
         $newRow.find('input:not([type="hidden"]), select').css({
             'background-color': 'transparent',
@@ -1216,18 +1237,132 @@ function gvVeDong(dong = null) {
         if (typeof mokBcao === 'function') mokBcao();
     }
     
+    // NÂNG CẤP: Hàm đánh lại số thứ tự (STT) trong Lưới bảng giao việc
+    function gvCapNhatLaiSttBang() {
+        const rNumerals = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV"];
+        const cacDong = document.querySelectorAll('#gvThanBang tr');
+        let rCount = 0;
+        let iCount = 0;
+        cacDong.forEach(tr => {
+            const oNd = tr.querySelector('.oNdGv');
+            const oStt = tr.querySelector('.oSttGv');
+            if (!oStt) return;
+            const nd = oNd ? oNd.value.trim() : "";
+            if (!nd) return;
+            if (nd.startsWith('*') || nd.includes('(*)')) {
+                rCount++;
+                iCount = 0;
+                oStt.value = rNumerals[rCount - 1] || rCount;
+            } else {
+                iCount++;
+                oStt.value = iCount;
+            }
+        });
+    }
+
     function gvXoaDong(btn) { 
         if (!btn) return;
         const row = btn.closest('tr');
         if (!row) return;
+
+        const oNd = row.querySelector('.oNdGv');
+        const ndg = oNd ? oNd.value.trim() : "";
+        // Bảo vệ dòng tiêu đề: Tuyệt đối không cho phép xóa
+        if (ndg.startsWith('*') || ndg.includes('(*)')) {
+            gvTbaoNhanh('cbh', "⚠️ DÒNG TIÊU ĐỀ KHÔNG ĐƯỢC PHÉP XÓA!\nĐây là tiêu đề phân mục nhiệm vụ chung của hệ thống.");
+            return;
+        }
+
         const oGchu = row.querySelector('.oGchuGv');
         const ktraSoHuu = gvLaGiaoViecCuaNguoiKhac(oGchu ? oGchu.value : "");
         if (ktraSoHuu.biKhoa) {
             gvTbaoNhanh('loi', `⛔ KHÔNG CÓ QUYỀN XÓA!\nNhiệm vụ này do <b>${ktraSoHuu.chuSoHuu}</b> giao.\nĐồng chí không có quyền xóa hoặc thay đổi giao việc của người khác!`);
             return;
         }
-        row.remove(); 
-        setTimeout(() => gvAutoResizeAllTextareas(), 50);
+        const oNgn = row.querySelector('.oNnghanGv');
+        const daGiaoAttr = oNgn ? String(oNgn.getAttribute('data-da-giao') || "").trim() : "";
+        const selectedIdsAttr = oNgn ? String(oNgn.getAttribute('data-selected-ids') || "").trim() : "";
+        const valNgn = oNgn ? String(oNgn.value || "").trim() : "";
+
+        // Trường hợp 1: Dòng mới thêm vào bảng (chưa có nội dung và chưa từng giao lên hệ thống)
+        if (!ndg && !daGiaoAttr && !selectedIdsAttr && !valNgn) {
+            row.remove();
+            gvCapNhatLaiSttBang();
+            if (document.querySelectorAll('#gvThanBang tr').length === 0) {
+                gvVeDong();
+            }
+            setTimeout(() => gvAutoResizeAllTextareas(), 50);
+            return;
+        }
+
+        // Trường hợp 2: Dòng đã có nội dung hoặc đã được giao trên hệ thống
+        const tenNdHienThi = ndg || "nhiệm vụ này";
+        const thongBaoXacNhan = `⚠️ XÁC NHẬN XÓA DÒNG NHIỆM VỤ?\n\n` +
+            `Đồng chí có chắc chắn muốn xóa vĩnh viễn nhiệm vụ:\n"${tenNdHienThi}"?\n\n` +
+            `Hệ thống sẽ thực hiện:\n` +
+            `1. Xóa hoàn toàn dòng nhiệm vụ này khỏi bảng GIAO VIỆC của nhà trường.\n` +
+            `2. Tự động thu hồi và xóa nhiệm vụ này khỏi phiếu cá nhân của tất cả giáo viên đã được giao (nếu đã giao nhầm).\n\n` +
+            `Đồng chí có muốn tiếp tục xóa không?`;
+
+        if (!confirm(thongBaoXacNhan)) return;
+
+        const nm = document.getElementById('gvLocNam') ? document.getElementById('gvLocNam').value : "";
+        const th_htai = document.getElementById('gvLocThang') ? document.getElementById('gvLocThang').value : "";
+        const ngDangNhap = gvLayThongTinNguoiDangNhap();
+        const pt = gvPhanTichNguoiNhan(valNgn, oGchu ? oGchu.value : "");
+
+        let dsIdTruocDo = [];
+        if (daGiaoAttr === "ALL" || pt.isAll) {
+            dsIdTruocDo = ["ALL"];
+        } else if (daGiaoAttr !== "") {
+            dsIdTruocDo = daGiaoAttr.split(",").map(x => x.trim()).filter(x => x !== "");
+        } else if (pt.ids && pt.ids.length > 0) {
+            dsIdTruocDo = pt.ids;
+        }
+
+        const taskXoa = {
+            hanhdong: "XOA",
+            xoa: true,
+            ngnhan: "XOA_DONG",
+            ndung: ndg,
+            stt: row.querySelector('.oSttGv') ? row.querySelector('.oSttGv').value : "",
+            dsIdTruocDo: dsIdTruocDo,
+            nguoiGiaoId: ngDangNhap.id,
+            nguoiGiaoTen: ngDangNhap.ten,
+            nguoiGiaoTaik: ngDangNhap.taik
+        };
+
+        gvDatTai(true, "⏳ Đang xóa nhiệm vụ & thu hồi dữ liệu...");
+
+        if (typeof khachApi === 'undefined' || !khachApi.gvXulyNviec) {
+            gvDatTai(false);
+            gvTbaoNhanh('loi', "Lỗi: Cổng kết nối API máy chủ chưa sẵn sàng.");
+            return;
+        }
+
+        khachApi.gvXulyNviec({ nam: nm, thang: th_htai, nviec: taskXoa }, function(kq) {
+            gvDatTai(false);
+            if (kq && kq.ttai === 'tcong') {
+                row.remove();
+                gvCapNhatLaiSttBang();
+                if (document.querySelectorAll('#gvThanBang tr').length === 0) {
+                    gvVeDong();
+                }
+                setTimeout(() => gvAutoResizeAllTextareas(), 50);
+
+                let noiDungThongBao = kq.tbao || `✓ Đã xóa nhiệm vụ "${ndg}" thành công!`;
+                if (typeof kq.soThuHoi === 'number' && kq.soThuHoi > 0) {
+                    let chiTietThuHoi = (kq.dsThuHoi && kq.dsThuHoi.length > 0) ? `<br><small class="text-muted">(${kq.dsThuHoi.join(", ")})</small>` : "";
+                    noiDungThongBao = `✅ Đã xóa nhiệm vụ khỏi bảng Giao việc thành công!<br>🔄 Đã tự động thu hồi/xóa khỏi phiếu cá nhân của: <b>${kq.soThuHoi} giáo viên</b>.${chiTietThuHoi}`;
+                }
+                gvTbaoNhanh('tc', noiDungThongBao);
+            } else {
+                gvTbaoNhanh('loi', "Lỗi khi xóa nhiệm vụ: " + (kq ? kq.tbao : "Không xác định"));
+            }
+        }, function(loi) {
+            gvDatTai(false);
+            gvTbaoNhanh('loi', "Lỗi kết nối máy chủ: " + (loi ? loi.message : "Không xác định"));
+        });
     }
 
     // NÂNG CẤP: UI Modal Chọn Người Thực Hiện (Họ tên + ID đầy đủ + Checkbox + Chọn tất cả + Thu hồi + Chặn sửa chéo giữa các người giao)
