@@ -186,10 +186,11 @@ window.capNhatMauChuDongDaKy = function(tr) {
 
             let cacPhanTuCon = td.querySelectorAll('input, textarea, select, span');
             cacPhanTuCon.forEach(el => {
-                el.classList.remove('opacity-70', 'opacity-60', 'text-blue-700', 'text-emerald-700', 'text-slate-400', 'text-slate-700', 'text-slate-800', 'text-slate-900');
-                el.classList.add('text-black');
+                el.classList.remove('bg-slate-100', 'opacity-70', 'opacity-60', 'text-blue-700', 'text-emerald-700', 'text-slate-400', 'text-slate-700', 'text-slate-800', 'text-slate-900');
+                el.classList.add('text-black', 'bg-transparent');
                 el.style.setProperty('color', '#000000', 'important');
                 el.style.setProperty('-webkit-text-fill-color', '#000000', 'important');
+                el.style.setProperty('background-color', 'transparent', 'important');
                 el.style.setProperty('opacity', '1', 'important');
             });
         });
@@ -206,9 +207,11 @@ window.capNhatMauChuDongDaKy = function(tr) {
 
             let cacPhanTuCon = td.querySelectorAll('input, textarea, select, span');
             cacPhanTuCon.forEach(el => {
-                el.classList.remove('text-black');
+                el.classList.remove('text-black', 'bg-slate-100');
+                el.classList.add('bg-transparent');
                 el.style.removeProperty('color');
                 el.style.removeProperty('-webkit-text-fill-color');
+                el.style.setProperty('background-color', 'transparent', 'important');
                 el.style.removeProperty('opacity');
 
                 if (el.disabled) {
@@ -1535,7 +1538,7 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                         theTietPPCT = `<span class="font-extrabold text-blue-700 block text-center">${tietPPCT}</span>`; 
                     } else {
                         let trangThaiKhoa = !quyenNhapThuCong ? "disabled" : "";
-                        let cssNenKhoa = !quyenNhapThuCong ? "bg-slate-100 cursor-not-allowed opacity-70" : "bg-transparent";
+                        let cssNenKhoa = !quyenNhapThuCong ? "bg-transparent cursor-not-allowed opacity-70" : "bg-transparent";
                         let placeholderText = !quyenNhapThuCong ? "Không có quyền" : "Nhập...";
 
                         theTenBai = `<textarea rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px';" ${trangThaiKhoa} class="w-full text-left outline-none ${cssNenKhoa} font-semibold text-slate-800 placeholder-slate-400 px-1 resize-none overflow-hidden align-middle" placeholder="${placeholderText}">${tenBai}</textarea>`;
@@ -3207,7 +3210,7 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
                         } else {
                             let tagNhap = td.querySelector('input, select, textarea');
                             let trangThaiKhoa = !quyenNhapThuCong ? "disabled" : "";
-                            let cssNenKhoa = !quyenNhapThuCong ? "bg-slate-100 cursor-not-allowed opacity-70" : "bg-transparent";
+                            let cssNenKhoa = !quyenNhapThuCong ? "bg-transparent cursor-not-allowed opacity-70" : "bg-transparent";
 
                             if (!tagNhap) {
                                 if (loai === 'tenBai') {
@@ -3257,8 +3260,8 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
                                     tagNhap.classList.add('bg-transparent');
                                 } else {
                                     tagNhap.setAttribute('disabled', 'disabled');
-                                    tagNhap.classList.remove('bg-transparent');
-                                    tagNhap.classList.add('bg-slate-100', 'cursor-not-allowed', 'opacity-70');
+                                    tagNhap.classList.remove('bg-slate-100');
+                                    tagNhap.classList.add('bg-transparent', 'cursor-not-allowed', 'opacity-70');
                                 }
                             }
                         }
