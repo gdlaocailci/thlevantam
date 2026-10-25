@@ -162,6 +162,67 @@ function danhDauDongThayDoi(tr) {
         }
     }
 }
+
+// =========================================================================
+// [NÂNG CẤP]: THUẬT TOÁN ĐỔ MÀU ĐEN RÕ NÉT CHO TẤT CẢ CÁC TIẾT ĐÃ KÝ TÊN
+// =========================================================================
+window.capNhatMauChuDongDaKy = function(tr) {
+    if (!tr) return;
+    let cellChuKy = tr.querySelector('td[data-loai="chuKy"]');
+    if (!cellChuKy) return;
+
+    let inpChuKy = cellChuKy.querySelector('input, textarea');
+    let giaTriChuKy = inpChuKy ? String(inpChuKy.value || '').trim() : String(cellChuKy.innerText || '').trim();
+    let daKyTen = giaTriChuKy !== '';
+
+    tr.setAttribute('data-daky', daKyTen ? 'true' : 'false');
+    let cacCellTiet = tr.querySelectorAll('td[data-loai]');
+
+    if (daKyTen) {
+        cacCellTiet.forEach(td => {
+            td.classList.remove('text-emerald-700', 'text-blue-700', 'text-slate-700', 'text-slate-800', 'text-slate-900');
+            td.classList.add('text-black');
+            td.style.setProperty('color', '#000000', 'important');
+
+            let cacPhanTuCon = td.querySelectorAll('input, textarea, select, span');
+            cacPhanTuCon.forEach(el => {
+                el.classList.remove('opacity-70', 'opacity-60', 'text-blue-700', 'text-emerald-700', 'text-slate-400', 'text-slate-700', 'text-slate-800', 'text-slate-900');
+                el.classList.add('text-black');
+                el.style.setProperty('color', '#000000', 'important');
+                el.style.setProperty('-webkit-text-fill-color', '#000000', 'important');
+                el.style.setProperty('opacity', '1', 'important');
+            });
+        });
+    } else {
+        cacCellTiet.forEach(td => {
+            let loai = td.getAttribute('data-loai') || '';
+            td.classList.remove('text-black');
+            td.style.removeProperty('color');
+            if (loai === 'mon') {
+                td.classList.add('text-slate-900');
+            } else if (loai === 'tenBai' && td.getAttribute('data-islocked') === 'true') {
+                td.classList.add('text-emerald-700');
+            }
+
+            let cacPhanTuCon = td.querySelectorAll('input, textarea, select, span');
+            cacPhanTuCon.forEach(el => {
+                el.classList.remove('text-black');
+                el.style.removeProperty('color');
+                el.style.removeProperty('-webkit-text-fill-color');
+                el.style.removeProperty('opacity');
+
+                if (el.disabled) {
+                    el.classList.add('opacity-70');
+                }
+                if (loai === 'tiet' || loai === 'chuKy') {
+                    el.classList.add('text-blue-700');
+                } else {
+                    el.classList.add('text-slate-800');
+                }
+            });
+        });
+    }
+};
 // Lắng nghe trạng thái đăng nhập để tự động mở Sổ đầu bài
 function kiemTraTrangThaiDangNhapSDB() {
     let soLanKiemTra = 0;
@@ -1641,6 +1702,9 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     </div>`;
 
     vungHienThi.innerHTML = theTrangThaiHtml + thanhCanhBaoRender + theHienThiQuyen + htmlBang + htmlChuKy;
+    vungHienThi.querySelectorAll('.bang-so-dau-bai-container table tbody tr').forEach(tr => {
+        if (typeof window.capNhatMauChuDongDaKy === 'function') window.capNhatMauChuDongDaKy(tr);
+    });
     
     // =========================================================================
     // [KHỐI MỚI 3]: KHÓA NÚT LƯU VÀ ĐỒNG BỘ NẾU TUẦN ĐÃ KHÓA
@@ -1687,7 +1751,9 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                 oNhap.addEventListener('input', (e) => { 
                     coThayDoiChuaLuu_SDB = true; 
                     if (e.target.id !== 'txtNxGVCN' && e.target.id !== 'txtKyGVCN' && e.target.id !== 'txtNxBGH' && e.target.id !== 'txtKyBGH') {
-                        danhDauDongThayDoi(e.target.closest('tr'));
+                        let dongTr = e.target.closest('tr');
+                        danhDauDongThayDoi(dongTr);
+                        if (typeof window.capNhatMauChuDongDaKy === 'function') window.capNhatMauChuDongDaKy(dongTr);
                         if (typeof capNhatThongKeSDBTrenLuoi === 'function') {
                             capNhatThongKeSDBTrenLuoi();
                         }
@@ -1696,7 +1762,9 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                 oNhap.addEventListener('change', (e) => { 
                     coThayDoiChuaLuu_SDB = true; 
                     if (e.target.id !== 'txtNxGVCN' && e.target.id !== 'txtKyGVCN' && e.target.id !== 'txtNxBGH' && e.target.id !== 'txtKyBGH') {
-                        danhDauDongThayDoi(e.target.closest('tr'));
+                        let dongTr = e.target.closest('tr');
+                        danhDauDongThayDoi(dongTr);
+                        if (typeof window.capNhatMauChuDongDaKy === 'function') window.capNhatMauChuDongDaKy(dongTr);
                         if (typeof capNhatThongKeSDBTrenLuoi === 'function') {
                             capNhatThongKeSDBTrenLuoi();
                         }
@@ -2151,9 +2219,11 @@ function chonMucChuKy(tenGv, event) {
         let ev = new Event('input', { bubbles: true});
         trangThaiKhungChuKy.inputChuKy.dispatchEvent(ev);
         
-        // Hủy mờ sau khi chọn xong
+        // Hủy mờ sau khi chọn xong và cập nhật màu đen rõ nét cho dòng đã ký
         trangThaiKhungChuKy.inputChuKy.classList.remove('text-slate-400', 'opacity-60');
-        trangThaiKhungChuKy.inputChuKy.classList.add('text-blue-700');
+        if (typeof window.capNhatMauChuDongDaKy === 'function') {
+            window.capNhatMauChuDongDaKy(trangThaiKhungChuKy.inputChuKy.closest('tr'));
+        }
     }
     dongKhungTruotChuKy();
 }
@@ -2904,9 +2974,13 @@ function taoHtmlDanhSachChuKy(tuKhoa) {
 function locDanhSachChuKy(theInput) {
     coThayDoiChuaLuu_SDB = true;
     
-    // Khi tự gõ phím thì chữ phải rõ ràng, không bị mờ
+    // Khi tự gõ phím thì chữ phải rõ ràng, cập nhật màu đen rõ nét nếu có chữ ký
     theInput.classList.remove('text-slate-400', 'opacity-60');
-    theInput.classList.add('text-blue-700');
+    if (typeof window.capNhatMauChuDongDaKy === 'function') {
+        window.capNhatMauChuDongDaKy(theInput.closest('tr'));
+    } else {
+        theInput.classList.add('text-blue-700');
+    }
 
     // Nếu người dùng bắt đầu gõ mà khung chưa mở -> Mở khung
     if (!trangThaiKhungChuKy.dangMo || trangThaiKhungChuKy.inputChuKy !== theInput) {
@@ -2927,7 +3001,11 @@ function dongKhungTruotChuKy() {
     if (khungOld) khungOld.remove();
     if (trangThaiKhungChuKy.inputChuKy) {
         trangThaiKhungChuKy.inputChuKy.classList.remove('text-slate-400', 'opacity-60');
-        trangThaiKhungChuKy.inputChuKy.classList.add('text-blue-700');
+        if (typeof window.capNhatMauChuDongDaKy === 'function') {
+            window.capNhatMauChuDongDaKy(trangThaiKhungChuKy.inputChuKy.closest('tr'));
+        } else {
+            trangThaiKhungChuKy.inputChuKy.classList.add('text-blue-700');
+        }
     }
     trangThaiKhungChuKy.dangMo = false;
     trangThaiKhungChuKy.dangHover = false;
@@ -3196,6 +3274,9 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
                     dong.setAttribute('data-thaydoi', 'false');
                     let iconSua = dong.querySelector('.icon-sua-chua');
                     if(iconSua) iconSua.remove();
+                    if (typeof window.capNhatMauChuDongDaKy === 'function') {
+                        window.capNhatMauChuDongDaKy(dong);
+                    }
                 }
             }
         });
