@@ -138,123 +138,387 @@ window.timTuanTruocChuaLuuSDB = function(tuanMucTieu, lopUpper) {
     return 0;
 };
 
-// Hàm ánh xạ quyền tức thì (0ms) ngay trên RAM khi người dùng đăng nhập / đăng xuất mà không xóa trắng bảng
+let danhSachTatCaGiaoVienTruong = []; // Lưu danh sách toàn bộ GV toàn trường để tái sử dụng khi Admin đăng nhập mà không cần tải lại
+let tuDienEmailSangGiaoVienSDB = {}; // Lưu map Email -> { maGV, tenGV } đã có để đối chiếu tức thì
+let boNhoQuyenTaiKhoanDaXacThuc = {}; // Lưu kết quả đối chiếu quyền theo từng tài khoản đã xác thực để không tải lại
+let dangDoiChieuQuyenNgamSDB = false;
+
+// Hàm kế thừa dữ liệu đã có sẵn từ trang chính (window.thongSoHocVu) sang Sổ đầu bài mà không cần tải lại
+window.keThuaDuLieuDaCoTuHeThong = function() {
+    let nguonHV = (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu)
+        ? window.thongSoHocVu
+        : ((typeof thongSoHocVu !== 'undefined' && thongSoHocVu) ? thongSoHocVu : null);
+    if (!nguonHV) return;
+
+    if (!namHocHeThongSDB && nguonHV.NAM_HOC) {
+        namHocHeThongSDB = String(nguonHV.NAM_HOC).trim();
+    }
+
+    // 1. Kế thừa GVCN_THEO_LOP nếu đã có
+    if (nguonHV.GVCN_THEO_LOP && typeof nguonHV.GVCN_THEO_LOP === 'object') {
+        Object.keys(nguonHV.GVCN_THEO_LOP).forEach(kLop => {
+            let lopUp = String(kLop).trim().toUpperCase();
+            if (lopUp && !tuDienGvcnTheoLopToanCuc[lopUp]) {
+                tuDienGvcnTheoLopToanCuc[lopUp] = String(nguonHV.GVCN_THEO_LOP[kLop] || '').trim();
+            }
+        });
+    }
+
+    // 2. Kế thừa TU_DIEN_HO_TEN_GV nếu đã có
+    if (nguonHV.TU_DIEN_HO_TEN_GV && typeof nguonHV.TU_DIEN_HO_TEN_GV === 'object') {
+        Object.keys(nguonHV.TU_DIEN_HO_TEN_GV).forEach(kMa => {
+            let maNorm = window.chuanHoaDinhDanhGiaoVien(kMa);
+            let hoTenDayDu = String(nguonHV.TU_DIEN_HO_TEN_GV[kMa] || '').trim();
+            if (maNorm && hoTenDayDu) {
+                if (!tuDienHoTenGVToanCuc[maNorm]) tuDienHoTenGVToanCuc[maNorm] = hoTenDayDu;
+                let tenNorm = window.chuanHoaDinhDanhGiaoVien(hoTenDayDu);
+                if (tenNorm && !tuDienHoTenGVToanCuc[tenNorm]) tuDienHoTenGVToanCuc[tenNorm] = hoTenDayDu;
+            }
+        });
+    }
+
+    // 3. Kế thừa KHUNG_CHUONG_TRINH nếu chưa có trong SĐB
+    if (Object.keys(dinhMucKhungCT).length === 0 && nguonHV.KHUNG_CHUONG_TRINH && typeof nguonHV.KHUNG_CHUONG_TRINH === 'object' && !Array.isArray(nguonHV.KHUNG_CHUONG_TRINH)) {
+        Object.keys(nguonHV.KHUNG_CHUONG_TRINH).forEach(tenKhoi => {
+            let mKhoi = String(tenKhoi).match(/\d+/);
+            if (mKhoi) {
+                let khoi = mKhoi[0];
+                if (!dinhMucKhungCT[khoi]) dinhMucKhungCT[khoi] = {};
+                let mapMon = nguonHV.KHUNG_CHUONG_TRINH[tenKhoi] || {};
+                Object.keys(mapMon).forEach(mon => {
+                    let tiet = parseInt(mapMon[mon], 10) || 0;
+                    if (tiet > 0) dinhMucKhungCT[khoi][String(mon).trim().toLowerCase()] = tiet;
+                });
+            }
+        });
+    }
+};
+
+// Hàm tự tính toán phân công theo lớp từ dữ liệu TKB đã có sẵn trong bộ nhớ RAM (không cần tải lại TKB từ Server)
+window.tinhPhanCongTuTkbDaCoSDB = function(maDinhDanh) {
+    let ketQuaPhanCong = {};
+    if (!maDinhDanh) return ketQuaPhanCong;
+    let maDinhDanhLC = window.chuanHoaDinhDanhGiaoVien(maDinhDanh);
+    if (!maDinhDanhLC) return ketQuaPhanCong;
+
+    let nguonQuet = Object.keys(mapTkbToanTapToanCuc).length > 0
+        ? Object.values(mapTkbToanTapToanCuc)
+        : duLieuTKBGopDaMap;
+
+    for (let i = 0; i < nguonQuet.length; i++) {
+        let dong = nguonQuet[i];
+        let maLop = String(dong['Mã Lớp'] || '').trim().toUpperCase();
+        let gv = window.chuanHoaDinhDanhGiaoVien(dong['Mã GV'] || '');
+        let mon = String(dong['Môn Học'] || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        if (maLop && mon !== '' && gv.indexOf(maDinhDanhLC) !== -1) {
+            if (!ketQuaPhanCong[maLop]) ketQuaPhanCong[maLop] = [];
+            if (ketQuaPhanCong[maLop].indexOf(mon) === -1) {
+                ketQuaPhanCong[maLop].push(mon);
+            }
+        }
+    }
+    return ketQuaPhanCong;
+};
+
+// Hàm kiểm tra và đối chiếu xác định quyền trực tiếp từ dữ liệu đã có;
+// Trả về { daDuThongTinDoiChieu: boolean } để biết có cần tải bổ sung thông tin chưa có hay không
 window.anhXaQuyenNhanhKhiDoiTaiKhoan = function(dinhDanhMoi) {
-    let tkNorm = String(dinhDanhMoi || '').trim();
-    maGvDangNhapHeThong = tkNorm;
-    let tenGvDayDu = window.layHoTenDayDuGiaoVienSDB(tkNorm) || tkNorm;
+    window.keThuaDuLieuDaCoTuHeThong();
+    let tkRaw = String(dinhDanhMoi || '').trim();
+    let tkLC = tkRaw.toLowerCase();
+    let tkNorm = window.chuanHoaDinhDanhGiaoVien(tkRaw);
+
+    if (!tkRaw) {
+        maGvDangNhapHeThong = '';
+        coToanQuyenSDB = false;
+        quyenKhoaSdbServer = false;
+        tuDienQuyenPhanCong = {};
+        danhSachGiaoVienToanCuc = [];
+        let theChotQuyen = document.getElementById('theChotQuyenSDB');
+        if (theChotQuyen) {
+            theChotQuyen.setAttribute('data-madinhdanh', '');
+            theChotQuyen.setAttribute('data-tendinhdanh', '');
+            theChotQuyen.setAttribute('data-quantri', 'false');
+            theChotQuyen.setAttribute('data-quyenkhoasdb', 'false');
+            theChotQuyen.setAttribute('data-matranquyen', '{}');
+        }
+        return { daDuThongTinDoiChieu: true };
+    }
+
+    // 1. Nếu tài khoản này đã từng được đối chiếu xác thực và lưu trong bộ nhớ phiên -> Dùng lại ngay (0ms)
+    if (boNhoQuyenTaiKhoanDaXacThuc[tkLC]) {
+        let cachedQ = boNhoQuyenTaiKhoanDaXacThuc[tkLC];
+        maGvDangNhapHeThong = cachedQ.maGV || tkRaw;
+        let tenGvCached = cachedQ.tenGV || window.layHoTenDayDuGiaoVienSDB(maGvDangNhapHeThong) || maGvDangNhapHeThong;
+        coToanQuyenSDB = !!cachedQ.toanQuyen;
+        quyenKhoaSdbServer = !!(cachedQ.quyenKhoaSdb || cachedQ.toanQuyen);
+        tuDienQuyenPhanCong = (cachedQ.quyenTheoLop && Object.keys(cachedQ.quyenTheoLop).length > 0)
+            ? cachedQ.quyenTheoLop
+            : window.tinhPhanCongTuTkbDaCoSDB(maGvDangNhapHeThong);
+
+        if (tenGvCached && tenGvCached.trim() !== '') {
+            danhSachGiaoVienToanCuc = [tenGvCached.trim()];
+        } else if (coToanQuyenSDB && danhSachTatCaGiaoVienTruong.length > 0) {
+            danhSachGiaoVienToanCuc = danhSachTatCaGiaoVienTruong;
+        }
+
+        let theChotQuyen = document.getElementById('theChotQuyenSDB');
+        if (theChotQuyen) {
+            theChotQuyen.setAttribute('data-madinhdanh', maGvDangNhapHeThong);
+            theChotQuyen.setAttribute('data-tendinhdanh', tenGvCached);
+            theChotQuyen.setAttribute('data-quantri', coToanQuyenSDB);
+            theChotQuyen.setAttribute('data-quyenkhoasdb', quyenKhoaSdbServer);
+            theChotQuyen.setAttribute('data-matranquyen', JSON.stringify(tuDienQuyenPhanCong));
+        }
+        return { daDuThongTinDoiChieu: true };
+    }
+
+    // 2. Đối chiếu xác định Mã GV & Họ tên GV từ dữ liệu danh mục đã có sẵn trong RAM
+    let maGvXacDinh = '';
+    let tenGvXacDinh = '';
+    let daTimThayDanhTinh = false;
+
+    if (tuDienEmailSangGiaoVienSDB[tkLC]) {
+        maGvXacDinh = tuDienEmailSangGiaoVienSDB[tkLC].maGV || tkRaw;
+        tenGvXacDinh = tuDienEmailSangGiaoVienSDB[tkLC].tenGV || maGvXacDinh;
+        daTimThayDanhTinh = true;
+    } else if (tuDienHoTenGVToanCuc[tkNorm]) {
+        maGvXacDinh = tkRaw;
+        tenGvXacDinh = tuDienHoTenGVToanCuc[tkNorm];
+        daTimThayDanhTinh = true;
+    } else {
+        let nguonHV = (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu)
+            ? window.thongSoHocVu
+            : ((typeof thongSoHocVu !== 'undefined' && thongSoHocVu) ? thongSoHocVu : null);
+        if (nguonHV && Array.isArray(nguonHV.DANH_SACH_GIAO_VIEN)) {
+            let foundMa = nguonHV.DANH_SACH_GIAO_VIEN.find(m => window.chuanHoaDinhDanhGiaoVien(m) === tkNorm);
+            if (foundMa) {
+                maGvXacDinh = foundMa;
+                tenGvXacDinh = window.layHoTenDayDuGiaoVienSDB(foundMa) || foundMa;
+                daTimThayDanhTinh = true;
+            }
+        }
+    }
+
+    if (!maGvXacDinh) {
+        maGvXacDinh = tkRaw;
+        tenGvXacDinh = window.layHoTenDayDuGiaoVienSDB(tkRaw) || tkRaw;
+    }
+
+    // 3. Đối chiếu quyền Admin / Khóa SĐB từ cấu hình đã có sẵn trên trang chính (thongSoHocVu, quyenSuaChua, quyenChiTiet)
+    let nguonHV = (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu)
+        ? window.thongSoHocVu
+        : ((typeof thongSoHocVu !== 'undefined' && thongSoHocVu) ? thongSoHocVu : null);
 
     let laAdminClient = !!(
         (typeof quyenSuaChua !== 'undefined' && quyenSuaChua) ||
         (typeof window.quyenSuaChua !== 'undefined' && window.quyenSuaChua)
     );
+    if (!laAdminClient && nguonHV && Array.isArray(nguonHV.DANH_SACH_QUAN_TRI)) {
+        laAdminClient = nguonHV.DANH_SACH_QUAN_TRI.some(ad => {
+            let adLC = String(ad || '').trim().toLowerCase();
+            return adLC !== '' && (adLC === tkLC || adLC === maGvXacDinh.toLowerCase());
+        });
+        if (laAdminClient) daTimThayDanhTinh = true;
+    }
+
     let coNutKhoaClient = !!(
         laAdminClient ||
-        (typeof quyenChiTiet !== 'undefined' && quyenChiTiet.nut && quyenChiTiet.nut.includes('btnKhoaSoDauBai')) ||
-        (typeof window.quyenChiTiet !== 'undefined' && window.quyenChiTiet.nut && window.quyenChiTiet.nut.includes('btnKhoaSoDauBai'))
+        (typeof quyenChiTiet !== 'undefined' && quyenChiTiet && Array.isArray(quyenChiTiet.nut) && quyenChiTiet.nut.includes('btnKhoaSoDauBai')) ||
+        (typeof window.quyenChiTiet !== 'undefined' && window.quyenChiTiet && Array.isArray(window.quyenChiTiet.nut) && window.quyenChiTiet.nut.includes('btnKhoaSoDauBai'))
     );
+    if (!coNutKhoaClient && nguonHV && nguonHV.MA_TRAN_PHAN_QUYEN) {
+        let maTranPQ = nguonHV.MA_TRAN_PHAN_QUYEN;
+        Object.keys(maTranPQ).forEach(kPQ => {
+            let kLC = String(kPQ || '').trim().toLowerCase();
+            if (kLC && (kLC === tkLC || kLC === maGvXacDinh.toLowerCase())) {
+                let qObj = maTranPQ[kPQ];
+                if (qObj && Array.isArray(qObj.nut) && qObj.nut.includes('btnKhoaSoDauBai')) {
+                    coNutKhoaClient = true;
+                }
+            }
+        });
+    }
 
-    if (!tkNorm) {
-        coToanQuyenSDB = false;
-        quyenKhoaSdbServer = false;
-        tuDienQuyenPhanCong = {};
-        danhSachGiaoVienToanCuc = [];
-    } else {
-        if (laAdminClient) coToanQuyenSDB = true;
-        if (coNutKhoaClient) quyenKhoaSdbServer = true;
-        if (tenGvDayDu) danhSachGiaoVienToanCuc = [tenGvDayDu];
+    maGvDangNhapHeThong = maGvXacDinh;
+    coToanQuyenSDB = laAdminClient;
+    quyenKhoaSdbServer = coNutKhoaClient;
+    tuDienQuyenPhanCong = window.tinhPhanCongTuTkbDaCoSDB(maGvDangNhapHeThong);
+
+    if (tenGvXacDinh && tenGvXacDinh.trim() !== '') {
+        danhSachGiaoVienToanCuc = [tenGvXacDinh.trim()];
+    } else if (coToanQuyenSDB && danhSachTatCaGiaoVienTruong.length > 0) {
+        danhSachGiaoVienToanCuc = danhSachTatCaGiaoVienTruong;
     }
 
     let theChotQuyen = document.getElementById('theChotQuyenSDB');
     if (theChotQuyen) {
         theChotQuyen.setAttribute('data-madinhdanh', maGvDangNhapHeThong);
-        theChotQuyen.setAttribute('data-tendinhdanh', tenGvDayDu);
+        theChotQuyen.setAttribute('data-tendinhdanh', tenGvXacDinh);
         theChotQuyen.setAttribute('data-quantri', coToanQuyenSDB);
         theChotQuyen.setAttribute('data-quyenkhoasdb', quyenKhoaSdbServer);
+        theChotQuyen.setAttribute('data-matranquyen', JSON.stringify(tuDienQuyenPhanCong));
     }
+
+    // Kiểm tra xem thông tin đối chiếu đã có đầy đủ trên Client chưa:
+    // Nếu đã nhận diện được danh tính GV (không phải email lạ chưa có trong từ điển) và đã có bảng phân quyền của hệ thống -> Đầy đủ 100%, không cần tải lại!
+    let daCoMaTranQuyenHeThong = !!(
+        (nguonHV && nguonHV.MA_TRAN_PHAN_QUYEN && Array.isArray(nguonHV.DANH_SACH_QUAN_TRI)) ||
+        (typeof window.quyenChiTiet !== 'undefined') ||
+        (typeof quyenChiTiet !== 'undefined')
+    );
+    let laEmailChuaAnhXa = tkRaw.includes('@') && !daTimThayDanhTinh;
+    let daDuThongTinDoiChieu = daTimThayDanhTinh && daCoMaTranQuyenHeThong && !laEmailChuaAnhXa;
+
+    if (daDuThongTinDoiChieu) {
+        boNhoQuyenTaiKhoanDaXacThuc[tkLC] = {
+            maGV: maGvDangNhapHeThong,
+            tenGV: tenGvXacDinh,
+            toanQuyen: coToanQuyenSDB,
+            quyenKhoaSdb: quyenKhoaSdbServer,
+            quyenTheoLop: tuDienQuyenPhanCong
+        };
+    }
+
+    return { daDuThongTinDoiChieu: daDuThongTinDoiChieu };
 };
 
-window.lamSachBoNhoSoDauBai = function() {
+// Hàm chỉ tải bổ sung thông tin đối chiếu tài khoản khi thông tin đó chưa có trong bộ nhớ (không nạp lại TKB/SĐB/PPCT đã có)
+async function taiBoSungThongTinDoiChieuChuaCoSDB(dinhDanhCanDoiChieu) {
+    if (!dinhDanhCanDoiChieu || dangDoiChieuQuyenNgamSDB) return;
+    let tkLC = String(dinhDanhCanDoiChieu).trim().toLowerCase();
+    if (boNhoQuyenTaiKhoanDaXacThuc[tkLC]) return;
+
+    dangDoiChieuQuyenNgamSDB = true;
+    try {
+        let thongSoURL = `thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(dinhDanhCanDoiChieu)}&taiToanBo=false&chiLayQuyen=true`;
+        const phanHoi = await fetchVoiCoCheThuLai(
+            `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?${thongSoURL}`,
+            {}, 2, 30000
+        );
+        const duLieuQuyen = await phanHoi.json();
+        if (duLieuQuyen && duLieuQuyen.trangThai !== 'loi_he_thong') {
+            let maGV = duLieuQuyen.MA_GIAO_VIEN || dinhDanhCanDoiChieu;
+            let tenGV = duLieuQuyen.TEN_GIAO_VIEN || window.layHoTenDayDuGiaoVienSDB(maGV) || maGV;
+            let toanQuyen = !!duLieuQuyen.TOAN_QUYEN;
+            let quyenKhoa = !!(duLieuQuyen.QUYEN_KHOA_SDB || duLieuQuyen.TOAN_QUYEN);
+            let quyenLop = duLieuQuyen.QUYEN_THEO_LOP || window.tinhPhanCongTuTkbDaCoSDB(maGV);
+
+            if (maGV && tenGV) {
+                tuDienHoTenGVToanCuc[window.chuanHoaDinhDanhGiaoVien(maGV)] = tenGV;
+                tuDienEmailSangGiaoVienSDB[tkLC] = { maGV: maGV, tenGV: tenGV };
+            }
+
+            boNhoQuyenTaiKhoanDaXacThuc[tkLC] = {
+                maGV: maGV,
+                tenGV: tenGV,
+                toanQuyen: toanQuyen,
+                quyenKhoaSdb: quyenKhoa,
+                quyenTheoLop: quyenLop
+            };
+
+            // Nếu người dùng vẫn đang ở tài khoản này, chỉ cập nhật đúng thuộc tính quyền vừa đối chiếu mà không nạp lại dữ liệu bảng
+            let dinhDanhHienTai = (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc !== '')
+                ? String(window.dinhDanhGiaoVienToanCuc).trim()
+                : ((typeof window.emailGiaoVienToanCuc !== 'undefined' && window.emailGiaoVienToanCuc !== '') ? String(window.emailGiaoVienToanCuc).trim() : '');
+            if (dinhDanhHienTai.toLowerCase() === tkLC) {
+                window.anhXaQuyenNhanhKhiDoiTaiKhoan(dinhDanhHienTai);
+                let khungSDB = document.getElementById('khungSoDauBai');
+                let elTuan = document.getElementById('chonTuanSo');
+                let elLop = document.getElementById('chonLopSo');
+                if (khungSDB && !khungSDB.classList.contains('hidden') && elTuan && elTuan.value && elLop && elLop.value && !coThayDoiChuaLuu_SDB) {
+                    thucThiKetXuatSoDauBaiLenLuoi();
+                }
+            }
+        }
+    } catch (e) {
+        // Giữ nguyên quyền đã đối chiếu cục bộ nếu mạng gián đoạn
+    } finally {
+        dangDoiChieuQuyenNgamSDB = false;
+    }
+}
+
+window.lamSachBoNhoSoDauBai = function(buocXoaToanBo = false) {
     if (dangTaiDuLieuSoDauBai) return;
+
+    let dinhDanhHienTai = (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc !== '')
+        ? String(window.dinhDanhGiaoVienToanCuc).trim()
+        : ((typeof window.emailGiaoVienToanCuc !== 'undefined' && window.emailGiaoVienToanCuc !== '') ? String(window.emailGiaoVienToanCuc).trim() : '');
+
+    // [TỐI ƯU ĐĂNG NHẬP TỨC THÌ]: Khi đăng nhập/đăng xuất (buocXoaToanBo = false),
+    // những dữ liệu gì đã có sẵn (Sổ đầu bài, Thời khóa biểu, PPCT, Khung CT, Từ điển GV/Lớp) thì GIỮ NGUYÊN không tải lại!
+    // Chỉ đối chiếu lại quyền của tài khoản mới và tải bổ sung thông tin chưa có (nếu thiếu).
+    if (!buocXoaToanBo && duLieuTKBGopDaMap.length > 0) {
+        coThayDoiChuaLuu_SDB = false;
+        dinhDanhDaNapSDB = dinhDanhHienTai;
+        daTaiDuLieuSoDauBai = true;
+
+        let ketQuaDoiChieu = window.anhXaQuyenNhanhKhiDoiTaiKhoan(dinhDanhHienTai);
+
+        let khungSDB = document.getElementById('khungSoDauBai');
+        let elementTuan = document.getElementById('chonTuanSo');
+        let elementLop = document.getElementById('chonLopSo');
+        if (khungSDB && !khungSDB.classList.contains('hidden')) {
+            if (elementTuan && elementTuan.value && elementLop && elementLop.value) {
+                thucThiKetXuatSoDauBaiLenLuoi();
+            } else {
+                napDropdownSoDauBai();
+            }
+        }
+
+        // Chỉ tải bổ sung thông tin đối chiếu nếu tài khoản này chưa có đủ thông tin trong bộ nhớ
+        if (dinhDanhHienTai !== '' && (!ketQuaDoiChieu || !ketQuaDoiChieu.daDuThongTinDoiChieu)) {
+            taiBoSungThongTinDoiChieuChuaCoSDB(dinhDanhHienTai);
+        }
+        return;
+    }
+
+    // Trường hợp chưa có dữ liệu SĐB trong RAM: chỉ đặt lại biến quyền, giữ nguyên Cache tĩnh & Snapshot đã có để nạp nhanh
     daTaiDuLieuSoDauBai = false;
     dinhDanhDaNapSDB = null;
-    duLieuTKBGopDaMap = [];
-    tuDienPPCTToanCuc = {}; 
-    dinhMucKhungCT = {}; 
     tuDienQuyenPhanCong = {};
     coToanQuyenSDB = false;
-    danhSachGiaoVienToanCuc = [];
-    mapTkbToanTapToanCuc = {};
-    window.mapTkbToanTap = {};
-    tuDienGvcnTheoLopToanCuc = {};
-    tuDienHoTenGVToanCuc = {};
     quyenKhoaSdbServer = false;
-    window.duLieuTongHopSDB = {};
-    
-    tuanTruocDo_SDB = '';
-    lopTruocDo_SDB = '';
-    coThayDoiChuaLuu_SDB = false;
-    
-    chiMucTuanLopSDB = {};
-    chiMucLopSDB = {};
-    tapTuanChuaLuuTheoLopSDB = {};
-    let emailGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
-    try { 
-        let kStatic = window.layKhoaCachLy(`SDB_DATA_STATIC_${emailGoiLen}`);
-        let kShared = window.layKhoaCachLy('SDB_DATA_STATIC_SHARED_V2');
-        let kSnap = window.layKhoaCachLy('SDB_SNAPSHOT_FAST_V2');
-        sessionStorage.removeItem(kStatic);
-        localStorage.removeItem(kStatic);
-        sessionStorage.removeItem(kShared);
-        localStorage.removeItem(kShared);
-        sessionStorage.removeItem(kSnap);
-        localStorage.removeItem(kSnap);
-    } catch(e) {}
-    
     maGvDangNhapHeThong = '';
-    
-    let vungHienThi = document.getElementById('vungHienThiSoDauBai');
-    if (vungHienThi) vungHienThi.innerHTML = '';
-    
-    let elementTuan = document.getElementById('chonTuanSo');
-    let elementLop = document.getElementById('chonLopSo');
+    coThayDoiChuaLuu_SDB = false;
 
-    // BẢO LƯU TRẠNG THÁI: Lấy giá trị đang chọn trước khi đập bỏ HTML
-    let giaTriTuanCu = elementTuan ? elementTuan.value : '';
-    let giaTriLopCu = elementLop ? elementLop.value : '';
-
-    let wTuan = document.getElementById('wrapper_chonTuanSo'); 
-    if (wTuan) { 
-        if (elementTuan) wTuan.parentNode.insertBefore(elementTuan, wTuan);
-        wTuan.remove(); 
-    }
-    
-    let wLop = document.getElementById('wrapper_chonLopSo'); 
-    if (wLop) { 
-        if (elementLop) wLop.parentNode.insertBefore(elementLop, wLop);
-        wLop.remove(); 
-    }
-
-    if(elementTuan) { 
-        elementTuan.style.display = ''; 
-        // Gắn tạm giá trị cũ vào HTML để giữ chỗ cho hàm nạp phía sau
-        if (giaTriTuanCu) elementTuan.innerHTML = `<option value="${giaTriTuanCu}" selected>${giaTriTuanCu}</option>`;
-        else elementTuan.innerHTML = '<option value="" disabled selected>-- Chọn Tuần --</option>'; 
-    }
-    if(elementLop) { 
-        elementLop.style.display = ''; 
-        if (giaTriLopCu) elementLop.innerHTML = `<option value="${giaTriLopCu}" selected>${giaTriLopCu}</option>`;
-        else elementLop.innerHTML = '<option value="" disabled selected>-- Chọn Lớp --</option>'; 
+    if (buocXoaToanBo === true) {
+        duLieuTKBGopDaMap = [];
+        tuDienPPCTToanCuc = {}; 
+        dinhMucKhungCT = {}; 
+        danhSachGiaoVienToanCuc = [];
+        danhSachTatCaGiaoVienTruong = [];
+        mapTkbToanTapToanCuc = {};
+        window.mapTkbToanTap = {};
+        tuDienGvcnTheoLopToanCuc = {};
+        tuDienHoTenGVToanCuc = {};
+        tuDienEmailSangGiaoVienSDB = {};
+        boNhoQuyenTaiKhoanDaXacThuc = {};
+        window.duLieuTongHopSDB = {};
+        chiMucTuanLopSDB = {};
+        chiMucLopSDB = {};
+        tapTuanChuaLuuTheoLopSDB = {};
+        let emailGoiLen = typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' ? window.dinhDanhGiaoVienToanCuc : '';
+        try { 
+            let kStatic = window.layKhoaCachLy(`SDB_DATA_STATIC_${emailGoiLen}`);
+            let kShared = window.layKhoaCachLy('SDB_DATA_STATIC_SHARED_V2');
+            let kSnap = window.layKhoaCachLy('SDB_SNAPSHOT_FAST_V2');
+            sessionStorage.removeItem(kStatic);
+            localStorage.removeItem(kStatic);
+            sessionStorage.removeItem(kShared);
+            localStorage.removeItem(kShared);
+            sessionStorage.removeItem(kSnap);
+            localStorage.removeItem(kSnap);
+        } catch(e) {}
     }
 
-    // Tự động tải lại lưới SĐB nếu tab này đang mở để chống lỗi trắng trang do lệnh dọn dẹp (cả khi chưa đăng nhập hoặc vừa đăng nhập)
     let khungSDB = document.getElementById('khungSoDauBai');
     if (khungSDB && !khungSDB.classList.contains('hidden')) {
-        setTimeout(() => { taiDuLieuSoDauBaiTuMayChu(); }, 500);
+        taiDuLieuSoDauBaiTuMayChu();
     }
 };
 
-// Tự động theo dõi trạng thái đăng nhập qua nút Đăng nhập để ánh xạ quyền tức thì (0ms) trên Sổ đầu bài
+// Tự động theo dõi trạng thái đăng nhập qua nút Đăng nhập để đối chiếu quyền tức thì (0ms) mà không tải lại dữ liệu đã có
 setInterval(() => {
     if (dangTaiDuLieuSoDauBai) return;
     let dinhDanhHienTai = (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc !== '')
@@ -262,32 +526,48 @@ setInterval(() => {
         : ((typeof window.emailGiaoVienToanCuc !== 'undefined' && window.emailGiaoVienToanCuc !== '') ? String(window.emailGiaoVienToanCuc).trim() : '');
     if (daTaiDuLieuSoDauBai && dinhDanhDaNapSDB !== null && dinhDanhHienTai !== dinhDanhDaNapSDB) {
         dinhDanhDaNapSDB = dinhDanhHienTai;
-        // 1. Ánh xạ quyền ngay lập tức trên bộ nhớ RAM (0ms) mà không xóa trắng bảng đang xem
-        if (duLieuTKBGopDaMap.length > 0 && typeof window.anhXaQuyenNhanhKhiDoiTaiKhoan === 'function') {
-            window.anhXaQuyenNhanhKhiDoiTaiKhoan(dinhDanhHienTai);
+        if (duLieuTKBGopDaMap.length > 0) {
+            // Dữ liệu SĐB, TKB, PPCT đã có sẵn -> Đối chiếu quyền trực tiếp trên RAM (0ms), không tải lại dữ liệu đã có!
+            let ketQuaDoiChieu = window.anhXaQuyenNhanhKhiDoiTaiKhoan(dinhDanhHienTai);
             let khungSDB = document.getElementById('khungSoDauBai');
             let elTuan = document.getElementById('chonTuanSo');
             let elLop = document.getElementById('chonLopSo');
             if (khungSDB && !khungSDB.classList.contains('hidden') && elTuan && elTuan.value && elLop && elLop.value && !coThayDoiChuaLuu_SDB) {
                 thucThiKetXuatSoDauBaiLenLuoi();
             }
+            // Chỉ tải bổ sung thông tin đối chiếu nếu tài khoản chưa có đủ thông tin trong bộ nhớ
+            if (dinhDanhHienTai !== '' && (!ketQuaDoiChieu || !ketQuaDoiChieu.daDuThongTinDoiChieu)) {
+                taiBoSungThongTinDoiChieuChuaCoSDB(dinhDanhHienTai);
+            }
+        } else {
+            const vungHienThi = document.getElementById('vungHienThiSoDauBai');
+            thucThiTaiDuLieuVaVeLuoi(vungHienThi, false);
         }
-        // 2. Đồng bộ ngầm với máy chủ để xác thực quyền chính xác tuyệt đối
-        const vungHienThi = document.getElementById('vungHienThiSoDauBai');
-        thucThiTaiDuLieuVaVeLuoi(vungHienThi, duLieuTKBGopDaMap.length > 0);
     }
-}, 600);
+}, 250);
 
 async function taiDuLieuSoDauBaiTuMayChu() {
     let dinhDanhHienTai = (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc !== '')
         ? String(window.dinhDanhGiaoVienToanCuc).trim()
         : ((typeof window.emailGiaoVienToanCuc !== 'undefined' && window.emailGiaoVienToanCuc !== '') ? String(window.emailGiaoVienToanCuc).trim() : '');
-    if (daTaiDuLieuSoDauBai && dinhDanhDaNapSDB === dinhDanhHienTai && duLieuTKBGopDaMap.length > 0) {
-        // Đã nạp sẵn trong RAM (nhờ tải ngầm hoặc đã mở trước đó) -> Mở tức thì 0ms!
+
+    // Nếu dữ liệu Sổ đầu bài & TKB đã có sẵn trong RAM -> Không bao giờ tải lại toàn bộ!
+    // Chỉ đối chiếu quyền nếu tài khoản thay đổi và tải bổ sung thông tin đối chiếu chưa có (nếu thiếu).
+    if (duLieuTKBGopDaMap.length > 0) {
+        daTaiDuLieuSoDauBai = true;
+        if (dinhDanhDaNapSDB !== dinhDanhHienTai) {
+            dinhDanhDaNapSDB = dinhDanhHienTai;
+            let ketQuaDoiChieu = window.anhXaQuyenNhanhKhiDoiTaiKhoan(dinhDanhHienTai);
+            if (dinhDanhHienTai !== '' && (!ketQuaDoiChieu || !ketQuaDoiChieu.daDuThongTinDoiChieu)) {
+                taiBoSungThongTinDoiChieuChuaCoSDB(dinhDanhHienTai);
+            }
+        }
         let elTuan = document.getElementById('chonTuanSo');
         let elLop = document.getElementById('chonLopSo');
         if (elTuan && elTuan.options.length <= 1) {
             napDropdownSoDauBai();
+        } else if (elTuan && elTuan.value && elLop && elLop.value && !coThayDoiChuaLuu_SDB) {
+            thucThiKetXuatSoDauBaiLenLuoi();
         }
         return;
     }
@@ -417,14 +697,14 @@ function kiemTraTrangThaiDangNhapSDB() {
     let vongLap = setInterval(() => {
         if (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc !== '') {
             clearInterval(vongLap);
-            thucThiTaiDuLieuVaVeLuoi(vungHienThi);
+            taiDuLieuSoDauBaiTuMayChu();
         }
         soLanKiemTra++;
         if (soLanKiemTra > 120) {
             clearInterval(vongLap); 
             if (vungHienThi) taiDuLieuSoDauBaiTuMayChu(); 
         }
-    }, 500);
+    }, 200);
 }
 
 async function thucThiTaiDuLieuVaVeLuoi(vungHienThi, cheDoTaiNgam = false) {
@@ -476,7 +756,24 @@ async function thucThiTaiDuLieuVaVeLuoi(vungHienThi, cheDoTaiNgam = false) {
 
     let daHienThiTuCache = false;
     if (duLieuTKBGopDaMap.length > 0) {
-        daHienThiTuCache = true;
+        // Dữ liệu SĐB, TKB, PPCT đã có sẵn trong RAM -> Không tải lại, chỉ đối chiếu xác định quyền và tải bổ sung thông tin chưa có (nếu thiếu)
+        dinhDanhDaNapSDB = dinhDanhGoiLen;
+        daTaiDuLieuSoDauBai = true;
+        dangTaiDuLieuSoDauBai = false;
+        let ketQuaDoiChieu = window.anhXaQuyenNhanhKhiDoiTaiKhoan(dinhDanhGoiLen);
+        if (selTuan) selTuan.disabled = false;
+        if (selLop) selLop.disabled = false;
+        if (inTuan) { inTuan.disabled = false; inTuan.classList.remove('cursor-wait'); }
+        if (inLop) { inLop.disabled = false; inLop.classList.remove('cursor-wait'); }
+        if (selTuan && selTuan.options.length <= 1) {
+            napDropdownSoDauBai();
+        } else if (selTuan && selTuan.value && selLop && selLop.value && !coThayDoiChuaLuu_SDB) {
+            thucThiKetXuatSoDauBaiLenLuoi();
+        }
+        if (dinhDanhGoiLen !== '' && (!ketQuaDoiChieu || !ketQuaDoiChieu.daDuThongTinDoiChieu)) {
+            taiBoSungThongTinDoiChieuChuaCoSDB(dinhDanhGoiLen);
+        }
+        return;
     } else if (cacheParsed && snapshotParsed) {
         try {
             let duLieuTamCache = {
@@ -663,26 +960,45 @@ function khoiTaoDuLieuSoDauBai(duLieuSever) {
     quyenKhoaSdbServer = !!(duLieuSever.QUYEN_KHOA_SDB || duLieuSever.TOAN_QUYEN);
     tuDienQuyenPhanCong = duLieuSever.QUYEN_THEO_LOP || {};
 
-    // Nạp từ điển GVCN theo lớp (từ DM_LOP) và từ điển Họ tên đầy đủ (cột B DM_GIAOVIEN)
-    tuDienGvcnTheoLopToanCuc = {};
+    // Kế thừa dữ liệu đã có sẵn trên hệ thống (không xóa dữ liệu từ điển đã nạp)
+    window.keThuaDuLieuDaCoTuHeThong();
     let nguonGvcn = duLieuSever.GVCN_THEO_LOP || (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.GVCN_THEO_LOP) || (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu.GVCN_THEO_LOP) || {};
     Object.keys(nguonGvcn).forEach(kLop => {
-        tuDienGvcnTheoLopToanCuc[String(kLop).trim().toUpperCase()] = String(nguonGvcn[kLop] || '').trim();
+        let valGvcn = String(nguonGvcn[kLop] || '').trim();
+        if (valGvcn) tuDienGvcnTheoLopToanCuc[String(kLop).trim().toUpperCase()] = valGvcn;
     });
 
-    tuDienHoTenGVToanCuc = {};
     let nguonHoTen = duLieuSever.TU_DIEN_HO_TEN_GV || (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.TU_DIEN_HO_TEN_GV) || (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu.TU_DIEN_HO_TEN_GV) || {};
     Object.keys(nguonHoTen).forEach(kMa => {
         let maNorm = window.chuanHoaDinhDanhGiaoVien(kMa);
         let hoTenDayDu = String(nguonHoTen[kMa] || '').trim();
         if (maNorm && hoTenDayDu) {
             tuDienHoTenGVToanCuc[maNorm] = hoTenDayDu;
-            // Ánh xạ luôn cả họ tên chuẩn hóa -> họ tên đầy đủ
             tuDienHoTenGVToanCuc[window.chuanHoaDinhDanhGiaoVien(hoTenDayDu)] = hoTenDayDu;
         }
     });
+    if (duLieuSever.MAP_EMAIL_GV && typeof duLieuSever.MAP_EMAIL_GV === 'object') {
+        Object.keys(duLieuSever.MAP_EMAIL_GV).forEach(em => {
+            tuDienEmailSangGiaoVienSDB[String(em).trim().toLowerCase()] = duLieuSever.MAP_EMAIL_GV[em];
+        });
+    }
+    if (Array.isArray(duLieuSever.DANH_SACH_GIAO_VIEN) && duLieuSever.DANH_SACH_GIAO_VIEN.length > 0) {
+        danhSachTatCaGiaoVienTruong = duLieuSever.DANH_SACH_GIAO_VIEN;
+    }
     if (maGvDangNhapHeThong && tenGvDangNhapHeThong) {
         tuDienHoTenGVToanCuc[window.chuanHoaDinhDanhGiaoVien(maGvDangNhapHeThong)] = tenGvDangNhapHeThong;
+        let dinhDanhHT = (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc !== '')
+            ? String(window.dinhDanhGiaoVienToanCuc).trim().toLowerCase()
+            : '';
+        if (dinhDanhHT) {
+            boNhoQuyenTaiKhoanDaXacThuc[dinhDanhHT] = {
+                maGV: maGvDangNhapHeThong,
+                tenGV: tenGvDangNhapHeThong,
+                toanQuyen: coToanQuyenSDB,
+                quyenKhoaSdb: quyenKhoaSdbServer,
+                quyenTheoLop: tuDienQuyenPhanCong
+            };
+        }
     }
 
     let theChotQuyen = document.getElementById('theChotQuyenSDB');
@@ -909,9 +1225,9 @@ function khoiTaoDuLieuSoDauBai(duLieuSever) {
         return a._tietSo - b._tietSo;
     });
 
-    // 3. XỬ LÝ KHUNG CHƯƠNG TRÌNH
-    dinhMucKhungCT = {};
-    if (duLieuSever.KHUNG_CHUONG_TRINH && duLieuSever.KHUNG_CHUONG_TRINH.length > 0) {
+    // 3. XỬ LÝ KHUNG CHƯƠNG TRÌNH (Nếu đã có sẵn trong bộ nhớ và gói tin không gửi mới thì giữ nguyên, không xử lý lại)
+    if (duLieuSever.KHUNG_CHUONG_TRINH && Array.isArray(duLieuSever.KHUNG_CHUONG_TRINH) && duLieuSever.KHUNG_CHUONG_TRINH.length > 0) {
+        dinhMucKhungCT = {};
         let dongTieuDe = duLieuSever.KHUNG_CHUONG_TRINH[0];
         
         for (let i = 1; i < duLieuSever.KHUNG_CHUONG_TRINH.length; i++) {
@@ -934,9 +1250,8 @@ function khoiTaoDuLieuSoDauBai(duLieuSever) {
         }
     }
 
-    // 4. XỬ LÝ PPCT
-    tuDienPPCTToanCuc = {}; 
-    if (duLieuSever.PPCT) {
+    // 4. XỬ LÝ PPCT (Nếu đã có sẵn trong tuDienPPCTToanCuc thì giữ nguyên, không xóa và không quét lại)
+    if (Object.keys(tuDienPPCTToanCuc).length === 0 && duLieuSever.PPCT && Array.isArray(duLieuSever.PPCT) && duLieuSever.PPCT.length > 0) {
         let boNhoKhoi = ''; let boNhoMon = ''; 
         duLieuSever.PPCT.forEach(dong => {
             let khoiGoc = String(dong['A'] || '').trim();
