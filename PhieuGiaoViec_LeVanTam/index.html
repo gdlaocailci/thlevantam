@@ -247,6 +247,9 @@ function xulyPhienDn(phanho) {
     .nut-huong-dan span { position: absolute; top: 52px; font-size: 11px; font-weight: bold; color: #198754; white-space: nowrap; background: rgba(255,255,255,0.95); padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); pointer-events: none; }
     .nut-huong-dan:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.25); color: white; }
 
+    .cot-thang-hien-tai { background-color: #fff3cd !important; color: #856404 !important; font-weight: bold; border-left: 2px solid #ffc107 !important; border-right: 2px solid #ffc107 !important; }
+th.cot-thang-hien-tai-th { background-color: #ffc107 !important; color: #000 !important; }
+
     /* ========================================================== */
     /* NÂNG CẤP: THUẬT TOÁN RESPONSIVE MENU OFF-CANVAS CHO MOBILE */
     /* ========================================================== */
@@ -924,7 +927,50 @@ function taiDsTrang() {
         }, function(l) { if(!amtham) khiLoiMayChu(l); }); 
     }
     
-   function veBangThop() { 
+   /* ==========================================================================
+       CÁC HÀM BỔ TRỢ: XÁC ĐỊNH THÁNG HIỆN TẠI VÀ PHÂN TÍCH ĐIỂM/XẾP LOẠI
+       ========================================================================== */
+    function layThangHienTai() {
+        let tg = "";
+        if (typeof canbHientai !== 'undefined' && canbHientai && canbHientai.tde && canbHientai.tde.tgian) {
+            tg = String(canbHientai.tde.tgian);
+        } else {
+            let el = document.getElementById("chuThoiGian");
+            if (el) tg = el.innerText || el.textContent || "";
+        }
+        let m = tg.match(/(\d{1,2})/);
+        if (m) {
+            let thang = parseInt(m[1], 10);
+            if (thang >= 1 && thang <= 12) return thang;
+        }
+        return new Date().getMonth() + 1; // Mặc định tháng hệ thống
+    }
+
+    function phanTichKetQuaThang(chuoiKq) {
+        if (!chuoiKq || typeof chuoiKq !== 'string') return { rank: 0, diem: -999 };
+        let txt = chuoiKq.toLowerCase().trim();
+        if (txt === "" || txt === "-" || txt.includes("chưa đánh giá")) return { rank: 0, diem: -999 };
+        
+        let rank = 0;
+        if (txt.includes("xuất sắc")) rank = 4;
+        else if (txt.includes("tốt")) rank = 3;
+        else if (txt.includes("chưa hoàn thành")) rank = 1;
+        else if (txt.includes("hoàn thành")) rank = 2;
+        else rank = 0;
+        
+        let diem = 0;
+        let match = txt.match(/([-+]?\d+([.,]\d+)?)/);
+        if (match) {
+            diem = parseFloat(match[1].replace(',', '.'));
+            if (isNaN(diem)) diem = 0;
+        }
+        return { rank: rank, diem: diem };
+    }
+
+    /* ==========================================================================
+       HÀM VẼ BẢNG TỔNG HỢP: ĐỒNG BỘ SẮP XẾP TỪ CAO ĐẾN THẤP THEO THÁNG HIỆN TẠI
+       ========================================================================== */
+    function veBangThop() { 
         if (!Array.isArray(dlThopGoc)) dlThopGoc = [];
         const nchon = $('#locNamThop').val(), tb = $('#bangThop tbody').empty(); 
         if (!nchon) { 
@@ -940,19 +986,46 @@ function taiDsTrang() {
             if (mt) bc[r[0]].thangs[mt] = r[4]; 
         }); 
         
+        // 1. Xác định tháng hiện tại
+        let thangHt = layThangHienTai();
+
+        // 2. Chuyển thành mảng và sắp xếp từ cao đến thấp theo tháng hiện tại
+        let dsCanBo = Object.values(bc);
+        dsCanBo.sort((a, b) => {
+            let kqA = phanTichKetQuaThang(a.thangs[thangHt]);
+            let kqB = phanTichKetQuaThang(b.thangs[thangHt]);
+            
+            // Xếp loại cao hơn đứng trước
+            if (kqA.rank !== kqB.rank) return kqB.rank - kqA.rank;
+            // Cùng loại -> Điểm cao hơn đứng trước
+            if (kqA.diem !== kqB.diem) return kqB.diem - kqA.diem;
+            // Cùng điểm -> Theo vần tên
+            return a.tenn.localeCompare(b.tenn, 'vi');
+        });
+
+        // 3. Đánh dấu cột tháng hiện tại trên Header
+        $('#bangThop thead th.th-thang').each(function() {
+            let t = parseInt($(this).attr('data-thang'), 10);
+            if (t === thangHt) {
+                $(this).addClass('cot-thang-hien-tai-th').attr('title', `Đang sắp xếp ưu tiên theo Tháng ${t}`);
+                $(this).html(`T${t} <i class="bi bi-sort-down"></i>`);
+            } else {
+                $(this).removeClass('cot-thang-hien-tai-th').removeAttr('title');
+                $(this).text(`T${t}`);
+            }
+        });
+
+        // 4. Kết xuất dữ liệu ra bảng
         let stth = 1; 
         const tho = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]; 
         let chuoi_html = "";
         
-        for (const k in bc) { 
-            const gr = bc[k]; 
-            
-            // [Nâng cấp] Lấy ID từ bộ từ điển toàn cục (khắc phục độ trễ thẻ select)
+        dsCanBo.forEach(gr => { 
             let keyTimKiem = gr.tenn.trim().toLowerCase();
             let maId = (window.PGV_MAP_TEN_ID && window.PGV_MAP_TEN_ID[keyTimKiem]) ? window.PGV_MAP_TEN_ID[keyTimKiem] : "Chưa xác định";
             
             let dr = `<tr>
-                <td class="text-center align-middle">${stth++}</td>
+                <td class="text-center align-middle fw-bold">${stth++}</td>
                 <td class="ps-3 align-middle">
                     <div class="fw-bold text-primary text-uppercase" style="font-size: 13px;">${gr.tenn}</div>
                     <div class="text-secondary mt-1" style="font-size: 11px; font-style: italic; font-weight: normal;">
@@ -960,9 +1033,14 @@ function taiDsTrang() {
                     </div>
                 </td>
                 <td class="align-middle"><input type="text" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold text-danger" disabled placeholder="..."></td>`; 
-            tho.forEach(m => dr += `<td class="text-center small align-middle ${gr.thangs[m] ? 'bg-light' : ''}">${gr.thangs[m] || '-'}</td>`); 
+            
+            tho.forEach(m => {
+                let val = gr.thangs[m];
+                let clsThang = (m === thangHt) ? 'cot-thang-hien-tai' : (val ? 'bg-light' : '');
+                dr += `<td class="text-center small align-middle ${clsThang}">${val || '-'}</td>`;
+            }); 
             chuoi_html += dr + '</tr>'; 
-        } 
+        }); 
         tb.html(chuoi_html); 
     }
     
@@ -1227,29 +1305,62 @@ function taiTepDangXem() {
   </script>
 
 <!-- =========================================================================================
-       [CẬP NHẬT] KHỐI LOGIC: Ý KIẾN GIÁM SÁT (Hiển thị Tháng D6 và Điểm C2)
+       [NÂNG CẤP TOÀN DIỆN] KHỐI LOGIC: Ý KIẾN GIÁM SÁT (ĐỒNG BỘ D4 VÀ DATAGV QUÁ KHỨ)
        ========================================================================================= -->
   <script>
+  let duLieuYkienHienTaiD4 = [];   // Lưu trữ bản sao dữ liệu D4 thời gian thực
+  let duLieuYkienDataGV = [];      // Lưu trữ dữ liệu lịch sử DATAGV
+  let daTaiDanhSachDataGV = false; // Cờ kiểm tra nạp danh sách lọc
+
   function veKhungBangYkienGiamSat() {
       let pane = document.getElementById("khuYkienGiamSat");
       if (pane && pane.innerHTML.trim() === "") {
           pane.innerHTML = `
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h4 class="text-danger fw-bold text-uppercase m-0">Tổng hợp ý kiến tham mưu, đánh giá của Lãnh đạo và ban giám sát</h4>
-                  <button class="btn btn-primary btn-sm fw-bold btn-reactbits-shiny shadow-sm" onclick="taiDlYkienGiamSat()">
-                      <i class="bi bi-arrow-repeat me-1"></i> Làm mới dữ liệu
-                  </button>
+              <!-- THANH TIÊU ĐỀ VÀ BỘ LỌC ĐỒNG BỘ -->
+              <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2 pb-2 border-bottom">
+                  <div>
+                      <h4 class="text-danger fw-bold text-uppercase m-0" style="font-size: 16px; letter-spacing: 0.5px;">
+                          <i class="bi bi-chat-square-quote-fill me-1"></i> Tổng hợp ý kiến tham mưu, đánh giá của Lãnh đạo và ban giám sát
+                      </h4>
+                      <small class="text-muted" id="chuThichCheDoYkien">
+                          <i class="bi bi-info-circle me-1"></i>Đang xem: <b>Thời gian thực</b> (Dữ liệu tháng hiện tại)
+                      </small>
+                  </div>
+                  
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <!-- Ô LỌC NĂM HỌC (Đồng bộ D5:D sh DATAGV) -->
+                      <div class="d-flex align-items-center">
+                          <label class="fw-bold me-1 text-secondary text-nowrap" style="font-size: 13px;">Năm học:</label>
+                          <select id="locNamYkienGiamSat" class="form-select form-select-sm border-primary fw-bold text-primary shadow-sm" style="min-width: 150px;" onchange="thayDoiBoLocYkienGiamSat()">
+                              <option value="hientai">-- Hiện tại --</option>
+                          </select>
+                      </div>
+
+                      <!-- Ô LỌC THÁNG (Đồng bộ E5:E sh DATAGV) -->
+                      <div class="d-flex align-items-center">
+                          <label class="fw-bold me-1 text-secondary text-nowrap" style="font-size: 13px;">Tháng:</label>
+                          <select id="locThangYkienGiamSat" class="form-select form-select-sm border-primary fw-bold text-primary shadow-sm" style="min-width: 140px;" onchange="thayDoiBoLocYkienGiamSat()">
+                              <option value="hientai">-- Hiện tại --</option>
+                          </select>
+                      </div>
+
+                      <button class="btn btn-primary btn-sm fw-bold btn-reactbits-shiny shadow-sm text-nowrap" onclick="taiDlYkienGiamSat(true)" title="Làm mới dữ liệu">
+                          <i class="bi bi-arrow-repeat me-1"></i> Làm mới dữ liệu
+                      </button>
+                  </div>
               </div>
-              <div class="table-responsive bg-white rounded shadow-sm border p-2" style="max-height: calc(100vh - 120px); overflow-y: auto;">
-                  <table class="table table-hover table-bordered mb-0" id="bangYkienGiamSat">
-                      <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
-                          <tr>
-                              <th class="text-center align-middle" style="width: 5%; background-color: #0d6efd; color: white; border: none;">STT</th>
-                              <th class="text-center align-middle" style="width: 20%; background-color: #0d6efd; color: white; border: none;">Họ và tên</th>
-                              <th class="text-center align-middle" style="width: 15%; background-color: #0d6efd; color: white; border: none;">Kết quả tự đánh giá</th>
-                              <th class="text-center align-middle" style="width: 60%; background-color: #0d6efd; color: white; border: none;">Nội dung ý kiến đánh giá</th>
-                          </tr>
-                      </thead>
+
+              <!-- BẢNG HIỂN THỊ DỮ LIỆU -->
+              <div class="table-responsive bg-white rounded shadow-sm border p-0" style="max-height: calc(100vh - 120px); overflow-y: auto;">
+                <table class="table table-hover table-bordered mb-0" id="bangYkienGiamSat">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center align-middle" style="width: 5%; background-color: #0d6efd !important; color: white !important; position: sticky; top: 0; z-index: 10; border: none;">STT</th>
+                            <th class="text-center align-middle" style="width: 20%; background-color: #0d6efd !important; color: white !important; position: sticky; top: 0; z-index: 10; border: none;">Họ và tên</th>
+                            <th class="text-center align-middle" style="width: 15%; background-color: #0d6efd !important; color: white !important; position: sticky; top: 0; z-index: 10; border: none;">Kết quả tự đánh giá</th>
+                            <th class="text-center align-middle" style="width: 60%; background-color: #0d6efd !important; color: white !important; position: sticky; top: 0; z-index: 10; border: none;">Nội dung ý kiến đánh giá</th>
+                        </tr>
+                    </thead>
                       <tbody>
                           <tr><td colspan="4" class="text-center text-muted py-4 fst-italic">Vui lòng đợi, đang tải dữ liệu...</td></tr>
                       </tbody>
@@ -1259,14 +1370,50 @@ function taiTepDangXem() {
       }
   }
 
-  function taiDlYkienGiamSat() {
+  // TẢI DỮ LIỆU Ý KIẾN GIÁM SÁT
+  function taiDlYkienGiamSat(lamMoi = false) {
       veKhungBangYkienGiamSat(); 
-      if (typeof datTaiDl === 'function') datTaiDl(true, "Đang tổng hợp ý kiến giám sát...");
       
+      let selNam = $('#locNamYkienGiamSat').val() || "hientai";
+      let selThang = $('#locThangYkienGiamSat').val() || "hientai";
+      let laQuaKhu = (selNam !== "hientai" || selThang !== "hientai");
+
+      // Nếu người dùng chọn xem lại Hiện tại (ô D4) và đã có cache -> hiển thị tức thì
+      if (!lamMoi && !laQuaKhu && duLieuYkienHienTaiD4 && duLieuYkienHienTaiD4.length > 0) {
+          capNhatChuThichCheDo(false);
+          veBangYkienGiamSat(duLieuYkienHienTaiD4);
+          return;
+      }
+
+      if (typeof datTaiDl === 'function') {
+          datTaiDl(true, laQuaKhu ? `Đang tải ý kiến...` : "Đang tổng hợp ý kiến hiện tại...");
+      }
+
       if (typeof window.khachApi !== 'undefined' && typeof window.khachApi.goiThuCong === 'function') {
-          window.khachApi.goiThuCong({ hdong: "laydlykiengiamsat" }, function(duLieuTrahVe) {
+          window.khachApi.goiThuCong({ 
+              hdong: "laydlykiengiamsat",
+              nam: selNam,
+              thang: selThang
+          }, function(res) {
               if (typeof datTaiDl === 'function') datTaiDl(false);
-              veBangYkienGiamSat(duLieuTrahVe);
+              
+              let duLieu = (res && res.dliu) ? res.dliu : (Array.isArray(res) ? res : []);
+              
+              // 1. Đồng bộ các ô lọc từ Cột D (Năm) và Cột E (Tháng) sheet DATAGV
+              if (res && res.dsNam && res.dsThang) {
+                  dongBoDropdownLoc(res.dsNam, res.dsThang);
+              } else if (!daTaiDanhSachDataGV) {
+                  napTuDongBoLocTuDataGV();
+              }
+
+              // 2. Ghi nhớ dữ liệu chế độ D4
+              if (!laQuaKhu) {
+                  duLieuYkienHienTaiD4 = duLieu;
+              }
+              
+              capNhatChuThichCheDo(laQuaKhu, selNam, selThang);
+              veBangYkienGiamSat(duLieu);
+
           }, function(loi) {
               if (typeof datTaiDl === 'function') datTaiDl(false);
               if (typeof hienThongb === 'function') hienThongb('loi', "Truy xuất thất bại: " + loi.message);
@@ -1277,14 +1424,86 @@ function taiTepDangXem() {
       }
   }
 
+  // ĐỒNG BỘ DANH SÁCH DROPDOWN TỪ CỘT D VÀ E SHEET DATAGV
+  function dongBoDropdownLoc(dsNam, dsThang) {
+      if (!Array.isArray(dsNam) || !Array.isArray(dsThang)) return;
+      daTaiDanhSachDataGV = true;
+
+      const selNam = $('#locNamYkienGiamSat');
+      const selThang = $('#locThangYkienGiamSat');
+
+      let valNamHienTai = selNam.val();
+      let valThangHienTai = selThang.val();
+
+      // Cập nhật ô Năm học (D5:D)
+      selNam.find('option:not([value="hientai"])').remove();
+      dsNam.forEach(nam => {
+          if (nam && String(nam).trim() !== "") {
+              selNam.append(`<option value="${nam}">Năm học ${nam}</option>`);
+          }
+      });
+      if (valNamHienTai && selNam.find(`option[value="${valNamHienTai}"]`).length > 0) {
+          selNam.val(valNamHienTai);
+      }
+
+      // Cập nhật ô Tháng (E5:E)
+      selThang.find('option:not([value="hientai"])').remove();
+      dsThang.forEach(thang => {
+          if (thang && String(thang).trim() !== "") {
+              selThang.append(`<option value="${thang}">${thang}</option>`);
+          }
+      });
+      if (valThangHienTai && selThang.find(`option[value="${valThangHienTai}"]`).length > 0) {
+          selThang.val(valThangHienTai);
+      }
+  }
+
+  // NẠP DỮ LIỆU ĐỒNG BỘ TỰ ĐỘNG NẾU SERVER CHƯA GỬI KÈM DSNAM/DSTHANG
+  function napTuDongBoLocTuDataGV() {
+      if (typeof window.khachApi !== 'undefined' && typeof window.khachApi.layDlYkien === 'function') {
+          window.khachApi.layDlYkien(function(kq) {
+              let dlt = (kq && Array.isArray(kq.dliu)) ? kq.dliu : (Array.isArray(kq) ? kq : []);
+              if (dlt.length > 0) {
+                  let setNam = [...new Set(dlt.map(r => r.nam).filter(Boolean))].sort().reverse();
+                  let setThang = [...new Set(dlt.map(r => r.thang).filter(Boolean))];
+                  dongBoDropdownLoc(setNam, setThang);
+              }
+          }, function(){});
+      }
+  }
+
+  // XỬ LÝ KHI NGƯỜI DÙNG THAY ĐỔI Ô CHỌN NĂM HỌC HOẶC THÁNG
+  function thayDoiBoLocYkienGiamSat() {
+      let selNam = $('#locNamYkienGiamSat').val();
+      let selThang = $('#locThangYkienGiamSat').val();
+      
+      if (selNam !== "hientai" && selThang === "hientai") {
+          let thgFirst = $('#locThangYkienGiamSat option:nth-child(2)').val();
+          if (thgFirst) $('#locThangYkienGiamSat').val(thgFirst);
+      }
+      
+      taiDlYkienGiamSat(false);
+  }
+
+  // CẬP NHẬT DÒNG CHÚ THÍCH TRẠNG THÁI HIỂN THỊ
+  function capNhatChuThichCheDo(laQuaKhu, nam = "", thang = "") {
+      const el = document.getElementById("chuThichCheDoYkien");
+      if (!el) return;
+      if (laQuaKhu) {
+          el.innerHTML = `<span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Lịch sử quá khứ</span> Đang trích xuất: <b>Thông tin</b> (${thang} - Năm học ${nam})`;
+      } else {
+          el.innerHTML = `<span class="badge bg-success"><i class="bi bi-broadcast me-1"></i>Thời gian thực</span> Đang xem: <b>ý kiến</b> của cán bộ, giáo viên, nhân viên`;
+      }
+  }
+
+  // KẾT XUẤT NỘI DUNG RA BẢNG HIỂN THỊ (ÁNH XẠ ĐỐI CHIẾU CHUẨN XÁC)
   function veBangYkienGiamSat(duLieu) {
       let tbody = document.querySelector("#bangYkienGiamSat tbody");
       if (!tbody) return;
-      
       tbody.innerHTML = "";
       
       if (!duLieu || !Array.isArray(duLieu) || duLieu.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4 fst-italic">Hệ thống ghi nhận không có ý kiến giám sát nào trong chu kỳ này.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-5 fst-italic">Không tìm thấy ý kiến giám sát nào trong khoảng thời gian này.</td></tr>';
           return;
       }
 
@@ -1298,19 +1517,28 @@ function taiTepDangXem() {
           let formattedYkien = '<ul style="margin: 0; padding-left: 1.2rem; list-style-type: square; color: #212529; line-height: 1.6;">';
           
           arrYkien.forEach(dong => {
-            let strDong = dong.trim();
-            if (strDong !== "") {
-                strDong = strDong.replace(/^[-*•+]\s*/, '');
-                strDong = strDong.replace(/\[([^\[\]]+)\]:/g, function(match, p1) {
-                    let key = String(p1 || "").trim().toLowerCase();
-                    return (window.PGV_MAP_EMAIL_ID && window.PGV_MAP_EMAIL_ID[key]) ? `[${window.PGV_MAP_EMAIL_ID[key]}]:` : match;
-                });
-                formattedYkien += `<li style="margin-bottom: 6px; word-wrap: break-word; white-space: normal;">${strDong}</li>`;
-            }
-        });
+              let strDong = dong.trim();
+              if (strDong !== "") {
+                  strDong = strDong.replace(/^[-*•+]\s*/, '');
+                  // Ánh xạ đối chiếu Email/Tên viết tắt sang Mã ID chuẩn xác
+                  strDong = strDong.replace(/\[([^\[\]]+)\]:/g, function(match, p1) {
+                      let key = String(p1 || "").trim().toLowerCase();
+                      return (window.PGV_MAP_EMAIL_ID && window.PGV_MAP_EMAIL_ID[key]) ? `[${window.PGV_MAP_EMAIL_ID[key]}]:` : match;
+                  });
+                  formattedYkien += `<li style="margin-bottom: 6px; word-wrap: break-word; white-space: normal;">${strDong}</li>`;
+              }
+          });
           formattedYkien += '</ul>';
 
-          // NÂNG CẤP: Xử lý hiển thị Tháng và Điểm
+          // Ánh xạ đối chiếu Mã ID của Cán bộ (chống nhầm lẫn giữa Tên và ID)
+          let maIdChuan = item.maId || "";
+          if (!maIdChuan || maIdChuan === "Chưa xác định") {
+              let keyTen = String(item.tenn || "").trim().toLowerCase();
+              if (window.PGV_MAP_TEN_ID && window.PGV_MAP_TEN_ID[keyTen]) {
+                  maIdChuan = window.PGV_MAP_TEN_ID[keyTen];
+              }
+          }
+
           let thangHienThi = (item.thang && item.thang !== "") ? item.thang : "Chưa rõ tháng";
           let diemHienThi = (item.diemTuCham && item.diemTuCham !== "") ? item.diemTuCham : "Chưa đánh giá";
 
@@ -1320,7 +1548,7 @@ function taiTepDangXem() {
                   <td class="ps-3 align-middle">
                       <div class="fw-bold text-primary text-uppercase" style="font-size: 14px;">${item.tenn}</div>
                       <div class="text-secondary mt-1" style="font-size: 13.5px; font-style: italic; font-weight: normal;">
-                          <i class="bi bi-person-vcard me-1"></i>ID: ${item.maId}
+                          <i class="bi bi-person-vcard me-1"></i>ID: ${maIdChuan || "Chưa xác định"}
                       </div>
                   </td>
                   <td class="text-center align-middle">
@@ -1340,7 +1568,7 @@ function taiTepDangXem() {
   }
 
   $(document).on('click', '#tabYkienGiamSat', () => { 
-      taiDlYkienGiamSat(); 
+      taiDlYkienGiamSat(false); 
   });
   </script>
   <!-- =========================================================================================
