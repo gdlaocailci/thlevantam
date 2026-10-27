@@ -663,19 +663,15 @@ function gvTaiCanb() {
             document.body.appendChild(dlNguoi);
         }
         dlNguoi.innerHTML = '<option value="ALL">-TOÀN TRƯỜNG-</option>';
-        if (dsCanbgv && Array.isArray(dsCanbgv)) {
-            dsCanbgv.forEach(s => {
-                if (!s) return;
-                let qy = String(s.quyen || "").trim().toLowerCase();
-                if (qy === "" || qy === "x" || qy === "xx") {
-                    // NÂNG CẤP: Hiển thị 2 thông tin (Tên giáo viên và ID)
-                    let opt = document.createElement('option');
-                    opt.value = s.tenn;         // Giá trị chính được đẩy vào ô input khi chọn
-                    opt.text = "ID: " + s.ttrg; // Giá trị phụ (ID) hiển thị nhạt bên cạnh hoặc bên dưới tên
-                    dlNguoi.appendChild(opt);
-                }
-            });
-        }
+        
+        // Sử dụng luôn danh sách hợp lệ đã loại trừ người giao việc
+        const dsHopLe = gvLayDsGiaoVienHopLe();
+        dsHopLe.forEach(s => {
+            let opt = document.createElement('option');
+            opt.value = s.tenn;         // Tên giáo viên
+            opt.text = "ID: " + s.ttrg; // Mã ID
+            dlNguoi.appendChild(opt);
+        });
 
         // 2. Tạo danh sách Tiến độ
         let dlTienDo = document.getElementById('dl_gvTienDo');
@@ -687,7 +683,6 @@ function gvTaiCanb() {
         dlTienDo.innerHTML = '<option value="Cho vượt tiến độ">Cho vượt tiến độ</option>';
     }
 
-    // Hàm tiện ích: Lấy thông tin người dùng đang đăng nhập hiện tại chính xác 100%
     // (Ưu tiên lấy từ window.PGV_ID_TC để không bị nhảy tên khi Quản trị viên chọn xem giáo viên khác ở Tab Nhiệm vụ)
     function gvLayThongTinNguoiDangNhap() {
         let id = "";
@@ -811,13 +806,27 @@ function gvTaiCanb() {
         return `Người giao: ${dinhDanhNgGiao}: (${soLuong} người)`;
     }
 
-    // Hàm tiện ích: Lấy danh sách giáo viên hợp lệ được phép nhận giao việc
+    // Hàm tiện ích: Lấy danh sách nhân sự (Tất cả, không phân quyền, loại trừ chính người đang giao)
     function gvLayDsGiaoVienHopLe() {
         if (!dsCanbgv || !Array.isArray(dsCanbgv)) return [];
+        
+        // Lấy thông tin người đang thực hiện giao việc hiện tại
+        const ngDangNhap = gvLayThongTinNguoiDangNhap();
+        const idNguoiGiao = String(ngDangNhap.id || "").trim().toLowerCase();
+        const emailNguoiGiao = String(ngDangNhap.taik || "").trim().toLowerCase();
+
         return dsCanbgv.filter(s => {
-            if (!s) return false;
-            let qy = String(s.quyen || "").trim().toLowerCase();
-            return (qy === "" || qy === "x" || qy === "xx");
+            if (!s || !s.ttrg) return false;
+            
+            let idCb = String(s.ttrg || "").trim().toLowerCase();
+            let emailCb = String(s.taik || "").trim().toLowerCase();
+            
+            // 👉 LOẠI TRỪ CHÍNH NGƯỜI ĐANG GIAO VIỆC (So khớp theo cả ID và Email)
+            if (idNguoiGiao && idCb === idNguoiGiao) return false;
+            if (emailNguoiGiao && emailCb === emailNguoiGiao) return false;
+            
+            // 👉 LẤY TẤT CẢ CÁC NHÂN SỰ CÒN LẠI (Không phân biệt quyền thường, x, xx, xxx hay gs)
+            return true;
         });
     }
 
