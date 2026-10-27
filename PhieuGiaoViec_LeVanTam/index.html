@@ -644,8 +644,10 @@ function xulyPhienDn(phanho) {
       window.PGV_SHOW_BATCH_UPDATE = showBatchUpdate;
       window.PGV_YEAR_MONTH_READONLY = yearMonthReadonly;
       window.PGV_SHOW_LICHSU = (quyen === 'gs' || quyen === 'xx' || quyen === 'xxx');
+      window.PGV_SHOW_YKIENGIAMSAT = (quyen === 'xx' || quyen === 'xxx');
       
       if (typeof kiemTraHienThiTabLichSu === 'function') kiemTraHienThiTabLichSu();
+      if (typeof kiemTraHienThiTabYkienGiamSat === 'function') kiemTraHienThiTabYkienGiamSat();
       
       try {
         $('#chuTenGv').text(kq.tde?.tenn || ''); 
@@ -763,13 +765,19 @@ function taiDsTrang() {
         if (danhSachBo.length === 0) { hs.append('<option value="">Không có dữ liệu</option>'); return; } 
         hs.append('<option value="">-- Lựa chọn Giáo viên --</option>'); 
         
-        let dsIdTainNgam = [];
-        window.PGV_MAP_TEN_ID = {}; // TẠO BỘ TỪ ĐIỂN ID TOÀN CỤC TRÊN RAM
+       let dsIdTainNgam = [];
+      window.PGV_MAP_TEN_ID = {}; // TẠO BỘ TỪ ĐIỂN ID TOÀN CỤC TRÊN RAM
+      window.PGV_MAP_EMAIL_ID = {}; // TỪ ĐIỂN ÁNH XẠ EMAIL CỘT C -> ID CỘT B (KHAIBAO)
 
-        danhSachBo.forEach(pt => {
-            if (pt.tenn) { window.PGV_MAP_TEN_ID[pt.tenn.trim().toLowerCase()] = pt.ttrg; }
+      danhSachBo.forEach(pt => {
+          if (pt.tenn) { window.PGV_MAP_TEN_ID[pt.tenn.trim().toLowerCase()] = pt.ttrg; }
+          if (pt.taik && pt.ttrg) {
+              let emailClean = String(pt.taik).trim().toLowerCase();
+              window.PGV_MAP_EMAIL_ID[emailClean] = pt.ttrg;
+              window.PGV_MAP_EMAIL_ID[emailClean.split('@')[0]] = pt.ttrg;
+          }
             let qy = String(pt.quyen || "").trim().toLowerCase();
-            if (qy === "" || qy === "x" || qy === "xx" || qy === "xxx") {
+            if (qy === "" || qy === "gs" || qy === "xx" || qy === "xxx") {
                 hs.append(`<option value="${pt.ttrg}">${pt.tenn}</option>`);
             }
             dsIdTainNgam.push(pt.ttrg); 
@@ -1097,7 +1105,7 @@ function taiTepDangXem() {
     function chuyenHuongHeThong() {
         var urlDich = (typeof PGV_LINK_TRANG_CHU !== 'undefined' && PGV_LINK_TRANG_CHU.trim() !== '') 
                       ? PGV_LINK_TRANG_CHU 
-                      : 'https://gdlaocailci.github.io/taphoi/';
+                      : 'https://gdlaocailci.github.io/thlevantam/';
                       
         window.open(urlDich, '_top');
     }
@@ -1237,12 +1245,16 @@ function taiTepDangXem() {
           let formattedYkien = '<ul style="margin: 0; padding-left: 1.2rem; list-style-type: square; color: #212529; line-height: 1.6;">';
           
           arrYkien.forEach(dong => {
-              let strDong = dong.trim();
-              if (strDong !== "") {
-                  strDong = strDong.replace(/^[-*•+]\s*/, '');
-                  formattedYkien += `<li style="margin-bottom: 6px; word-wrap: break-word; white-space: normal;">${strDong}</li>`;
-              }
-          });
+            let strDong = dong.trim();
+            if (strDong !== "") {
+                strDong = strDong.replace(/^[-*•+]\s*/, '');
+                strDong = strDong.replace(/\[([^\[\]]+)\]:/g, function(match, p1) {
+                    let key = String(p1 || "").trim().toLowerCase();
+                    return (window.PGV_MAP_EMAIL_ID && window.PGV_MAP_EMAIL_ID[key]) ? `[${window.PGV_MAP_EMAIL_ID[key]}]:` : match;
+                });
+                formattedYkien += `<li style="margin-bottom: 6px; word-wrap: break-word; white-space: normal;">${strDong}</li>`;
+            }
+        });
           formattedYkien += '</ul>';
 
           // NÂNG CẤP: Xử lý hiển thị Tháng và Điểm
