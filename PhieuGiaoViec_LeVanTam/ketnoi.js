@@ -6,8 +6,8 @@ var PGV_TEN_TRUONG = "Trường Tiểu học Lê Văn Tám";
 var PGV_TEN_TRUONG_UP = "TRƯỜNG TIỂU HỌC LÊ VĂN TÁM";
 var PGV_TEN_PM = "Quản lý Nhiệm vụ";
 var PGV_TEN_PM_UP = "QUẢN LÝ CÔNG VIỆC";
-var PGV_PHIEN_BAN = "Phiên bản V2.5";
-var PGV_TAC_GIA = "HOÀNG NGỌC LÂM";
+var PGV_PHIEN_BAN = "V2.0-2026";
+var PGV_TAC_GIA = "PHÁT TRIỂN BỞI: HOÀNG NGỌC LÂM";
 var PGV_GOOGLE_CLIENT_ID = "1097384743947-1jdc5rhhmbu0s9jp5vgt814g4f4id7lu.apps.googleusercontent.com";
 var PGV_MO_TA = "Hệ thống quản lý hiệu quả công việc nội bộ - " + PGV_TEN_TRUONG;
 
