@@ -162,7 +162,7 @@
         <button class="the-chuyen nav-link" id="tabYkien" data-bs-toggle="tab" data-bs-target="#khuYkien" type="button" role="tab">
             <span class="b-tuong"><i class="bi bi-chat-text"></i></span> Tổng hợp ý kiến
         </button>
-        <button class="the-chuyen nav-link" id="tabYkienGiamSat" data-bs-toggle="tab" data-bs-target="#khuYkienGiamSat" type="button" role="tab" onclick="if(typeof taiDlYkienGiamSat === 'function') taiDlYkienGiamSat()">
+        <button class="the-chuyen nav-link" id="tabYkienGiamSat" data-bs-toggle="tab" data-bs-target="#khuYkienGiamSat" type="button" role="tab" style="display: none;" onclick="if(typeof taiDlYkienGiamSat === 'function') taiDlYkienGiamSat()">
             <span class="b-tuong">
                 <svg width="18px" height="18px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: text-bottom;">
                     <path d="M12 5C5.63636 5 2 12 2 12C2 12 5.63636 19 12 19C18.3636 19 22 12 22 12C22 12 18.3636 5 12 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -230,11 +230,19 @@
                 tabLichSu.style.display = (window.PGV_SHOW_LICHSU === true) ? 'flex' : 'none';
             }
         };
+
+        window.kiemTraHienThiTabYkienGiamSat = function() {
+            var tabYkienGiamSat = document.getElementById('tabYkienGiamSat');
+            if (tabYkienGiamSat) {
+                tabYkienGiamSat.style.display = (window.PGV_SHOW_YKIENGIAMSAT === true) ? 'flex' : 'none';
+            }
+        };
         
         window.addEventListener('load', function() {
             window.kiemTraHienThiTabCapQuyen();
             window.kiemTraHienThiTabTieuChi();
             window.kiemTraHienThiTabLichSu();
+            window.kiemTraHienThiTabYkienGiamSat();
         });
     })();
 </script>
