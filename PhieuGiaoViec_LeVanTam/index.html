@@ -360,6 +360,7 @@ function xulyPhienDn(phanho) {
           <div class="tab-pane fade px-4 py-3" id="khuNghi"></div>
           <div class="tab-pane fade px-4 py-3" id="khuYkien"></div>
           <div class="tab-pane fade px-4 py-3" id="khuYkienGiamSat"></div>
+          <div class="tab-pane fade px-4 py-3" id="khuNhacBaoCao"></div>
           <div class="tab-pane fade px-4 py-3" id="khuBaoCao"></div>
           <div class="tab-pane fade px-4 py-3" id="khuCapQuyen"></div>
           <div class="tab-pane fade px-4 py-3" id="khuTieuChi"></div>
@@ -644,10 +645,14 @@ function xulyPhienDn(phanho) {
       window.PGV_SHOW_BATCH_UPDATE = showBatchUpdate;
       window.PGV_YEAR_MONTH_READONLY = yearMonthReadonly;
       window.PGV_SHOW_LICHSU = (quyen === 'gs' || quyen === 'xx' || quyen === 'xxx');
-      window.PGV_SHOW_YKIENGIAMSAT = (quyen === 'xx' || quyen === 'xxx');
+     // window.PGV_SHOW_YKIENGIAMSAT = (quyen === 'xx' || quyen === 'xxx');
+     window.PGV_SHOW_YKIENGIAMSAT = (quyen === 'xxx');
+
+     window.PGV_SHOW_NHACBAOCAO = (quyen === 'xx' || quyen === 'xxx');
       
       if (typeof kiemTraHienThiTabLichSu === 'function') kiemTraHienThiTabLichSu();
       if (typeof kiemTraHienThiTabYkienGiamSat === 'function') kiemTraHienThiTabYkienGiamSat();
+      if (typeof kiemTraHienThiTabNhacBaoCao === 'function') kiemTraHienThiTabNhacBaoCao();
       
       try {
         $('#chuTenGv').text(kq.tde?.tenn || ''); 
@@ -1290,5 +1295,270 @@ function taiTepDangXem() {
       taiDlYkienGiamSat(); 
   });
   </script>
+
+  <!-- =========================================================================================
+     [MỚI] KHỐI LOGIC: NHẮC BÁO CÁO (Chỉ hiển thị với quyền "xx" và "xxx")
+     ========================================================================================= -->
+<script>
+let danhSachChuaNopGoc = [];
+
+function veKhungBangNhacBaoCao() {
+    let pane = document.getElementById("khuNhacBaoCao");
+    if (pane && pane.innerHTML.trim() === "") {
+        pane.innerHTML = `
+            <!-- TIÊU ĐỀ VÀ NÚT TÁC VỤ -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <span class="badge bg-danger p-2 me-2 fs-6 shadow-sm"><i class="bi bi-bell-fill"></i></span>
+                    <div>
+                        <h4 class="text-danger fw-bold text-uppercase m-0" style="letter-spacing: 0.5px;">Danh Sách Nhắc Báo Cáo</h4>
+                        <small class="text-muted">Tổng hợp cán bộ, giáo viên chưa có trạng thái "Đã nộp báo cáo" tại ô C3</small>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-success btn-sm fw-bold shadow-sm" onclick="saoChepDanhSachNhac()">
+                        <i class="bi bi-clipboard-check me-1"></i> Sao chép danh sách nhắc Zalo
+                    </button>
+                    <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="taiDlNhacBaoCao()">
+                        <i class="bi bi-arrow-repeat me-1"></i> Làm mới dữ liệu
+                    </button>
+                </div>
+            </div>
+
+            <!-- THẺ THỐNG KÊ NHANH (KPI CARDS) -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm" style="background: #eef2ff; border-left: 4px solid #4f46e5 !important; border-radius: 8px;">
+                        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small fw-bold text-uppercase">Tổng số nhân sự</div>
+                                <div class="fs-4 fw-bold text-indigo" id="nbc_tongSo" style="color: #4f46e5;">--</div>
+                            </div>
+                            <i class="bi bi-people fs-2 text-indigo" style="color: #4f46e5; opacity: 0.7;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm" style="background: #ecfdf5; border-left: 4px solid #10b981 !important; border-radius: 8px;">
+                        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small fw-bold text-uppercase">Đã nộp báo cáo</div>
+                                <div class="fs-4 fw-bold text-success" id="nbc_soDaNop">--</div>
+                            </div>
+                            <i class="bi bi-check-circle fs-2 text-success" style="opacity: 0.7;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm" style="background: #fef2f2; border-left: 4px solid #ef4444 !important; border-radius: 8px;">
+                        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small fw-bold text-uppercase">Chưa nộp (Cần nhắc)</div>
+                                <div class="fs-4 fw-bold text-danger" id="nbc_soChuaNop">--</div>
+                            </div>
+                            <i class="bi bi-exclamation-triangle fs-2 text-danger" style="opacity: 0.7;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- THANH TÌM KIẾM TỨC THÌ -->
+            <div class="mb-3">
+                <div class="input-group input-group-sm shadow-sm" style="max-width: 380px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="oTimKiemNhacBaoCao" placeholder="Tìm theo ID, Họ và tên..." onkeyup="locBangNhacBaoCao()">
+                </div>
+            </div>
+
+            <!-- BẢNG DANH SÁCH -->
+            <div class="table-responsive bg-white rounded shadow-sm border p-2" style="max-height: calc(100vh - 280px); overflow-y: auto;">
+                <table class="table table-hover table-bordered mb-0 align-middle" id="bangNhacBaoCao">
+                    <thead style="position: sticky; top: 0; z-index: 1;">
+                        <tr style="background-color: #0d6efd; color: white;">
+                            <th class="text-center align-middle" style="width: 5%; background-color: #0d6efd; color: white; border: none;">STT</th>
+                            <th class="text-start ps-3 align-middle" style="width: 15%; background-color: #0d6efd; color: white; border: none;">Mã ID</th>
+                            <th class="align-middle" style="width: 35%; background-color: #0d6efd; color: white; border: none;">Họ và tên</th>
+                            <th class="text-center align-middle" style="width: 25%; background-color: #0d6efd; color: white; border: none;">Trạng thái</th>
+                            <th class="text-center align-middle" style="width: 20%; background-color: #0d6efd; color: white; border: none;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="5" class="text-center text-muted py-4 fst-italic">Vui lòng đợi, đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
+function taiDlNhacBaoCao() {
+    // Kiểm tra bảo mật phía máy khách: Chỉ quyền xx hoặc xxx mới thực thi
+    if (!window.PGV_SHOW_NHACBAOCAO) {
+        if (typeof hienThongb === 'function') {
+            hienThongb('loi', 'Bạn không có quyền truy cập tab tính năng này.');
+        }
+        return;
+    }
+
+    veKhungBangNhacBaoCao();
+    if (typeof datTaiDl === 'function') datTaiDl(true, "Đang rà soát...");
+
+    if (typeof window.khachApi !== 'undefined' && typeof window.khachApi.goiThuCong === 'function') {
+        window.khachApi.goiThuCong({ hdong: "laydlnhacbcao" }, function(res) {
+            if (typeof datTaiDl === 'function') datTaiDl(false);
+            
+            let data = (res && res.dliu) ? res.dliu : (Array.isArray(res) ? res : []);
+            danhSachChuaNopGoc = data;
+          
+           // Cập nhật số liệu thống kê chuẩn toàn trường
+            let tongToanTruong = (res.tongSo !== undefined) ? Number(res.tongSo) : 0;
+            let soChuaNop = (res.soChuaNop !== undefined) ? Number(res.soChuaNop) : data.length;
+            
+            // Dự phòng: Nếu API chưa trả kịp tongSo, tự động lấy tổng danh sách cán bộ đã tải sẵn trong hệ thống
+            if (tongToanTruong === 0 && $('#hopChonGv option').length > 1) {
+                tongToanTruong = $('#hopChonGv option').length - 1;
+            }
+            
+            let soDaNop = (res.soDaNop !== undefined) ? Number(res.soDaNop) : Math.max(0, tongToanTruong - soChuaNop);
+
+            $('#nbc_tongSo').text(tongToanTruong);
+            $('#nbc_soDaNop').text(soDaNop);
+            $('#nbc_soChuaNop').text(soChuaNop);
+            
+            veBangNhacBaoCao(data);
+        }, function(loi) {
+            if (typeof datTaiDl === 'function') datTaiDl(false);
+            if (typeof hienThongb === 'function') hienThongb('loi', "Truy xuất danh sách thất bại: " + loi.message);
+        });
+    } else {
+        if (typeof datTaiDl === 'function') datTaiDl(false);
+        console.error("API chưa sẵn sàng.");
+    }
+}
+
+function veBangNhacBaoCao(duLieu) {
+    let tbody = document.querySelector("#bangNhacBaoCao tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (!duLieu || !Array.isArray(duLieu) || duLieu.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-5">
+                    <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
+                    <span class="fw-bold text-success fs-6">TUYỆT VỜI! TẤT CẢ CÁN BỘ ĐÃ NỘP BÁO CÁO ĐẦY ĐỦ.</span>
+                    <div class="text-muted small mt-1">Không có nhân sự nào cần nhắc nhở tại chu kỳ này.</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = "";
+    let stt = 1;
+
+    duLieu.forEach(item => {
+        let cvText = "";
+        let cv = String(item.chucvu || "").toLowerCase();
+        if (cv === "gv") cvText = `<span class="badge bg-light text-secondary border ms-2">Giáo viên</span>`;
+        else if (cv === "nv") cvText = `<span class="badge bg-light text-secondary border ms-2">Nhân viên</span>`;
+        else if (cv === "ql") cvText = `<span class="badge bg-warning-subtle text-dark border ms-2">Quản lý</span>`;
+
+        let badgeTrangThai = "";
+        if (item.tthai.includes("Chưa khởi tạo")) {
+            badgeTrangThai = `<span class="badge bg-warning-subtle text-dark border border-warning px-2 py-1"><i class="bi bi-person-x me-1"></i>${item.tthai}</span>`;
+        } else {
+            badgeTrangThai = `<span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1"><i class="bi bi-clock-history me-1"></i>${item.tthai}</span>`;
+        }
+
+        html += `
+            <tr>
+                <td class="text-center fw-bold text-secondary">${stt++}</td>
+                <td class="text-start ps-3">
+                <span class="badge bg-light text-primary border px-2 py-1 fw-bold fs-6" style="letter-spacing: 0.5px;">
+                    <i class="bi bi-person-badge me-1"></i>${item.maId}
+                </span>
+            </td>
+                <td class="ps-3">
+                    <div class="fw-bold text-primary text-uppercase" style="font-size: 13.5px;">${item.tenn} ${cvText}</div>
+                    <div class="text-muted small" style="font-size: 11.5px;"><i class="bi bi-envelope me-1"></i>${item.email || "Chưa cập nhật"}</div>
+                </td>
+                <td class="text-center">${badgeTrangThai}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary fw-bold" onclick="chuyenDenHoSo('${item.maId}')" title="Mở hồ sơ cá nhân">
+                        <i class="bi bi-box-arrow-in-up-right me-1"></i> Xem hồ sơ
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
+
+// Tính năng xem nhanh hồ sơ của người cần nhắc
+function chuyenDenHoSo(maId) {
+    if (!maId) return;
+    const hs = $('#hopChonGv');
+    if (hs.length && hs.is(':visible')) {
+        hs.val(maId).trigger('change');
+        // Kích hoạt chuyển sang tab Nhiệm vụ
+        const tabNv = document.querySelector('a[href="#khuNhiemVu"]') || document.getElementById('tabNhiemVu');
+        if (tabNv) {
+            let bsTab = new bootstrap.Tab(tabNv);
+            bsTab.show();
+        }
+    }
+}
+
+// Tính năng tìm kiếm tức thì
+function locBangNhacBaoCao() {
+    let tuKhoa = ($('#oTimKiemNhacBaoCao').val() || "").trim().toLowerCase();
+    if (!danhSachChuaNopGoc || !danhSachChuaNopGoc.length) return;
+
+    if (tuKhoa === "") {
+        veBangNhacBaoCao(danhSachChuaNopGoc);
+        return;
+    }
+
+    let ketQuaLoc = danhSachChuaNopGoc.filter(item => {
+        let ma = String(item.maId || "").toLowerCase();
+        let ten = String(item.tenn || "").toLowerCase();
+        return ma.includes(tuKhoa) || ten.includes(tuKhoa);
+    });
+
+    veBangNhacBaoCao(ketQuaLoc);
+}
+
+// Tính năng tiện ích: Tạo và sao chép mẫu danh sách nhắc nộp báo cáo Zalo
+function saoChepDanhSachNhac() {
+    if (!danhSachChuaNopGoc || danhSachChuaNopGoc.length === 0) {
+        if (typeof hienThongb === 'function') hienThongb('cbh', "Hiện tại không có cán bộ nào chưa nộp báo cáo.");
+        return;
+    }
+
+    let noiDung = "🔔 THÔNG BÁO NHẮC NỘP BÁO CÁO ĐÁNH GIÁ\n";
+    noiDung += "Hệ thống ghi nhận danh sách Thầy/Cô chưa hoàn tất nộp báo cáo:\n\n";
+
+    danhSachChuaNopGoc.forEach((item, index) => {
+        noiDung += `${index + 1}. [${item.maId}] ${item.tenn} (${item.tthai})\n`;
+    });
+
+    noiDung += "\n👉 Đề nghị Quý Thầy/Cô khẩn trương đăng nhập hệ thống và bấm 'Nộp báo cáo' đúng thời hạn quy định. Trân trọng!";
+
+    navigator.clipboard.writeText(noiDung).then(function() {
+        if (typeof hienThongb === 'function') {
+            hienThongb('tcong', "Đã sao chép nội dung nhắc nhở vào bộ nhớ đệm!\nBạn có thể dán (Ctrl + V) ngay vào Zalo hoặc nhóm cơ quan.");
+        }
+    }).catch(function(err) {
+        alert("Không thể tự động sao chép. Vui lòng thử lại: " + err);
+    });
+}
+
+// Bắt sự kiện khi click vào Tab Nhắc báo cáo
+$(document).on('click', '#tabNhacBaoCao', () => { 
+    taiDlNhacBaoCao(); 
+});
+</script>
 </body>
 </html>
