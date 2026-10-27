@@ -1312,7 +1312,7 @@ function veKhungBangNhacBaoCao() {
                     <span class="badge bg-danger p-2 me-2 fs-6 shadow-sm"><i class="bi bi-bell-fill"></i></span>
                     <div>
                         <h4 class="text-danger fw-bold text-uppercase m-0" style="letter-spacing: 0.5px;">Danh Sách Nhắc Báo Cáo</h4>
-                        <small class="text-muted">Tổng hợp cán bộ, giáo viên chưa có trạng thái "Đã nộp báo cáo" tại ô C3</small>
+                        <small class="text-muted">Tổng hợp cán bộ, giáo viên chưa nộp báo cáo tháng</small>
                     </div>
                 </div>
                 <div class="d-flex gap-2">
@@ -1496,18 +1496,39 @@ function veBangNhacBaoCao(duLieu) {
     tbody.innerHTML = html;
 }
 
-// Tính năng xem nhanh hồ sơ của người cần nhắc
+// Tính năng xem nhanh hồ sơ của người cần nhắc (ĐÃ FIX TOÀN DIỆN LUỒNG SỰ KIỆN)
 function chuyenDenHoSo(maId) {
     if (!maId) return;
+
+    // 1. Kích hoạt chuyển ngay sang Tab Nhiệm vụ trên thanh Menu
+    const nutTabNv = document.getElementById('tabNhiemVu') || document.querySelector('[data-bs-target="#khuNhiemVu"]');
+    if (nutTabNv) {
+        nutTabNv.click(); // Sử dụng click() tự nhiên của Bootstrap 5
+    }
+
+    // 2. Đồng bộ giá trị vào thẻ chọn Giáo viên (#hopChonGv)
     const hs = $('#hopChonGv');
-    if (hs.length && hs.is(':visible')) {
-        hs.val(maId).trigger('change');
-        // Kích hoạt chuyển sang tab Nhiệm vụ
-        const tabNv = document.querySelector('a[href="#khuNhiemVu"]') || document.getElementById('tabNhiemVu');
-        if (tabNv) {
-            let bsTab = new bootstrap.Tab(tabNv);
-            bsTab.show();
+    if (hs.length) {
+        // Nếu trong dropdown chưa có option mã này thì tự bổ sung để không bị lỗi rỗng
+        if (hs.find(`option[value="${maId}"]`).length === 0) {
+            hs.append(`<option value="${maId}">${maId}</option>`);
         }
+        hs.val(maId);
+    }
+
+    // 3. Nạp hồ sơ của cán bộ lên giao diện Tab Nhiệm vụ (ưu tiên Cache RAM siêu tốc)
+    if (typeof cacheCanb !== 'undefined' && cacheCanb[maId]) {
+        khiTaiDlXong(cacheCanb[maId]);
+        // Tải ngầm bản mới nhất để cập nhật nếu có thay đổi
+        window.khachApi.layDlCanb(maId, window.PGV_ID_TC, function(kq) {
+            if (!kq.koxd) cacheCanb[maId] = kq;
+        }, function(){});
+    } else {
+        if (typeof datTaiDl === 'function') datTaiDl(true, "Đang truy xuất hồ sơ...");
+        window.khachApi.layDlCanb(maId, window.PGV_ID_TC, function(kq) {
+            if (!kq.koxd && typeof cacheCanb !== 'undefined') cacheCanb[maId] = kq;
+            khiTaiDlXong(kq);
+        }, khiLoiMayChu);
     }
 }
 
