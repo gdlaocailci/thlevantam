@@ -238,6 +238,11 @@ function kiemTraLaBGH() {
     if (typeof canbHientai !== 'undefined' && (canbHientai.quyen === 'xxx' || canbHientai.quyen === 'xx')) return true;
     return false;
 }
+  function kiemTraLaXXX() {
+    if (typeof window.PGV_QUYEN !== 'undefined' && window.PGV_QUYEN === 'xxx') return true;
+    if (typeof canbHientai !== 'undefined' && canbHientai && canbHientai.quyen === 'xxx') return true;
+    return false;
+}
 function kiemTraLaGS() {
     if (typeof window.PGV_QUYEN !== 'undefined' && window.PGV_QUYEN === 'gs') return true;
     if (typeof canbHientai !== 'undefined' && canbHientai.quyen === 'gs') return true;
@@ -250,39 +255,41 @@ function kiemTraQuyenTruyCap() {
     var diemThuong = document.getElementById("nhapDiemThuong");
     var isBGH = kiemTraLaBGH();
     var isGS = kiemTraLaGS();
+    var isXXX = kiemTraLaXXX(); // <-- Kiểm tra riêng quyền xxx
 
     if (cotETonTai && selectGv && selectGv.style.display !== "none") {
         var daChon = selectGv.value && selectGv.value !== "";
         if (daChon) { 
             if (isBGH) {
                 if (nutLuu) nutLuu.disabled = false; 
-                if (diemThuong) diemThuong.disabled = false;
                 if (nutNop) nutNop.disabled = true; 
             } else if (isGS) {
                 if (nutLuu) nutLuu.disabled = false; 
                 if (nutNop) nutNop.disabled = true; 
-                if (diemThuong) diemThuong.disabled = true;
             } else {
                 if (nutLuu) nutLuu.disabled = true; 
                 if (nutNop) nutNop.disabled = true; 
-                if (diemThuong) diemThuong.disabled = true;
                 if (typeof hienThongb === 'function') hienThongb('chuy', '⚠️ Bạn đang xem nhật ký của nhân sự khác. Chỉ nhân sự đó hoặc Ban Giám hiệu mới được lưu.'); 
             }
         } else { 
             if (nutLuu) nutLuu.disabled = false; 
             if (nutNop && mbcMo) nutNop.disabled = false; 
-            if (diemThuong) diemThuong.disabled = false;
         }
     } else { 
         if (window.PGV_IS_SELF || isBGH) { 
             if (nutLuu) nutLuu.disabled = false; 
             if (nutNop && mbcMo) nutNop.disabled = false; 
-            if (diemThuong) diemThuong.disabled = false;
         } 
     }
 
-    if (trangThaiKhoa === "Khóa" && diemThuong) {
-        diemThuong.disabled = true;
+    // --- QUY ĐỊNH RIÊNG CHO Ô ĐIỂM CỘNG/TRỪ ---
+    // Chỉ duy nhất người có quyền "xxx" mới được mở khóa (khi hồ sơ chưa bị Khóa)
+    if (diemThuong) {
+        if (isXXX && trangThaiKhoa !== "Khóa") {
+            diemThuong.disabled = false;
+        } else {
+            diemThuong.disabled = true;
+        }
     }
     
     apDungKhoaGiaoDien(); 
