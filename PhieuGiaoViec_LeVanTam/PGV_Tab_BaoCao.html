@@ -146,6 +146,9 @@
       nd.style.zIndex = '9999';
       nd.style.width = 'max-content';
       nd.style.maxWidth = '350px'; 
+      nd.style.maxHeight = '260px';
+      nd.style.overflowY = 'auto';
+      nd.style.overflowX = 'hidden';
       
       let ndRect = nd.getBoundingClientRect();
       
@@ -166,6 +169,9 @@
       // Thuật toán: Xử lý sát lề dưới màn hình (Đảo vị trí nổi lên phía trên)
       if (top + ndRect.height > window.innerHeight) {
           top = rect.top - ndRect.height - 5;
+      }
+      if (top < 10) {
+          top = 10;
       }
 
       // Áp dụng tọa độ an toàn và hiển thị thật
@@ -192,6 +198,9 @@
           nd.style.zIndex = '';
           nd.style.width = '';
           nd.style.maxWidth = '';
+          nd.style.maxHeight = '';
+          nd.style.overflowY = '';
+          nd.style.overflowX = '';
       }
   });
 </script>
