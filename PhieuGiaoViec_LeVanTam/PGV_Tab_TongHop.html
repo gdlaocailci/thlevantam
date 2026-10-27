@@ -1,12 +1,43 @@
 <div class="card shadow-sm p-0 border-0">
   <div class="card-header bg-white border-bottom-0 pt-2 pb-1">
-    <div class="d-flex align-items-center">
-      <h6 class="text-primary fw-bold mb-0 me-4 text-uppercase"><i class="bi bi-table"></i> TỔNG HỢP KẾT QUẢ</h6>
+    <div class="d-flex align-items-center flex-wrap gap-2">
+      <h6 class="text-primary fw-bold mb-0 me-3 text-uppercase"><i class="bi bi-table"></i> TỔNG HỢP KẾT QUẢ</h6>
+      
+      <!-- Ô CHỌN NĂM HỌC -->
       <div class="d-flex align-items-center">
-         <span class="fw-bold me-2 text-dark" style="font-size: 18px;">Năm học:</span>
-         <div style="width: 180px;"><select class="form-select form-select-sm shadow-none border-primary" id="locNamThop" onchange="veBangThop()"><option value="">--Chọn năm--</option></select></div>
+         <span class="fw-bold me-2 text-dark" style="font-size: 15px;">Năm học:</span>
+         <div style="width: 150px;">
+           <select class="form-select form-select-sm shadow-none border-primary" id="locNamThop" onchange="veBangThop()">
+             <option value="">--Chọn năm--</option>
+           </select>
+         </div>
       </div>
-      <div class="ms-auto"><button class="btn btn-sm btn-outline-primary" onclick="taiDlThop(true)" title="Tải lại dữ liệu"><i class="bi bi-arrow-clockwise"></i> Tải lại</button></div>
+
+      <!-- [MỚI] Ô CHỌN THÁNG SẮP XẾP ƯU TIÊN -->
+      <div class="d-flex align-items-center ms-md-2">
+         <span class="fw-bold me-2 text-dark" style="font-size: 14px;">Xếp theo:</span>
+         <div style="width: 160px;">
+           <select class="form-select form-select-sm shadow-none border-primary fw-bold text-primary" id="locThangSapXep" onchange="doiThangSapXep(this.value)">
+             <option value="tudong">Tự động (Hiện tại)</option>
+             <option value="7">Tháng 7</option>
+             <option value="8">Tháng 8</option>
+             <option value="9">Tháng 9</option>
+             <option value="10">Tháng 10</option>
+             <option value="11">Tháng 11</option>
+             <option value="12">Tháng 12</option>
+             <option value="1">Tháng 1</option>
+             <option value="2">Tháng 2</option>
+             <option value="3">Tháng 3</option>
+             <option value="4">Tháng 4</option>
+             <option value="5">Tháng 5</option>
+             <option value="6">Tháng 6</option>
+           </select>
+         </div>
+      </div>
+
+      <div class="ms-auto">
+        <button class="btn btn-sm btn-outline-primary" onclick="taiDlThop(true)" title="Tải lại dữ liệu"><i class="bi bi-arrow-clockwise"></i> Tải lại</button>
+      </div>
     </div>
   </div>
 
@@ -38,6 +69,28 @@
   .btn-reactbits-shiny:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+  }
+  
+  /* Điểm nhấn cho cột tháng đang được xếp hạng */
+  .cot-thang-hien-tai {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    font-weight: bold;
+    border-left: 2px solid #ffc107 !important;
+    border-right: 2px solid #ffc107 !important;
+  }
+  th.cot-thang-hien-tai-th {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+    border-bottom: 2px solid #d39e00 !important;
+  }
+  th.th-thang-bam-duoc {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+  }
+  th.th-thang-bam-duoc:hover:not(.cot-thang-hien-tai-th) {
+    background-color: #0b5ed7 !important;
   }
 </style>
 
@@ -73,18 +126,18 @@
             <th class="text-center align-middle" style="width: 50px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">STT</th>
             <th class="text-center align-middle" style="min-width: 170px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">Họ và tên</th> 
             <th class="text-center align-middle" style="min-width: 115px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">Kết quả xếp loại</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T7</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T8</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T9</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T10</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T11</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T12</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T1</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T2</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T3</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T4</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T5</th>
-            <th class="text-center align-middle" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T6</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="7" onclick="doiThangSapXep(7)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T7</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="8" onclick="doiThangSapXep(8)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T8</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="9" onclick="doiThangSapXep(9)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T9</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="10" onclick="doiThangSapXep(10)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T10</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="11" onclick="doiThangSapXep(11)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T11</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="12" onclick="doiThangSapXep(12)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T12</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="1" onclick="doiThangSapXep(1)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T1</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="2" onclick="doiThangSapXep(2)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T2</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="3" onclick="doiThangSapXep(3)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T3</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="4" onclick="doiThangSapXep(4)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T4</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="5" onclick="doiThangSapXep(5)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T5</th>
+            <th class="text-center align-middle th-thang-bam-duoc" data-thang="6" onclick="doiThangSapXep(6)" style="width: 100px; position: sticky; top: 0; z-index: 10; background-color: #0d6efd !important; color: white !important;">T6</th>
           </tr>
         </thead>
         <tbody><tr><td colspan="15" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div> Đang tải dữ liệu...</td></tr></tbody>
@@ -133,7 +186,181 @@ function showAIToast(message, type) {
 }
 
 /* ==========================================================================
-   HÀM TRỢ LÝ AI: TÍNH TOÁN XẾP LOẠI - KHẮC PHỤC TRIỆT ĐỂ LỖI QUY ĐỔI 0.7 VÀ 0.5
+   BIẾN TOÀN CỤC VÀ HÀM ĐỔI THÁNG SẮP XẾP
+   ========================================================================== */
+window.thangDangSapXepThop = null;
+
+function doiThangSapXep(thang) {
+    if (thang === "tudong") {
+        window.thangDangSapXepThop = null;
+    } else {
+        window.thangDangSapXepThop = parseInt(thang, 10);
+    }
+    veBangThop();
+}
+
+function layThangHienTai() {
+    let tg = "";
+    if (typeof canbHientai !== 'undefined' && canbHientai && canbHientai.tde && canbHientai.tde.tgian) {
+        tg = String(canbHientai.tde.tgian);
+    } else {
+        let el = document.getElementById("chuThoiGian");
+        if (el) tg = el.innerText || el.textContent || "";
+    }
+    let m = tg.match(/(\d{1,2})/);
+    if (m) {
+        let thang = parseInt(m[1], 10);
+        if (thang >= 1 && thang <= 12) return thang;
+    }
+    return new Date().getMonth() + 1; 
+}
+
+function phanTichKetQuaThang(chuoiKq) {
+    if (!chuoiKq || typeof chuoiKq !== 'string') return { rank: 0, diem: -999 };
+    let txt = chuoiKq.toLowerCase().trim();
+    if (txt === "" || txt === "-" || txt.includes("chưa đánh giá")) return { rank: 0, diem: -999 };
+    
+    let rank = 0;
+    if (txt.includes("xuất sắc")) rank = 4;
+    else if (txt.includes("tốt")) rank = 3;
+    else if (txt.includes("chưa hoàn thành")) rank = 1;
+    else if (txt.includes("hoàn thành")) rank = 2;
+    else rank = 0;
+    
+    let diem = 0;
+    let match = txt.match(/([-+]?\d+([.,]\d+)?)/);
+    if (match) {
+        diem = parseFloat(match[1].replace(',', '.'));
+        if (isNaN(diem)) diem = 0;
+    }
+    return { rank: rank, diem: diem };
+}
+
+/* ==========================================================================
+   HÀM VẼ BẢNG TỔNG HỢP (TỰ ĐỘNG SẮP XẾP THEO THÁNG ĐANG LỰA CHỌN)
+   ========================================================================== */
+function veBangThop() { 
+    if (!Array.isArray(dlThopGoc)) dlThopGoc = [];
+    const nchon = $('#locNamThop').val(), tb = $('#bangThop tbody').empty(); 
+    if (!nchon) { 
+        tb.append('<tr><td colspan="15" class="text-center text-muted py-4">Vui lòng chọn Năm học.</td></tr>'); 
+        return; 
+    } 
+
+    let bc = {}; 
+    dlThopGoc.forEach(r => { 
+        if (String(r[2]) !== nchon || !r[0]) return; 
+        if (!bc[r[0]]) bc[r[0]] = { tenn: r[0], thangs: {} }; 
+        let mt = parseInt(String(r[3]).match(/(\d{1,2})/)?.[0]); 
+        if (mt) bc[r[0]].thangs[mt] = r[4]; 
+    }); 
+    
+    // 1. THUẬT TOÁN XÁC ĐỊNH THÁNG ĐANG LỰA CHỌN ĐỂ SẮP XẾP
+    let thangHt = layThangHienTai();
+    let thangMucTieu = window.thangDangSapXepThop;
+
+    // Nếu người dùng chưa bấm chọn trực tiếp vào cột tháng, kiểm tra ô select
+    if (!thangMucTieu) {
+        let selThang = $('#locThangSapXep').val();
+        if (selThang && selThang !== "tudong") {
+            thangMucTieu = parseInt(selThang, 10);
+        }
+    }
+
+    // Nếu vẫn ở chế độ tự động:
+    if (!thangMucTieu) {
+        let namDangChon = $('#locNamThop').val();
+        let namHienTai = "";
+        if (typeof canbHientai !== 'undefined' && canbHientai && canbHientai.tde && canbHientai.tde.nhoc) {
+            namHienTai = String(canbHientai.tde.nhoc).trim();
+        }
+        
+        // Nếu là Năm học hiện tại -> Xếp theo tháng hiện tại (VD: Tháng 11)
+        if (!namDangChon || !namHienTai || namDangChon === namHienTai) {
+            thangMucTieu = thangHt;
+        } else {
+            // NẾU LÀ NĂM QUÁ KHỨ (KHÔNG PHẢI HIỆN TẠI):
+            // Tự động tìm tháng có dữ liệu mới nhất trong năm học quá khứ đó
+            const thoThuTu = [6, 5, 4, 3, 2, 1, 12, 11, 10, 9, 8, 7];
+            for (let t of thoThuTu) {
+                let coDuLieu = Object.values(bc).some(gr => gr.thangs[t] && gr.thangs[t] !== "-" && String(gr.thangs[t]).trim() !== "");
+                if (coDuLieu) {
+                    thangMucTieu = t;
+                    break;
+                }
+            }
+            if (!thangMucTieu) thangMucTieu = thangHt;
+        }
+    }
+
+    // Đồng bộ lại giá trị ô dropdown chọn tháng
+    if ($('#locThangSapXep').length > 0) {
+        if (window.thangDangSapXepThop) {
+            $('#locThangSapXep').val(String(window.thangDangSapXepThop));
+        } else {
+            $('#locThangSapXep').val("tudong");
+        }
+    }
+
+    // 2. CHUYỂN THÀNH MẢNG VÀ SẮP XẾP TỪ CAO ĐẾN THẤP THEO THÁNG MỤC TIÊU
+    // (ĐẢM BẢO 100% CÁC THÁNG KHÁC DI CHUYỂN ĐỒNG BỘ TRÊN CÙNG HÀNG CÁN BỘ)
+    let dsCanBo = Object.values(bc);
+    dsCanBo.sort((a, b) => {
+        let kqA = phanTichKetQuaThang(a.thangs[thangMucTieu]);
+        let kqB = phanTichKetQuaThang(b.thangs[thangMucTieu]);
+        
+        // Tiêu chí 1: Xếp loại cao hơn đứng trước
+        if (kqA.rank !== kqB.rank) return kqB.rank - kqA.rank;
+        // Tiêu chí 2: Cùng loại -> Điểm cao hơn đứng trước
+        if (kqA.diem !== kqB.diem) return kqB.diem - kqA.diem;
+        // Tiêu chí 3: Cùng điểm -> Theo vần tên
+        return a.tenn.localeCompare(b.tenn, 'vi');
+    });
+
+    // 3. ĐÁNH DẤU CỘT THÁNG ĐANG ĐƯỢC XẾP HẠNG TRÊN HEADER
+    $('#bangThop thead th.th-thang-bam-duoc').each(function() {
+        let t = parseInt($(this).attr('data-thang'), 10);
+        if (t === thangMucTieu) {
+            $(this).addClass('cot-thang-hien-tai-th').attr('title', `Đang sắp xếp từ cao xuống thấp theo Tháng ${t} (Bấm tháng khác để đổi)`);
+            $(this).html(`T${t} <i class="bi bi-sort-down"></i>`);
+        } else {
+            $(this).removeClass('cot-thang-hien-tai-th').attr('title', `Bấm để xếp thứ tự theo Tháng ${t}`);
+            $(this).text(`T${t}`);
+        }
+    });
+
+    // 4. KẾT XUẤT NỘI DUNG RA BẢNG
+    let stth = 1; 
+    const tho = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]; 
+    let chuoi_html = "";
+    
+    dsCanBo.forEach(gr => { 
+        let keyTimKiem = gr.tenn.trim().toLowerCase();
+        let maId = (window.PGV_MAP_TEN_ID && window.PGV_MAP_TEN_ID[keyTimKiem]) ? window.PGV_MAP_TEN_ID[keyTimKiem] : "Chưa xác định";
+        
+        let dr = `<tr>
+            <td class="text-center align-middle fw-bold">${stth++}</td>
+            <td class="ps-3 align-middle">
+                <div class="fw-bold text-primary text-uppercase" style="font-size: 13px;">${gr.tenn}</div>
+                <div class="text-secondary mt-1" style="font-size: 11px; font-style: italic; font-weight: normal;">
+                    <i class="bi bi-person-vcard me-1"></i>ID: ${maId}
+                </div>
+            </td>
+            <td class="align-middle"><input type="text" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold text-danger" disabled placeholder="..."></td>`; 
+        
+        tho.forEach(m => {
+            let val = gr.thangs[m];
+            let clsThang = (m === thangMucTieu) ? 'cot-thang-hien-tai' : (val ? 'bg-light' : '');
+            dr += `<td class="text-center small align-middle ${clsThang}">${val || '-'}</td>`;
+        }); 
+        chuoi_html += dr + '</tr>'; 
+    }); 
+    
+    tb.html(chuoi_html); 
+}
+
+/* ==========================================================================
+   HÀM TRỢ LÝ AI: TÍNH TOÁN XẾP LOẠI THEO KHOẢNG THỜI GIAN (GIỮ NGUYÊN GỐC 100%)
    ========================================================================== */
 function runAIAssistant() {
     let btn = document.querySelector("button[onclick='runAIAssistant()']");
@@ -244,7 +471,6 @@ function runAIAssistant() {
                     if (tds.length < 15) continue; 
 
                     let countHTXS = 0, countHTT = 0, countHT = 0, countCHT = 0;
-                    // [ĐÃ KHÔI PHỤC]: Trả lại biến tongDiemXepLoai đúng như mã gốc
                     let tongDiemXepLoai = 0, tongDiemSo = 0, validMonths = 0;
 
                     for (let j = cotBatDau; j <= cotKetThuc; j++) {
@@ -253,13 +479,11 @@ function runAIAssistant() {
                         let textLower = cellText.toLowerCase();
                         let diem = 0;
                         
-                        // [ĐÃ NÂNG CẤP]: Chỉ thay đổi phần regex quét số thập phân
                         let matchDiem = cellText.match(/(\d+([.,]\d+)?)/);
                         if (matchDiem) {
                             diem = parseFloat(matchDiem[1].replace(',', '.'));
                         }
 
-                        // [ĐÃ KHÔI PHỤC LẠI CÔNG THỨC CỘNG GỐC]
                         if (cellText === "" || cellText === "-" || cellText.includes("...") || textLower.includes("chưa có")) {
                             tongDiemXepLoai += 0;
                             tongDiemSo += 0; 
@@ -283,8 +507,6 @@ function runAIAssistant() {
                     if (validMonths === 0) continue; 
 
                     let D = tongSoThangYeuCau; 
-                    
-                    // [ĐÃ KHÔI PHỤC LẠI LOGIC CHUẨN]: Tính riêng 2 loại điểm và cộng vào nhau
                     let diemTBXepLoai = tongDiemXepLoai / D;
                     let diemTBSo = tongDiemSo / D;
                     let avgScore = (diemTBXepLoai + diemTBSo).toFixed(1);
@@ -360,8 +582,6 @@ function xeDapNhaiBongDung() {
         if (mucDoTrai !== mucDoPhai) return mucDoPhai - mucDoTrai; 
         
         let diemTrai = 0, diemPhai = 0;
-        
-        // [ĐÃ NÂNG CẤP]: Cải tiến bắt số thập phân (dấu chấm/phẩy) khi sắp xếp
         let timDiemTrai = chuoiHoaHong.match(/([\d.,]+)\s*điểm/);
         let timDiemPhai = chuoiHoaCuc.match(/([\d.,]+)\s*điểm/);
         
@@ -378,7 +598,6 @@ function xeDapNhaiBongDung() {
     }
 }
 
-// CÁC HÀM GỐC KHÔI PHỤC LẠI BÊN DƯỚI ĐÂY
 function ghiKetQuaAI() {
     let table = document.getElementById("bangThop");
     if (!table) return;
@@ -438,45 +657,4 @@ function ghiKetQuaAI() {
          btn.disabled = false;
     }
 }
-
-function veBangThop() { 
-    if (!Array.isArray(dlThopGoc)) dlThopGoc = [];
-    const nchon = $('#locNamThop').val(), tb = $('#bangThop tbody').empty(); 
-    if (!nchon) { 
-        tb.append('<tr><td colspan="15" class="text-center text-muted py-4">Vui lòng chọn Năm học.</td></tr>'); 
-        return; 
-    } 
-
-    let bc = {}; 
-    dlThopGoc.forEach(r => { 
-        if (String(r[2]) !== nchon || !r[0]) return; 
-        if (!bc[r[0]]) bc[r[0]] = { tenn: r[0], thangs: {} }; 
-        let mt = parseInt(String(r[3]).match(/(\d{1,2})/)?.[0]); 
-        if (mt) bc[r[0]].thangs[mt] = r[4]; 
-    }); 
-    
-    let stth = 1; 
-    const tho = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]; 
-    let chuoi_html = "";
-    
-    for (const k in bc) { 
-        const gr = bc[k]; 
-        let keyTimKiem = gr.tenn.trim().toLowerCase();
-        let maId = (window.PGV_MAP_TEN_ID && window.PGV_MAP_TEN_ID[keyTimKiem]) ? window.PGV_MAP_TEN_ID[keyTimKiem] : "Chưa xác định";
-        
-        let dr = `<tr>
-            <td class="text-center align-middle">${stth++}</td>
-            <td class="ps-3 align-middle">
-                <div class="fw-bold text-primary text-uppercase" style="font-size: 13px;">${gr.tenn}</div>
-                <div class="text-secondary mt-1" style="font-size: 11px; font-style: italic; font-weight: normal;">
-                    <i class="bi bi-person-vcard me-1"></i>ID: ${maId}
-                </div>
-            </td>
-            <td class="align-middle"><input type="text" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold text-danger" disabled placeholder="..."></td>`; 
-        tho.forEach(m => dr += `<td class="text-center small align-middle ${gr.thangs[m] ? 'bg-light' : ''}">${gr.thangs[m] || '-'}</td>`); 
-        chuoi_html += dr + '</tr>'; 
-    } 
-    tb.html(chuoi_html); 
-}
-
 </script>
