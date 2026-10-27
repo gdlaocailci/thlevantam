@@ -124,53 +124,47 @@
     }
 
 function kiemTraPhienLamViec() {
-        const tkluuhd = sessionStorage.getItem("MA_PBAN_HT");
-        const tokenluu = sessionStorage.getItem("PGV_TOKEN"); 
-        const daGhiLs = sessionStorage.getItem("DA_GHI_LS"); 
+    const tkluuhd = sessionStorage.getItem("MA_PBAN_HT");
+    const tokenluu = sessionStorage.getItem("PGV_TOKEN"); 
+    const daGhiLs = sessionStorage.getItem("DA_GHI_LS"); 
 
-        if (tkluuhd && tokenluu) { 
-            window.PGV_ID_TC = tkluuhd; 
-            window.PGV_TOKEN = tokenluu;
-            document.getElementById('manhChao').style.display = 'none'; 
-            
-            if (!daGhiLs) {
-                datTaiDl(true, "Đang thiết lập phiên làm việc...");
-                window.khachApi.ghiNhatKy(tkluuhd, function() {
-                    sessionStorage.setItem("DA_GHI_LS", "1"); 
-                    chbiHt(); 
-                }, function(loi) {
-                    console.log("Lỗi ghi lịch sử: ", loi);
-                    chbiHt(); 
-                });
-            } else {
-                chbiHt(); 
-            }
-            
-        } else { 
-            document.getElementById('manhChao').style.display = 'flex'; 
-            document.getElementById('khu_vuc_nut_dang_nhap').innerHTML = ""; 
-            
-            if (typeof PGV_GOOGLE_CLIENT_ID === 'undefined' || !PGV_GOOGLE_CLIENT_ID) {
-                hienThongbLoi("Cảnh báo: Tệp ketnoi.js chưa được khai báo Client ID Google.");
-                return;
-            }
-            
-           // [NÂNG CẤP] Bổ sung use_fedcm_for_prompt: true để chuyển đổi sang giao thức FedCM.
-           // Việc này giúp bỏ qua cơ chế Cookie chéo (Third-party Cookies), khắc phục triệt để 
-           // tình trạng chặn đăng nhập trên các trình duyệt hiện đại (Chrome, Safari, Edge).
-           google.accounts.id.initialize({
-                client_id: PGV_GOOGLE_CLIENT_ID,
-                callback: xulyPhienDn,
-                auto_prompt: false,
-                use_fedcm_for_prompt: true 
-            });
-            
-            google.accounts.id.renderButton(
-                document.getElementById("khu_vuc_nut_dang_nhap"),
-                { theme: "outline", size: "large", type: "standard", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-            );
+    if (tkluuhd && tokenluu) { 
+        window.PGV_ID_TC = tkluuhd; 
+        window.PGV_TOKEN = tokenluu;
+        document.getElementById('manhChao').style.display = 'none'; 
+        
+        // TỐI ƯU HÓA: Ghi nhật ký ngầm (Non-blocking), không bắt người dùng phải chờ đợi
+        if (!daGhiLs) {
+            sessionStorage.setItem("DA_GHI_LS", "1"); 
+            window.khachApi.ghiNhatKy(tkluuhd, function() {}, function(loi) { console.warn("Log:", loi); });
         }
+        
+        // Vào thẳng giao diện ngay lập tức
+        chbiHt(); 
+        
+    } else { 
+        // Giữ nguyên 100% logic hiển thị nút đăng nhập Google
+        document.getElementById('manhChao').style.display = 'flex'; 
+        document.getElementById('khu_vuc_nut_dang_nhap').innerHTML = ""; 
+        
+        if (typeof PGV_GOOGLE_CLIENT_ID === 'undefined' || !PGV_GOOGLE_CLIENT_ID) {
+            hienThongbLoi("Cảnh báo: Tệp ketnoi.js chưa được khai báo Client ID Google.");
+            return;
+        }
+        
+        google.accounts.id.initialize({
+            client_id: PGV_GOOGLE_CLIENT_ID,
+            callback: xulyPhienDn,
+            auto_prompt: false,
+            use_fedcm_for_prompt: true 
+        });
+        
+        google.accounts.id.renderButton(
+            document.getElementById("khu_vuc_nut_dang_nhap"),
+            { theme: "outline", size: "large", type: "standard", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
+        );
     }
+}
 
 function xulyPhienDn(phanho) {
       try {
@@ -436,51 +430,102 @@ function xulyPhienDn(phanho) {
 
     function giaiMaBcao(toanchu) { if (!toanchu) return { chu: "", tepdinhk: [] }; let cactep = []; let chuloc = toanchu.replace(/\[FILE:(.+?)\|([^\]]+)\]/g, function(khop, ten, ddan) { cactep.push({ tentep: ten, duongd: ddan }); return ""; }); return { chu: chuloc.trim(), tepdinhk: cactep }; }
 
-    /* =================================================================================
-       QUY TRÌNH KHỞI ĐỘNG MỚI (LAZY LOADING & PROGRESSIVE ENHANCEMENT)
-       ================================================================================= */
- async function chbiHt() {
-      try {
-        datTaiDl(true, "✨ ĐANG ĐỒNG BỘ DỮ LIỆU...");
+   /* =================================================================================
+   QUY TRÌNH KHỞI ĐỘNG SWR (STALE-WHILE-REVALIDATE) - MỞ TỨC THÌ DƯỚI 0.5 GIÂY
+   ================================================================================= */
+async function chbiHt() {
+    try {
+        const cacheKeyDl = "PGV_SWR_CANB_" + window.PGV_ID_TC;
+        const cacheKeyMenu = "PGV_SWR_MENU";
+        const cacheKeyNV = "PGV_SWR_TAB_NV";
+        const verHienTai = (typeof PGV_PHIEN_BAN !== 'undefined') ? PGV_PHIEN_BAN : "1.0";
+        const cacheVer = localStorage.getItem("PGV_SWR_VER");
 
-        // TỐI ƯU 1: Chạy song song (Parallel Execution)
-        const pGiaoDien = taiGiaoDienUuTien();
+        let daCoCache = false;
+
+        // BƯỚC 1 (STALE): NẾU CÓ DỮ LIỆU CŨ TỪ PHIÊN TRƯỚC -> HIỂN THỊ NGAY TỨC THÌ (0.1 GIÂY)
+        if (cacheVer === verHienTai) {
+            const htmlMenu = localStorage.getItem(cacheKeyMenu);
+            const htmlNV = localStorage.getItem(cacheKeyNV);
+            const dlCanbRaw = localStorage.getItem(cacheKeyDl);
+
+            if (htmlMenu && htmlNV && dlCanbRaw) {
+                try {
+                    document.getElementById('khuVucMenu').innerHTML = htmlMenu;
+                    document.getElementById('khuNhiemVu').innerHTML = htmlNV;
+                    ['khuVucMenu', 'khuNhiemVu'].forEach(i => thuchScript(document.getElementById(i)));
+                    thietLapSuKienTienNhiem();
+
+                    const dlCu = JSON.parse(dlCanbRaw);
+                    khiTaiDlXong(dlCu); // Giao diện mở ra ngay lập tức!
+                    daCoCache = true;
+                } catch(e) {
+                    daCoCache = false;
+                }
+            }
+        }
+
+        // Nếu là lần đầu tiên mở máy chưa có cache -> Mới hiện xoay màn hình
+        if (!daCoCache) {
+            datTaiDl(true, "✨ ĐANG TẢI GIAO DIỆN...");
+        }
+
+        // BƯỚC 2 (REVALIDATE): ĐỒNG BỘ NGẦM ĐỂ LUÔN LẤY DỮ LIỆU MỚI NHẤT 100%
+        const pGiaoDien = taiGiaoDienUuTien(daCoCache);
         const pDuLieu = new Promise((resolve, reject) => {
             window.khachApi.layDlCanb(null, window.PGV_ID_TC, resolve, reject);
         });
 
-        // Chờ cả 2 luồng hoàn tất để triệt tiêu thời gian chờ chéo
-        const [_, kqDl] = await Promise.all([pGiaoDien, pDuLieu]);
+        // Chạy song song không chặn giao diện
+        Promise.all([pGiaoDien, pDuLieu]).then(([_, kqDlMoi]) => {
+            if (kqDlMoi && !kqDlMoi.ttai) {
+                // Lưu lại bản sao mới nhất vào bộ nhớ máy để phiên sau mở tức thì
+                localStorage.setItem(cacheKeyDl, JSON.stringify(kqDlMoi));
+                localStorage.setItem("PGV_SWR_VER", verHienTai);
+            }
+            // Cập nhật giao diện mượt mà theo dữ liệu mới nhất từ máy chủ
+            khiTaiDlXong(kqDlMoi);
+        }).catch(err => {
+            if (!daCoCache) khiLoiMayChu(err);
+        });
 
-        thietLapSuKienTienNhiem();
-        
-        // Tắt màn hình chờ và hiển thị dữ liệu ngay lập tức
-        khiTaiDlXong(kqDl);
-      } catch(loiHthong) { 
+    } catch(loiHthong) { 
         khiLoiMayChu(loiHthong); 
-      }
     }
+}
 
-    function taiDlBdau() { 
-        // Luồng tải đã được tích hợp vào Promise.all bên trên
-    }
+async function taiGiaoDienUuTien(daCoSanCache = false) {
+    try {
+        const ver = (typeof PGV_PHIEN_BAN !== 'undefined') ? PGV_PHIEN_BAN : new Date().getHours();
+        const mb = "?v=" + ver; // Tận dụng Cache của trình duyệt theo Version, không phá cache liên tục
 
-    async function taiGiaoDienUuTien() {
-      try {
-        const mb = "?v=" + new Date().getTime();
         const [phMenu, phNhiemVu] = await Promise.all([
-            fetch('./Menu_Doc.html' + mb), fetch('./PGV_Tab_NhiemVu.html' + mb)
+            fetch('./Menu_Doc.html' + mb), 
+            fetch('./PGV_Tab_NhiemVu.html' + mb)
         ]);
         
-        document.getElementById('khuVucMenu').innerHTML = await phMenu.text(); 
-        document.getElementById('khuNhiemVu').innerHTML = await phNhiemVu.text(); 
-        
-        if (typeof PGV_LINK_LOGO !== 'undefined') { var mnLg = document.getElementById('menu_logo'); if(mnLg) mnLg.src = PGV_LINK_LOGO; }
-        if (typeof PGV_TEN_TRUONG !== 'undefined') { var mnSc = document.getElementById('menu_school_name'); if(mnSc) mnSc.innerText = PGV_TEN_TRUONG; }
-        
-        ['khuVucMenu', 'khuNhiemVu'].forEach(i => thuchScript(document.getElementById(i)));
-      } catch (e) { throw new Error("LỖI KẾT NỐI TỆP GIAO DIỆN CỐT LÕI: " + e.message); }
+        const txtMenu = await phMenu.text();
+        const txtNV = await phNhiemVu.text();
+
+        // Lưu bản mẫu HTML vào cache cục bộ
+        localStorage.setItem("PGV_SWR_MENU", txtMenu);
+        localStorage.setItem("PGV_SWR_TAB_NV", txtNV);
+
+        // Nếu lúc nãy chưa có cache thì chèn vào DOM và kích hoạt script
+        if (!daCoSanCache) {
+            document.getElementById('khuVucMenu').innerHTML = txtMenu; 
+            document.getElementById('khuNhiemVu').innerHTML = txtNV; 
+            
+            if (typeof PGV_LINK_LOGO !== 'undefined') { var mnLg = document.getElementById('menu_logo'); if(mnLg) mnLg.src = PGV_LINK_LOGO; }
+            if (typeof PGV_TEN_TRUONG !== 'undefined') { var mnSc = document.getElementById('menu_school_name'); if(mnSc) mnSc.innerText = PGV_TEN_TRUONG; }
+            
+            ['khuVucMenu', 'khuNhiemVu'].forEach(i => thuchScript(document.getElementById(i)));
+            thietLapSuKienTienNhiem();
+        }
+    } catch (e) { 
+        if (!daCoSanCache) throw new Error("LỖI KẾT NỐI TỆP GIAO DIỆN CỐT LÕI: " + e.message); 
     }
+}
 
     // Tải HTML ngầm dựa trên phân quyền, trả về Promise để đồng bộ
     async function taiGiaoDienNen(quyen) {
@@ -729,21 +774,24 @@ function xulyPhienDn(phanho) {
         window.PGV_SHOW_DELETE_COLUMN = canShowDeleteButton;
         if (typeof veBangNviec === 'function') veBangNviec(kq.bang);
 
-        // 4. Kích hoạt quy trình tải nền (Chỉ chạy 1 lần)
+        // 4. Kích hoạt quy trình tải nền thông minh (Tận dụng CPU rảnh rỗi, tránh nghẽn GAS)
         if (!windowDaTienHanhTaiNgam) {
-             windowDaTienHanhTaiNgam = true;
-             taiGiaoDienNen(quyen).then(() => {
-                 // Ưu tiên tải Dropdown người dùng sau khi tải xong HTML Giao việc
-                 taiDsTrang();
-                 
-                 // Cuối cùng, âm thầm lấy số liệu cho các tab báo cáo
-                 setTimeout(function() {
-                     if (typeof taiDlThop === 'function') taiDlThop(true);
-                     if (typeof taiDlNghi === 'function') taiDlNghi(true);
-                     if (typeof taiDlYkien === 'function') taiDlYkien(true);
-                     if (typeof taidlBcao === 'function') taidlBcao(false, true);
-                 }, 500);
-             });
+            windowDaTienHanhTaiNgam = true;
+            
+            const khoiChayNgam = window.requestIdleCallback || function(cb) { setTimeout(cb, 1000); };
+            
+            khoiChayNgam(() => {
+                taiGiaoDienNen(quyen).then(() => {
+                    // Tải danh sách giáo viên
+                    taiDsTrang();
+                    
+                    // Giãn cách thời gian truy vấn các tab báo cáo để không làm nghẽn máy chủ
+                    setTimeout(() => { if (typeof taiDlThop === 'function') taiDlThop(true); }, 1500);
+                    setTimeout(() => { if (typeof taiDlNghi === 'function') taiDlNghi(true); }, 3000);
+                    setTimeout(() => { if (typeof taiDlYkien === 'function') taiDlYkien(true); }, 4500);
+                    setTimeout(() => { if (typeof taidlBcao === 'function') taidlBcao(false, true); }, 6000);
+                });
+            });
         }
 
       } catch (loih) { hienThongbLoi("Lỗi cấu trúc hiển thị: " + loih.message); }
@@ -1294,6 +1342,7 @@ function taiTepDangXem() {
   $(document).on('click', '#tabYkienGiamSat', () => { 
       taiDlYkienGiamSat(); 
   });
+  </script>
   <!-- =========================================================================================
      [MỚI] KHỐI LOGIC: NHẮC BÁO CÁO (Chỉ hiển thị với quyền "xx" và "xxx")
      ========================================================================================= -->
