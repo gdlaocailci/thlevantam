@@ -1294,13 +1294,13 @@ function taiTepDangXem() {
   $(document).on('click', '#tabYkienGiamSat', () => { 
       taiDlYkienGiamSat(); 
   });
-  </script>
-
   <!-- =========================================================================================
      [MỚI] KHỐI LOGIC: NHẮC BÁO CÁO (Chỉ hiển thị với quyền "xx" và "xxx")
      ========================================================================================= -->
 <script>
 let danhSachChuaNopGoc = [];
+let thoiDiemTaiNhacBaoCao = 0;
+let dangDongBoNgamNhacBaoCao = false;
 
 function veKhungBangNhacBaoCao() {
     let pane = document.getElementById("khuNhacBaoCao");
@@ -1312,14 +1312,14 @@ function veKhungBangNhacBaoCao() {
                     <span class="badge bg-danger p-2 me-2 fs-6 shadow-sm"><i class="bi bi-bell-fill"></i></span>
                     <div>
                         <h4 class="text-danger fw-bold text-uppercase m-0" style="letter-spacing: 0.5px;">Danh Sách Nhắc Báo Cáo</h4>
-                        <small class="text-muted">Tổng hợp cán bộ, giáo viên chưa nộp báo cáo tháng</small>
+                        <small class="text-muted">Tổng hợp cán bộ, giáo viên chưa nộp báo cáo</small>
                     </div>
                 </div>
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-success btn-sm fw-bold shadow-sm" onclick="saoChepDanhSachNhac()">
                         <i class="bi bi-clipboard-check me-1"></i> Sao chép danh sách nhắc Zalo
                     </button>
-                    <button class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="taiDlNhacBaoCao()">
+                    <button id="btnLamMoiNhacBaoCao" class="btn btn-primary btn-sm fw-bold shadow-sm" onclick="taiDlNhacBaoCao(true)">
                         <i class="bi bi-arrow-repeat me-1"></i> Làm mới dữ liệu
                     </button>
                 </div>
@@ -1391,8 +1391,7 @@ function veKhungBangNhacBaoCao() {
     }
 }
 
-function taiDlNhacBaoCao() {
-    // Kiểm tra bảo mật phía máy khách: Chỉ quyền xx hoặc xxx mới thực thi
+function taiDlNhacBaoCao(batBuoc = false) {
     if (!window.PGV_SHOW_NHACBAOCAO) {
         if (typeof hienThongb === 'function') {
             hienThongb('loi', 'Bạn không có quyền truy cập tab tính năng này.');
@@ -1401,22 +1400,52 @@ function taiDlNhacBaoCao() {
     }
 
     veKhungBangNhacBaoCao();
-    if (typeof datTaiDl === 'function') datTaiDl(true, "Đang rà soát...");
+
+    let daCoDuLieu = (danhSachChuaNopGoc && thoiDiemTaiNhacBaoCao > 0);
+    let thoiGianTroiQua = Date.now() - thoiDiemTaiNhacBaoCao;
+
+    // Trả về ngay lập tức nếu quay lại tab trong vòng 45 giây
+    if (!batBuoc && daCoDuLieu && thoiGianTroiQua < 45000) {
+        return;
+    }
+
+    let chayNgam = (!batBuoc && daCoDuLieu);
+
+    if (!chayNgam) {
+        if (typeof datTaiDl === 'function') datTaiDl(true, "Đang rà soát danh sách...");
+    } else {
+        if (dangDongBoNgamNhacBaoCao) return;
+        dangDongBoNgamNhacBaoCao = true;
+        let btnLamMoi = document.getElementById('btnLamMoiNhacBaoCao');
+        if (btnLamMoi) {
+            btnLamMoi.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang cập nhật...';
+        }
+    }
 
     if (typeof window.khachApi !== 'undefined' && typeof window.khachApi.goiThuCong === 'function') {
         window.khachApi.goiThuCong({ hdong: "laydlnhacbcao" }, function(res) {
-            if (typeof datTaiDl === 'function') datTaiDl(false);
+            dangDongBoNgamNhacBaoCao = false;
+            thoiDiemTaiNhacBaoCao = Date.now();
+
+            if (!chayNgam && typeof datTaiDl === 'function') datTaiDl(false);
             
+            let btnLamMoi = document.getElementById('btnLamMoiNhacBaoCao');
+            if (btnLamMoi) {
+                btnLamMoi.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Làm mới dữ liệu';
+            }
+
             let data = (res && res.dliu) ? res.dliu : (Array.isArray(res) ? res : []);
             danhSachChuaNopGoc = data;
           
-           // Cập nhật số liệu thống kê chuẩn toàn trường
             let tongToanTruong = (res.tongSo !== undefined) ? Number(res.tongSo) : 0;
             let soChuaNop = (res.soChuaNop !== undefined) ? Number(res.soChuaNop) : data.length;
             
-            // Dự phòng: Nếu API chưa trả kịp tongSo, tự động lấy tổng danh sách cán bộ đã tải sẵn trong hệ thống
-            if (tongToanTruong === 0 && $('#hopChonGv option').length > 1) {
-                tongToanTruong = $('#hopChonGv option').length - 1;
+            if (tongToanTruong === 0) {
+                if (window.PGV_TONG_CAN_BO) {
+                    tongToanTruong = window.PGV_TONG_CAN_BO;
+                } else if ($('#hopChonGv option').length > 1) {
+                    tongToanTruong = $('#hopChonGv option').length - 1;
+                }
             }
             
             let soDaNop = (res.soDaNop !== undefined) ? Number(res.soDaNop) : Math.max(0, tongToanTruong - soChuaNop);
@@ -1425,13 +1454,23 @@ function taiDlNhacBaoCao() {
             $('#nbc_soDaNop').text(soDaNop);
             $('#nbc_soChuaNop').text(soChuaNop);
             
-            veBangNhacBaoCao(data);
+            locBangNhacBaoCao();
         }, function(loi) {
-            if (typeof datTaiDl === 'function') datTaiDl(false);
-            if (typeof hienThongb === 'function') hienThongb('loi', "Truy xuất danh sách thất bại: " + loi.message);
+            dangDongBoNgamNhacBaoCao = false;
+            if (!chayNgam && typeof datTaiDl === 'function') datTaiDl(false);
+            
+            let btnLamMoi = document.getElementById('btnLamMoiNhacBaoCao');
+            if (btnLamMoi) {
+                btnLamMoi.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Làm mới dữ liệu';
+            }
+            
+            if (!chayNgam && typeof hienThongb === 'function') {
+                hienThongb('loi', "Truy xuất danh sách thất bại: " + loi.message);
+            }
         });
     } else {
-        if (typeof datTaiDl === 'function') datTaiDl(false);
+        dangDongBoNgamNhacBaoCao = false;
+        if (!chayNgam && typeof datTaiDl === 'function') datTaiDl(false);
         console.error("API chưa sẵn sàng.");
     }
 }
@@ -1475,10 +1514,10 @@ function veBangNhacBaoCao(duLieu) {
             <tr>
                 <td class="text-center fw-bold text-secondary">${stt++}</td>
                 <td class="text-start ps-3">
-                <span class="badge bg-light text-primary border px-2 py-1 fw-bold fs-6" style="letter-spacing: 0.5px;">
-                    <i class="bi bi-person-badge me-1"></i>${item.maId}
-                </span>
-            </td>
+                    <span class="badge bg-light text-primary border px-2 py-1 fw-bold fs-6" style="letter-spacing: 0.5px;">
+                        <i class="bi bi-person-badge me-1"></i>${item.maId}
+                    </span>
+                </td>
                 <td class="ps-3">
                     <div class="fw-bold text-primary text-uppercase" style="font-size: 13.5px;">${item.tenn} ${cvText}</div>
                     <div class="text-muted small" style="font-size: 11.5px;"><i class="bi bi-envelope me-1"></i>${item.email || "Chưa cập nhật"}</div>
@@ -1496,30 +1535,27 @@ function veBangNhacBaoCao(duLieu) {
     tbody.innerHTML = html;
 }
 
-// Tính năng xem nhanh hồ sơ của người cần nhắc (ĐÃ FIX TOÀN DIỆN LUỒNG SỰ KIỆN)
 function chuyenDenHoSo(maId) {
     if (!maId) return;
 
-    // 1. Kích hoạt chuyển ngay sang Tab Nhiệm vụ trên thanh Menu
+    // 1. Chuyển tab sang Nhiệm vụ
     const nutTabNv = document.getElementById('tabNhiemVu') || document.querySelector('[data-bs-target="#khuNhiemVu"]');
     if (nutTabNv) {
-        nutTabNv.click(); // Sử dụng click() tự nhiên của Bootstrap 5
+        nutTabNv.click();
     }
 
-    // 2. Đồng bộ giá trị vào thẻ chọn Giáo viên (#hopChonGv)
+    // 2. Đồng bộ thẻ chọn #hopChonGv
     const hs = $('#hopChonGv');
     if (hs.length) {
-        // Nếu trong dropdown chưa có option mã này thì tự bổ sung để không bị lỗi rỗng
         if (hs.find(`option[value="${maId}"]`).length === 0) {
             hs.append(`<option value="${maId}">${maId}</option>`);
         }
         hs.val(maId);
     }
 
-    // 3. Nạp hồ sơ của cán bộ lên giao diện Tab Nhiệm vụ (ưu tiên Cache RAM siêu tốc)
+    // 3. Tải hồ sơ cá nhân (ưu tiên RAM Cache)
     if (typeof cacheCanb !== 'undefined' && cacheCanb[maId]) {
         khiTaiDlXong(cacheCanb[maId]);
-        // Tải ngầm bản mới nhất để cập nhật nếu có thay đổi
         window.khachApi.layDlCanb(maId, window.PGV_ID_TC, function(kq) {
             if (!kq.koxd) cacheCanb[maId] = kq;
         }, function(){});
@@ -1532,7 +1568,6 @@ function chuyenDenHoSo(maId) {
     }
 }
 
-// Tính năng tìm kiếm tức thì
 function locBangNhacBaoCao() {
     let tuKhoa = ($('#oTimKiemNhacBaoCao').val() || "").trim().toLowerCase();
     if (!danhSachChuaNopGoc || !danhSachChuaNopGoc.length) return;
@@ -1551,7 +1586,6 @@ function locBangNhacBaoCao() {
     veBangNhacBaoCao(ketQuaLoc);
 }
 
-// Tính năng tiện ích: Tạo và sao chép mẫu danh sách nhắc nộp báo cáo Zalo
 function saoChepDanhSachNhac() {
     if (!danhSachChuaNopGoc || danhSachChuaNopGoc.length === 0) {
         if (typeof hienThongb === 'function') hienThongb('cbh', "Hiện tại không có cán bộ nào chưa nộp báo cáo.");
@@ -1576,9 +1610,9 @@ function saoChepDanhSachNhac() {
     });
 }
 
-// Bắt sự kiện khi click vào Tab Nhắc báo cáo
+// Bắt sự kiện click Tab Nhắc báo cáo (chạy chế độ kiểm tra thông minh batBuoc = false)
 $(document).on('click', '#tabNhacBaoCao', () => { 
-    taiDlNhacBaoCao(); 
+    taiDlNhacBaoCao(false); 
 });
 </script>
 </body>
