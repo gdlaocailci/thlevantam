@@ -170,6 +170,10 @@
                 </svg>
             </span> Ý kiến giám sát
         </button>
+
+        <button class="the-chuyen nav-link" id="tabNhacBaoCao" data-bs-toggle="tab" data-bs-target="#khuNhacBaoCao" type="button" role="tab" style="display: none;" onclick="if(typeof taiDlNhacBaoCao === 'function') taiDlNhacBaoCao()">
+            <span class="b-tuong"><i class="bi bi-bell-fill"></i></span> Nhắc báo cáo
+        </button>
        <div id="menuChaTieuChi" style="display: none; width: 100%;">
             <button class="the-chuyen" data-bs-toggle="collapse" data-bs-target="#collapseTieuChi" aria-expanded="false">
                 <span class="b-tuong"><i class="bi bi-ui-checks"></i></span> Tiêu chí đánh giá
@@ -237,12 +241,19 @@
                 tabYkienGiamSat.style.display = (window.PGV_SHOW_YKIENGIAMSAT === true) ? 'flex' : 'none';
             }
         };
+        window.kiemTraHienThiTabNhacBaoCao = function() {
+            var tabNhacBaoCao = document.getElementById('tabNhacBaoCao');
+            if (tabNhacBaoCao) {
+                tabNhacBaoCao.style.display = (window.PGV_SHOW_NHACBAOCAO === true) ? 'flex' : 'none';
+            }
+        };
         
         window.addEventListener('load', function() {
             window.kiemTraHienThiTabCapQuyen();
             window.kiemTraHienThiTabTieuChi();
             window.kiemTraHienThiTabLichSu();
             window.kiemTraHienThiTabYkienGiamSat();
+            window.kiemTraHienThiTabNhacBaoCao();
         });
     })();
 </script>
