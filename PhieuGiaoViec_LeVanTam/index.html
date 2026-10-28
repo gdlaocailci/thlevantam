@@ -666,6 +666,7 @@ async function taiGiaoDienUuTien(daCoSanCache = false) {
       
       if (typeof kiemTraHienThiTabCapQuyen === 'function') kiemTraHienThiTabCapQuyen();
       if (typeof kiemTraHienThiTabTieuChi === 'function') kiemTraHienThiTabTieuChi();
+     if (typeof kiemTraHienThiNutQuyChe === 'function') kiemTraHienThiNutQuyChe();
       
       var canEditScore = false;
       if (quyen === 'xx' && !isSelf) canEditScore = true;
