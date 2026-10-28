@@ -52,48 +52,6 @@
   .voBocYk:hover .ndYk::-webkit-scrollbar-thumb:hover {
       background: #0b5ed7;
   }
-  /* TỐI ƯU HIỂN THỊ TRÊN ĐIỆN THOẠI CHO TAB Ý KIẾN */
-  @media (max-width: 768px) {
-    /* 1. Xếp dọc thanh tiêu đề, chọn năm học và nút tải lại */
-    .card-header .d-flex.align-items-center {
-      flex-direction: column !important;
-      align-items: stretch !important;
-      gap: 8px !important;
-      text-align: center;
-    }
-    .card-header .d-flex.align-items-center > div {
-      justify-content: center !important;
-    }
-    .card-header .fs-6 {
-      margin-right: 0 !important;
-      font-size: 16px !important;
-    }
-    .card-header .ms-auto {
-      margin-left: 0 !important;
-      text-align: center !important;
-    }
-
-    /* 2. Cho phép bảng cuộn ngang độc lập, chạm vuốt mượt mà */
-    .table-responsive {
-      width: 100% !important;
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      max-height: calc(100vh - 160px) !important;
-    }
-    #bangYkien {
-      min-width: 1100px !important;
-    }
-
-    /* 3. Khung phóng to nội dung ý kiến tự co giãn vừa màn hình di động */
-    .voBocYk:hover .ndYk {
-      min-width: 250px !important;
-      max-width: 85vw !important;
-      left: 0 !important;
-      top: 0 !important;
-      font-size: 13px !important;
-      padding: 10px 12px !important;
-    }
-  }
 </style>
 
 <div class="card shadow-sm p-0 border-0">
@@ -136,29 +94,41 @@
 </div>
 
 <script>
-// Hàm trích xuất DUY NHẤT ý kiến của chính chủ (loại bỏ ý kiến lãnh đạo / giám sát)
-function locYkienChinhChu(toanBoYkien) {
+// Hàm xử lý tải TẤT CẢ ý kiến của mọi người, loại bỏ ID để ẩn danh và tạo (-) đầu dòng
+function xuLyTatCaYkien(toanBoYkien) {
     if (!toanBoYkien) return "";
     let chu = String(toanBoYkien);
 
-    // 1. Cắt bỏ phần sau ký tự ẩn \u200B (nơi lưu ý kiến của lãnh đạo và giám sát)
-    if (chu.includes("\u200B")) {
-        chu = chu.split("\u200B")[0];
-    }
+    // 1. Chuyển đổi ký tự phân cách ẩn \u200B thành xuống dòng để lấy đầy đủ ý kiến của mọi người
+    chu = chu.replace(/\u200B/g, "\n");
 
     // 2. Cắt bỏ định dạng ngoặc nhọn cũ {...} nếu có
     chu = chu.replace(/\{[\s\S]+?\}$/, "");
 
-    // 3. Lọc bỏ các dòng có tag của người giám sát/đánh giá dạng [Tên/ID]:
+    // 3. Tách từng dòng ý kiến
     let cacDong = chu.split(/\r?\n/);
-    let cacDongHopLe = cacDong.filter(dong => {
+    let cacDongHopLe = [];
+
+    cacDong.forEach(dong => {
         let d = dong.trim();
-        if (/^\[[^\]]+\]:?/.test(d)) return false;
-        return true;
+        if (!d) return;
+
+        // Loại bỏ tag định danh/ID của người đánh giá ở đầu dòng (ví dụ: [ID]:, [Tên/ID]:, [ID], - [ID]:)
+        d = d.replace(/^[-*•+]?\s*\[[^\]]+\]:?\s*/, "").trim();
+
+        // Loại bỏ dấu gạch đầu dòng cũ nếu người viết đã gõ sẵn
+        d = d.replace(/^[-*•+]\s*/, "").trim();
+
+        if (d !== "") {
+            cacDongHopLe.push("- " + d);
+        }
     });
 
-    return cacDongHopLe.join("\n").trim();
+    return cacDongHopLe.join("\n");
 }
+
+// Giữ lại alias locYkienChinhChu trỏ đến xuLyTatCaYkien để đảm bảo tính tương thích
+var locYkienChinhChu = xuLyTatCaYkien;
 
 function veBangYkien() { 
     if (!Array.isArray(dlYkienGoc)) dlYkienGoc = [];
@@ -190,9 +160,9 @@ function veBangYkien() {
             </td>`; 
         tho.forEach(m => { 
             let v = gr.thangs[m], chuh = '-'; 
-            let ykChinhChu = locYkienChinhChu(v);
-            if (ykChinhChu !== "") { 
-                chuh = `<div class="voBocYk"><div class="ndYk">${ykChinhChu}</div></div>`; 
+            let yk = xuLyTatCaYkien(v);
+            if (yk !== "") { 
+                chuh = `<div class="voBocYk"><div class="ndYk">${yk}</div></div>`; 
             } 
             dr += `<td class="p-2 align-middle">${chuh}</td>`; 
         }); 
