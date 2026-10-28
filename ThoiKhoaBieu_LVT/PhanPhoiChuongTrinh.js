@@ -459,7 +459,7 @@ function moTabPhanPhoiChuongTrinh() {
 
     // Ẩn Header hệ thống
     const headerHeThong = document.querySelector('header');
-    if (headerHeThong) { headerHeThong.style.display = 'none'; }
+    if (headerHeThong) { headerHeThong.style.display = ''; }
 
     // 4. Hiện khung PPCT
     const khungPPCT = document.getElementById('khungPhanPhoiChuongTrinh');
@@ -569,11 +569,7 @@ document.addEventListener('click', function(e) {
         
         const headerHeThong = document.querySelector('header');
         if (headerHeThong) { 
-            if (menuClicked.id === 'menuTKB') {
-                headerHeThong.style.display = ''; // Khôi phục khi về trang chủ
-            } else {
-                headerHeThong.style.display = 'none'; // Tiếp tục ẩn ở Thống kê, Cài đặt...
-            }
+            headerHeThong.style.display = ''; // Luôn giữ Header hiển thị ở mọi tab để bảo toàn nút 3 gạch chuyển menu
         }
     }
 });
