@@ -7,7 +7,7 @@
   
   /* Khối bảng tự động lấp đầy khoảng trống còn lại, sinh thanh cuộn chuẩn xác */
   .vung-bang-nv { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-  .table-responsive { flex: 1 1 auto; overflow-y: auto !important; overflow-x: hidden; min-height: 0; }
+  .table-responsive { flex: 1 1 auto; overflow-y: auto !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; min-height: 0; }
 
   /* --- KẾ THỪA CÁC ĐỊNH DẠNG CSS CŨ --- */
   .hopDau { background-color: #e9ecef; padding: 5px 10px; border-radius: 5px; margin-bottom: 5px; border: 1px solid #ced4da; }
@@ -109,6 +109,77 @@
   .btn-reactbits-shiny:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+  }
+
+  @media (max-width: 768px) {
+    .bo-cuc-tab-nhiemvu { height: auto !important; min-height: calc(100vh - 60px); width: 100% !important; }
+    
+    /* Vùng tiêu đề và thông tin thời gian xếp dọc gọn gàng */
+    .vung-dieu-khien-top .hopDau > div.d-flex {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 6px !important;
+    }
+    .vung-dieu-khien-top .hopDau div[style*="flex: 1.5"] {
+      flex: none !important;
+      width: 100% !important;
+      text-align: center !important;
+      font-size: 13px !important;
+      white-space: normal !important;
+    }
+    .vung-dieu-khien-top .hopDau div.tDe {
+      flex: none !important;
+      width: 100% !important;
+      text-align: center !important;
+      font-size: 17px !important;
+    }
+    .vung-dieu-khien-top .hopDau div[style*="flex: 2"]:last-child {
+      flex: none !important;
+      width: 100% !important;
+      text-align: center !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+    .vung-dieu-khien-top .hopDau div[style*="flex: 2"]:last-child > div {
+      border: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    /* Thanh điều khiển phụ (Nghỉ, Lưu nhật ký, Nộp báo cáo) */
+    .vung-dieu-khien-top > div.d-flex.align-items-center.mb-2 {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 6px !important;
+      padding: 8px !important;
+    }
+    .vung-dieu-khien-top > div.d-flex.align-items-center.mb-2 > div {
+      width: 100% !important;
+      flex: none !important;
+      padding: 0 !important;
+      justify-content: space-between !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+    #nhapLdoNghi {
+      width: 100% !important;
+      margin-top: 4px !important;
+      margin-right: 0 !important;
+    }
+
+    /* Bảng nhiệm vụ: cho phép cuộn ngang mượt mà, không bị dẹp cột */
+    #bangNviec {
+      min-width: 780px !important;
+      table-layout: auto !important;
+    }
+    #bangNviec thead th {
+      font-size: 12px !important;
+      padding: 6px 3px !important;
+    }
+    #bangNviec td {
+      font-size: 13px !important;
+    }
   }
 </style>
 
