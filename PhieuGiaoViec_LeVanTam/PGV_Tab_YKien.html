@@ -52,6 +52,48 @@
   .voBocYk:hover .ndYk::-webkit-scrollbar-thumb:hover {
       background: #0b5ed7;
   }
+  /* TỐI ƯU HIỂN THỊ TRÊN ĐIỆN THOẠI CHO TAB Ý KIẾN */
+  @media (max-width: 768px) {
+    /* 1. Xếp dọc thanh tiêu đề, chọn năm học và nút tải lại */
+    .card-header .d-flex.align-items-center {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      text-align: center;
+    }
+    .card-header .d-flex.align-items-center > div {
+      justify-content: center !important;
+    }
+    .card-header .fs-6 {
+      margin-right: 0 !important;
+      font-size: 16px !important;
+    }
+    .card-header .ms-auto {
+      margin-left: 0 !important;
+      text-align: center !important;
+    }
+
+    /* 2. Cho phép bảng cuộn ngang độc lập, chạm vuốt mượt mà */
+    .table-responsive {
+      width: 100% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      max-height: calc(100vh - 160px) !important;
+    }
+    #bangYkien {
+      min-width: 1100px !important;
+    }
+
+    /* 3. Khung phóng to nội dung ý kiến tự co giãn vừa màn hình di động */
+    .voBocYk:hover .ndYk {
+      min-width: 250px !important;
+      max-width: 85vw !important;
+      left: 0 !important;
+      top: 0 !important;
+      font-size: 13px !important;
+      padding: 10px 12px !important;
+    }
+  }
 </style>
 
 <div class="card shadow-sm p-0 border-0">
