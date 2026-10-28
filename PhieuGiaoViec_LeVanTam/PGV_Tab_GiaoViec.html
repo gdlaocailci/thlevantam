@@ -406,6 +406,41 @@
     background: #157347;
     transform: translateY(-1px);
   }
+  @media (max-width: 768px) {
+    #khuGvChinh { height: auto !important; min-height: calc(100vh - 60px); width: 100% !important; }
+    #khuGvChinh .hopDau {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      text-align: center;
+    }
+    #khuGvChinh .hopDau .d-flex {
+      justify-content: center !important;
+    }
+    #khuGvChinh .tDe {
+      font-size: 17px !important;
+      text-align: center !important;
+    }
+    #khuGvChinh .hopLoc {
+      width: 100% !important;
+      justify-content: center !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+    #khuGvChinh .hopLoc select, #khuGvChinh .hopLoc input {
+      font-size: 13px !important;
+      height: 32px !important;
+    }
+    #khuGvChinh .bangCuon {
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    #khuGvChinh table {
+      min-width: 950px !important;
+    }
+  }
 </style>
 
 <div id="khuGvChinh">
