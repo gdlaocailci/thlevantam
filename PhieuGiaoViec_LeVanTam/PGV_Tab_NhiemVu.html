@@ -121,7 +121,21 @@
               <span class="nhanNhiemVu">Thời gian:</span><span id="chuThoiGian" class="chuThongTin me-3">...</span>
               <span class="nhanNhiemVu border-start ps-3">Năm học:</span><span id="chuNamHoc" class="chuThongTin">...</span>
             </div>
-            <div class="tDe text-center text-nowrap" style="flex: 2;">NHIỆM VỤ CỦA TÔI</div>
+            <div class="tDe text-center text-nowrap d-flex align-items-center justify-content-center" style="flex: 2;">
+              <span>NHIỆM VỤ CỦA TÔI</span>
+              
+              <!-- NÚT QUY CHẾ (VỊ TRÍ KHOANH ĐỎ: NỀN ĐỎ, CHỮ TRẮNG, CAO 26PX BẰNG TIÊU ĐỀ) -->
+              <button type="button" id="btnXemQuyChe" class="btn btn-sm btn-danger fw-bold ms-2 align-middle shadow-sm btn-reactbits-shiny text-nowrap" style="height: 26px; line-height: 1; font-size: 12px; background-color: #dc3545; color: #ffffff; border: none; border-radius: 4px; padding: 2px 10px; display: inline-flex; align-items: center;" onclick="xemBanQuyChe()" title="Xem bản Quy chế đánh giá">
+                <i class="bi bi-journal-bookmark-fill me-1"></i> QUY CHẾ
+              </button>
+
+              <!-- NÚT TẢI QUY CHẾ (CHỈ HIỆN KHI LÀ QUYỀN 'XXX') -->
+              <button type="button" id="btnTaiQuyChe" class="btn btn-sm btn-outline-danger fw-bold ms-1 align-middle shadow-sm btn-reactbits-shiny text-nowrap" style="display: none; height: 26px; line-height: 1; font-size: 11px; border-radius: 4px; padding: 2px 8px; align-items: center;" onclick="document.getElementById('tepDinhKemQuyChe').click()" title="Quyền Quản trị (xxx): Tải lên / Cập nhật bản Quy chế mới">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i> Tải quy chế
+              </button>
+              <input type="file" id="tepDinhKemQuyChe" accept=".pdf,.docx,.doc" style="display: none;" onchange="thucHienTaiLenQuyChe(this)">
+            </div>
+            
             <div class="text-end text-nowrap" style="flex: 2;"> 
               <div class="d-inline-block border-end border-secondary border-opacity-25 pe-3 me-2">
                 <button id="nutKhoaTatCa" class="btn btn-sm btn-outline-danger fw-bold me-3 align-middle btn-reactbits-shiny" style="display: none; height: 26px; font-size: 12px;" onclick="doiTrangThaiKhoaTatCa()" data-tt="Khóa"><i class="bi bi-lock-fill me-1"></i> Khóa tất cả</button>
@@ -2230,5 +2244,133 @@ $(document).ready(function() {
     observer.observe(originalSelect, { attributes: true, childList: true });
     
     buildDropdown();
+});
+
+// 1. Hàm mở khung xem bản Quy chế (Tự động phục hồi ID kể cả khi tải lại trang)
+function xemBanQuyChe() {
+    let idQuyChe = localStorage.getItem("PGV_ID_QUY_CHE_CACHE") || "";
+
+    // Nếu đã có trong bộ nhớ máy -> Mở xem ngay tức thì
+    if (idQuyChe && idQuyChe.trim() !== "") {
+        moQuyCheTheoId(idQuyChe);
+        return;
+    }
+
+    // Nếu chưa có -> Tự động truy vấn máy chủ (đọc ID do PGV_CauHinh.gs quản lý)
+    if (typeof hienTaiDl === 'function') hienTaiDl("⏳ Đang kết nối bản Quy chế từ máy chủ...");
+    
+    if (typeof window.khachApi !== 'undefined' && typeof window.khachApi.goiThuCong === 'function') {
+        window.khachApi.goiThuCong({ hdong: "layidquyche" }, function(res) {
+            if (typeof anTaiDl === 'function') anTaiDl();
+            if (res && res.ttai === "tcong" && res.idFile && res.idFile.trim() !== "") {
+                let idMoi = res.idFile.trim();
+                localStorage.setItem("PGV_ID_QUY_CHE_CACHE", idMoi);
+                moQuyCheTheoId(idMoi);
+            } else {
+                if (typeof hienThongb === 'function') {
+                    hienThongb('cbh', "Hiện tại Nhà trường chưa cập nhật bản Quy chế điện tử lên hệ thống.");
+                } else {
+                    alert("Chưa có bản Quy chế nào được cập nhật.");
+                }
+            }
+        }, function(err) {
+            if (typeof anTaiDl === 'function') anTaiDl();
+            alert("Lỗi kết nối máy chủ: " + err.message);
+        });
+    } else {
+        if (typeof anTaiDl === 'function') anTaiDl();
+        alert("Chưa có bản Quy chế nào được cập nhật.");
+    }
+}
+
+// Hàm bổ trợ mở tệp trong khung xem
+function moQuyCheTheoId(idHoacLink) {
+    let linkXem = String(idHoacLink).trim();
+    if (!linkXem.startsWith("http")) {
+        linkXem = "https://drive.google.com/file/d/" + linkXem + "/preview";
+    }
+
+    if (typeof moKhungXemTep === 'function') {
+        moKhungXemTep(linkXem);
+    } else {
+        window.open(linkXem, "_blank");
+    }
+}
+
+// 2. Phân quyền hiển thị nút Tải lên (Chỉ tài khoản 'xxx' mới nhìn thấy)
+function kiemTraHienThiNutQuyChe() {
+    let isXXX = false;
+    if (typeof window.PGV_QUYEN !== 'undefined') isXXX = (window.PGV_QUYEN === 'xxx');
+    else if (typeof canbHientai !== 'undefined' && canbHientai) isXXX = (canbHientai.quyen === 'xxx');
+
+    const btnUpload = document.getElementById("btnTaiQuyChe");
+    if (btnUpload) {
+        if (isXXX) {
+            btnUpload.style.setProperty('display', 'inline-flex', 'important');
+        } else {
+            btnUpload.style.setProperty('display', 'none', 'important');
+        }
+    }
+}
+
+function thucHienTaiLenQuyChe(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (file.size > 20 * 1024 * 1024) {
+        alert("Tệp quy chế quá lớn (vượt quá 20MB). Vui lòng chọn tệp nhỏ hơn.");
+        input.value = "";
+        return;
+    }
+
+    if (typeof hienTaiDl === 'function') hienTaiDl("⏳ Đang tải bản Quy chế lên máy chủ...");
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Data = e.target.result.split(',')[1];
+
+        if (typeof window.khachApi !== 'undefined' && typeof window.khachApi.goiThuCong === 'function') {
+            window.khachApi.goiThuCong({
+                hdong: "tailenquyche",
+                tdtai: {
+                    tentep: file.name,
+                    kieu: file.type,
+                    dliu: base64Data
+                }
+            }, function(res) {
+                if (typeof anTaiDl === 'function') anTaiDl();
+                input.value = "";
+                
+                if (res && res.ttai === "tcong") {
+                    if (res.idFile) {
+                        localStorage.setItem("PGV_ID_QUY_CHE_CACHE", res.idFile);
+                    }
+                    if (typeof hienThongb === 'function') {
+                        hienThongb('tcong', "Đã tải lên và lưu bản Quy chế thành công!");
+                    } else {
+                        alert("Cập nhật Quy chế thành công!");
+                    }
+                } else {
+                    let msg = res ? res.tbao : "Không xác định";
+                    if (typeof hienThongb === 'function') hienThongb('loi', "Lỗi tải quy chế: " + msg);
+                    else alert("Lỗi: " + msg);
+                }
+            }, function(loi) {
+                if (typeof anTaiDl === 'function') anTaiDl();
+                input.value = "";
+                if (typeof hienThongb === 'function') hienThongb('loi', "Lỗi máy chủ: " + loi.message);
+                else alert("Lỗi: " + loi.message);
+            });
+        } else {
+            if (typeof anTaiDl === 'function') anTaiDl();
+            alert("Lỗi hệ thống: Cổng API chưa sẵn sàng.");
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// Tự động kiểm tra hiển thị nút khi nạp xong trang
+$(document).ready(function() {
+    setTimeout(kiemTraHienThiNutQuyChe, 600);
 });
 </script>
