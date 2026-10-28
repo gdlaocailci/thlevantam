@@ -245,23 +245,226 @@
         .nut-huong-dan:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.25); color: white; }
 
         /* TỐI ƯU HÓA HIỂN THỊ TRÊN THIẾT BỊ DI ĐỘNG */
+       /* ========================================================================= */
+        /* TỐI ƯU HÓA TOÀN DIỆN CHO THIẾT BỊ DI ĐỘNG (SMARTPHONE / TABLET NHỎ)        */
+        /* ========================================================================= */
         @media (max-width: 768px) {
-            .desktop-icon { width: 75px; min-height: 85px; padding: 4px; }
-            .icon-box { width: 42px; height: 42px; margin-bottom: 4px; }
-            .icon-box .material-icons { font-size: 26px; }
-            .icon-text { font-size: 11px; }
+            /* 1. VÙNG MÀN HÌNH CHÍNH: Cho phép vuốt ngang mượt mà khi có nhiều cột icon */
+            #desktop-area {
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            #desktop-area::-webkit-scrollbar {
+                display: none !important; /* Ẩn thanh cuộn để đẹp như màn hình chính điện thoại */
+            }
+
+            /* 2. ICON DESKTOP NGOÀI MÀN HÌNH CHÍNH */
+            .desktop-icon { 
+                width: 74px !important; 
+                min-height: 84px !important; 
+                padding: 4px !important; 
+            }
+            .icon-box { 
+                width: 42px !important; 
+                height: 42px !important; 
+                margin-bottom: 4px !important; 
+            }
+            .icon-box .material-icons { 
+                font-size: 26px !important; 
+            }
+            .icon-text { 
+                font-size: 11px !important; 
+                line-height: 1.25 !important;
+            }
+
+            /* 3. THANH TASKBAR ĐÁY MÀN HÌNH (Gọn đẹp, không bao giờ tràn lề) */
+            .taskbar {
+                height: 44px !important;
+                padding: 0 8px !important;
+            }
+            .start-btn {
+                padding: 2px 4px !important;
+                gap: 4px !important;
+            }
+            .start-logo {
+                height: 24px !important;
+            }
+            .start-text { 
+                display: none !important; 
+            }
+            /* Khay hệ thống bên phải tự động cuộn ngang trơn tru khi có nhiều nút tác vụ Admin */
+            .system-tray {
+                gap: 3px !important;
+                overflow-x: auto !important;
+                max-width: calc(100vw - 50px) !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            .system-tray::-webkit-scrollbar {
+                display: none !important;
+            }
+            .tray-icon {
+                width: 30px !important;
+                height: 30px !important;
+                flex-shrink: 0 !important;
+            }
+            .tray-icon .material-icons {
+                font-size: 18px !important;
+            }
+            .btn-taskbar {
+                font-size: 0 !important;
+                padding: 5px !important;
+                width: 30px !important;
+                height: 30px !important;
+                justify-content: center !important;
+                flex-shrink: 0 !important;
+            }
+            .btn-taskbar .material-icons {
+                font-size: 18px !important;
+                margin: 0 !important;
+            }
+            .clock-container {
+                font-size: 9.5px !important;
+                padding-left: 6px !important;
+                margin-left: 3px !important;
+                line-height: 1.15 !important;
+                flex-shrink: 0 !important;
+            }
+
+            /* 4. CỬA SỔ THƯ MỤC (#window-folder-view) TRÊN MOBILE */
+            #window-folder-view .window-container { 
+                width: 96vw !important; 
+                height: 85vh !important; 
+                max-width: 96vw !important; 
+                border-radius: 12px !important; 
+            }
+            #window-folder-view .window-titlebar {
+                padding: 8px 12px !important;
+            }
+            #window-folder-view .window-title {
+                font-size: 13px !important;
+                max-width: 70vw !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+            }
+            #window-folder-view > .window-container > div:nth-child(2) {
+                padding: 10px 12px 0 12px !important;
+            }
+            #folder-search-filter {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+            }
+            /* Khu vực chứa các icon trong thư mục tự động dàn đều */
+            #folder-content-area {
+                padding: 12px 8px !important;
+                gap: 8px !important;
+                justify-content: flex-start !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            #folder-content-area .desktop-icon {
+                width: 70px !important;
+                min-height: 80px !important;
+                padding: 3px !important;
+            }
+            #folder-content-area .icon-box {
+                width: 38px !important;
+                height: 38px !important;
+                margin-bottom: 3px !important;
+            }
+            #folder-content-area .icon-box .material-icons {
+                font-size: 22px !important;
+            }
+            #folder-content-area .icon-text {
+                font-size: 10.5px !important;
+                line-height: 1.2 !important;
+            }
+
+            /* 5. CỬA SỔ MA TRẬN PHÂN QUYỀN (#window-phanquyen) */
+            #window-phanquyen .window-container {
+                width: 96vw !important;
+                height: 92vh !important;
+                max-width: 96vw !important;
+                border-radius: 12px !important;
+            }
+            /* Chuyển layout từ 2 cột ngang thành xếp dọc trên/dưới */
+            .phanquyen-layout {
+                flex-direction: column !important;
+                padding: 10px !important;
+                gap: 12px !important;
+                height: calc(100% - 46px) !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            .pq-panel.pq-form {
+                width: 100% !important;
+                flex-shrink: 0 !important;
+                max-height: none !important;
+                overflow-y: visible !important;
+                padding: 12px !important;
+            }
+            .pq-panel.pq-table-container {
+                width: 100% !important;
+                flex: 1 !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                padding: 12px !important;
+            }
+            .pq-table {
+                min-width: 460px !important;
+            }
+
+            /* 6. CÁC HỘP THOẠI BIỂU MẪU (Gán hồ sơ, Sửa hồ sơ, Tạo thư mục, Quản lý, Cảnh báo) */
             #window-gan-hoso .window-container, 
             #window-sua-hoso .window-container, 
             #window-tao-thumuc .window-container, 
             #window-xoa-hoso .window-container, 
-            #window-alert .window-container { width: 95vw !important; max-width: 400px; }
-            .start-text { display: none !important; }
-            .btn-taskbar { font-size: 0; padding: 6px; }
-            .btn-taskbar .material-icons { font-size: 20px; }
-            .clock-container { font-size: 10px; padding-left: 5px; margin-left: 5px; }
-            .nut-huong-dan { bottom: 65px; width: 35px; height: 35px; }
-            .nut-huong-dan .kytu-hoi { font-size: 24px; }
-            .nut-huong-dan span { display: none; }
+            #window-alert .window-container { 
+                width: 96vw !important; 
+                max-width: 420px !important; 
+                max-height: 90vh !important;
+                border-radius: 12px !important;
+            }
+            .form-native {
+                padding: 14px 12px !important;
+                max-height: calc(90vh - 46px) !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            .form-native .form-group {
+                margin-bottom: 10px !important;
+            }
+            .form-native label {
+                font-size: 12px !important;
+            }
+            .form-native input:not([type="checkbox"]):not([type="radio"]), 
+            .form-native select {
+                padding: 6px 8px !important;
+                font-size: 13px !important;
+            }
+            .form-native .btn-picker {
+                padding: 5px 8px !important;
+                font-size: 11px !important;
+            }
+            .form-native .btn-submit {
+                padding: 8px !important;
+                font-size: 13px !important;
+                margin-top: 8px !important;
+            }
+
+            /* 7. NÚT HỎI TRÒN HƯỚNG DẪN */
+            .nut-huong-dan { 
+                bottom: 56px !important; 
+                right: 12px !important; 
+                width: 36px !important; 
+                height: 36px !important; 
+            }
+            .nut-huong-dan .kytu-hoi { 
+                font-size: 22px !important; 
+            }
+            .nut-huong-dan span { 
+                display: none !important; 
+            }
         }
 
         @media (hover: none) and (pointer: coarse) {
@@ -917,7 +1120,7 @@ function getUrlAndTarget(encodedTd2) {
         kiemTraTrangThaiDangNhap();
     };
 
-    function taiBieuTuongCongKhai() {
+function taiBieuTuongCongKhai() {
         let cachedIcons = localStorage.getItem(PREFIX_MEM + 'icons_cache');
         if (cachedIcons) {
             try {
@@ -1685,7 +1888,9 @@ function toggleTaoThuMucModal(isShow) {
         const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX; 
         const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY; 
         
-        if (Math.abs(clientX - startX) > 3 || Math.abs(clientY - startY) > 3) { 
+       // Nâng ngưỡng trượt cho màn hình cảm ứng để chạm mở ứng dụng tức thì, không bị hiểu nhầm là kéo rê
+        let nguongKeo = e.type.includes('touch') ? 10 : 3;
+        if (Math.abs(clientX - startX) > nguongKeo || Math.abs(clientY - startY) > nguongKeo) { 
             dragThresholdPassed = true; 
             isDragging = true; 
             draggedIcon.style.zIndex = '9999'; 
