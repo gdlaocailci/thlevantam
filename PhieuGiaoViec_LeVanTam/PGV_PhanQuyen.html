@@ -316,6 +316,40 @@
         .text-center { text-align: center; }
         .ms-2 { margin-left: 8px; }
         .stt-cell { text-align: center; font-weight: 500; }
+
+       @media (max-width: 768px) {
+    .khung-phanquyen {
+      padding: 10px !important;
+    }
+    .tieu-de-phanquyen {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      font-size: 17px !important;
+      text-align: center;
+    }
+    .nhom-namhoc {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+    .bang-wrapper, .bang-cauhinh-wrapper {
+      width: 100% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    .bang-phanquyen {
+      min-width: 750px !important;
+    }
+    .tieu-de-cauhinh {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 6px !important;
+      text-align: center;
+    }
+    .tieu-de-cauhinh .btn-chucnang {
+      width: 100% !important;
+    }
+  }
     </style>
 </head>
 <body>
