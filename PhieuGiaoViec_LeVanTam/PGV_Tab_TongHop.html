@@ -92,6 +92,39 @@
   th.th-thang-bam-duoc:hover:not(.cot-thang-hien-tai-th) {
     background-color: #0b5ed7 !important;
   }
+    @media (max-width: 768px) {
+    .card-header .d-flex.align-items-center {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      text-align: center;
+    }
+    .card-header .d-flex.align-items-center > div {
+      justify-content: center !important;
+    }
+    .card-header h6 {
+      margin-right: 0 !important;
+      font-size: 16px !important;
+    }
+    .card-header .ms-auto {
+      margin-left: 0 !important;
+      text-align: center !important;
+    }
+    .bg-light.p-2.mb-1.mx-2 {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      justify-content: center !important;
+      gap: 6px !important;
+    }
+    .table-responsive {
+      width: 100% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    #bangThop {
+      min-width: 1100px !important;
+    }
+  }
 </style>
 
 <div class="bg-light p-2 mb-1 mx-2 rounded border" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
