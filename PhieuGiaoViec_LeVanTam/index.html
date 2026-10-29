@@ -1313,6 +1313,7 @@ function taiTepDangXem() {
   let duLieuYkienHienTaiD4 = [];   // Lưu trữ bản sao dữ liệu D4 thời gian thực
   let duLieuYkienDataGV = [];      // Lưu trữ dữ liệu lịch sử DATAGV
   let daTaiDanhSachDataGV = false; // Cờ kiểm tra nạp danh sách lọc
+  let duLieuYkienHienHanh = [];    // Lưu trữ dữ liệu đang hiển thị (đã qua sắp xếp) để xuất Excel
 
   function veKhungBangYkienGiamSat() {
       let pane = document.getElementById("khuYkienGiamSat");
@@ -1330,6 +1331,11 @@ function taiTepDangXem() {
                   </div>
                   
                   <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <!-- NÚT XUẤT EXCEL DỮ LIỆU -->
+                      <button class="btn btn-success btn-sm fw-bold shadow-sm text-nowrap" onclick="xuatExcelYkienGiamSat()" title="Xuất dữ liệu ra file Excel">
+                          <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+                      </button>
+
                       <!-- Ô LỌC NĂM HỌC (Đồng bộ D5:D sh DATAGV) -->
                       <div class="d-flex align-items-center">
                           <label class="fw-bold me-1 text-secondary text-nowrap" style="font-size: 13px;">Năm học:</label>
@@ -1498,21 +1504,69 @@ function taiTepDangXem() {
       }
   }
 
-  // KẾT XUẤT NỘI DUNG RA BẢNG HIỂN THỊ (ÁNH XẠ ĐỐI CHIẾU CHUẨN XÁC)
+  // HÀM PHÂN TÍCH MỨC XẾP LOẠI VÀ ĐIỂM SỐ ĐỂ SẮP XẾP CHUẨN XÁC TỪ CAO ĐẾN THẤP
+  function phanTichXepLoaiYkien(chuoiKq) {
+      if (typeof phanTichKetQuaThang === 'function') {
+          let kq = phanTichKetQuaThang(chuoiKq);
+          let txt = String(chuoiKq || "").toLowerCase().trim();
+          if (txt.includes("không hoàn thành")) {
+              kq.rank = 1;
+          }
+          return kq;
+      }
+      if (!chuoiKq || typeof chuoiKq !== 'string') return { rank: 0, diem: -999 };
+      let txt = chuoiKq.toLowerCase().trim();
+      if (txt === "" || txt === "-" || txt.includes("chưa đánh giá")) return { rank: 0, diem: -999 };
+      let rank = 0;
+      if (txt.includes("xuất sắc")) rank = 4;
+      else if (txt.includes("tốt")) rank = 3;
+      else if (txt.includes("chưa hoàn thành") || txt.includes("không hoàn thành")) rank = 1;
+      else if (txt.includes("hoàn thành")) rank = 2;
+      else rank = 0;
+      let diem = 0;
+      let match = txt.match(/([-+]?\d+(?:[.,]\d+)?)/);
+      if (match) {
+          diem = parseFloat(match[1].replace(',', '.'));
+          if (isNaN(diem)) diem = 0;
+      }
+      return { rank: rank, diem: diem };
+  }
+
+  // KẾT XUẤT NỘI DUNG RA BẢNG HIỂN THỊ (SẮP XẾP TỪ CAO XUỐNG THẤP THEO MỨC XẾP LOẠI VÀ ĐIỂM SỐ)
   function veBangYkienGiamSat(duLieu) {
       let tbody = document.querySelector("#bangYkienGiamSat tbody");
       if (!tbody) return;
       tbody.innerHTML = "";
       
       if (!duLieu || !Array.isArray(duLieu) || duLieu.length === 0) {
+          duLieuYkienHienHanh = [];
           tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-5 fst-italic">Không tìm thấy ý kiến giám sát nào trong khoảng thời gian này.</td></tr>';
           return;
       }
 
+      // THUẬT TOÁN SẮP XẾP: TỪ CAO XUỐNG THẤP THEO MỨC XẾP LOẠI VÀ ĐIỂM SỐ
+      let duLieuSapXep = [...duLieu];
+      duLieuSapXep.sort((a, b) => {
+          let kqA = phanTichXepLoaiYkien(a.diemTuCham);
+          let kqB = phanTichXepLoaiYkien(b.diemTuCham);
+          
+          // 1. Mức xếp loại cao hơn đứng trước (Xuất sắc > Tốt > Hoàn thành > Chưa hoàn thành)
+          if (kqA.rank !== kqB.rank) return kqB.rank - kqA.rank;
+          // 2. Cùng loại -> Điểm số cao hơn đứng trước
+          if (kqA.diem !== kqB.diem) return kqB.diem - kqA.diem;
+          // 3. Cùng loại và cùng điểm -> Xếp theo thứ tự Họ và tên (A-Z tiếng Việt)
+          let tenA = String(a.tenn || "");
+          let tenB = String(b.tenn || "");
+          return tenA.localeCompare(tenB, 'vi');
+      });
+
+      // Lưu trữ bản sao danh sách đã sắp xếp để phục vụ xuất Excel đồng bộ
+      duLieuYkienHienHanh = duLieuSapXep;
+
       let html = "";
       let stt = 1;
       
-      duLieu.forEach(item => {
+      duLieuSapXep.forEach(item => {
           let rawYkien = String(item.ykien || "").trim();
           let arrYkien = rawYkien.split(/\r?\n/);
           
@@ -1567,6 +1621,229 @@ function taiTepDangXem() {
       });
       
       tbody.innerHTML = html;
+  }
+
+  // =========================================================================
+  // TÍNH NĂNG XUẤT FILE EXCEL ĐỊNH DẠNG 100% FONT TIMES NEW ROMAN VÀ CĂN BẢNG
+  // =========================================================================
+  function xuatExcelYkienGiamSat() {
+      let dsXuat = duLieuYkienHienHanh;
+      if (!dsXuat || !Array.isArray(dsXuat) || dsXuat.length === 0) {
+          if (typeof hienThongb === 'function') {
+              hienThongb('cbh', "Hiện tại chưa có dữ liệu ý kiến giám sát để xuất Excel.");
+          } else {
+              alert("Hiện tại chưa có dữ liệu ý kiến giám sát để xuất Excel.");
+          }
+          return;
+      }
+
+      let selNam = $('#locNamYkienGiamSat').val() || "hientai";
+      let selThang = $('#locThangYkienGiamSat').val() || "hientai";
+      let laQuaKhu = (selNam !== "hientai" || selThang !== "hientai");
+
+      let chuThichThoiGian = "";
+      let tenTep = "Tong_hop_y_kien_giam_sat";
+
+      if (laQuaKhu) {
+          let textNam = $('#locNamYkienGiamSat option:selected').text() || selNam;
+          let textThang = $('#locThangYkienGiamSat option:selected').text() || selThang;
+          chuThichThoiGian = textThang + " - " + textNam;
+          tenTep += "_" + textThang.replace(/[^a-zA-Z0-9]/g, "_") + "_" + textNam.replace(/[^a-zA-Z0-9]/g, "_");
+      } else {
+          chuThichThoiGian = "Thời gian thực (Dữ liệu tháng hiện tại)";
+          tenTep += "_Thoi_gian_thuc";
+      }
+      tenTep = tenTep.replace(/_+/g, "_");
+
+      let thoiGianXuat = new Date().toLocaleDateString('vi-VN') + " " + new Date().toLocaleTimeString('vi-VN');
+
+      // Chuẩn bị dữ liệu từng hàng
+      let dsHang = [];
+      let stt = 1;
+
+      dsXuat.forEach(item => {
+          let maIdChuan = item.maId || "";
+          if (!maIdChuan || maIdChuan === "Chưa xác định") {
+              let keyTen = String(item.tenn || "").trim().toLowerCase();
+              if (window.PGV_MAP_TEN_ID && window.PGV_MAP_TEN_ID[keyTen]) {
+                  maIdChuan = window.PGV_MAP_TEN_ID[keyTen];
+              }
+          }
+
+          let rawYkien = String(item.ykien || "").trim();
+          // Chuẩn hóa ngắt dòng: tách các ý kiến ghép nếu có
+          rawYkien = rawYkien.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+          rawYkien = rawYkien.replace(/\s+-\s*\[/g, '\n['); // Tách ý kiến có mã định danh [Ten]:
+          rawYkien = rawYkien.replace(/\s+•\s*/g, '\n');    // Tách các ký tự bullet tròn
+
+          let arrYkien = rawYkien.split('\n');
+          let dsDongYkien = [];
+          
+          arrYkien.forEach(dong => {
+              let strDong = dong.trim();
+              if (strDong !== "") {
+                  // Xóa ký tự gạch hoặc bullet cũ ở đầu dòng nếu có
+                  strDong = strDong.replace(/^[-*•+–—]\s*/, '');
+                  // Ánh xạ đối chiếu Email/Tên viết tắt sang Mã ID chuẩn xác
+                  strDong = strDong.replace(/\[([^\[\]]+)\]:/g, function(match, p1) {
+                      let key = String(p1 || "").trim().toLowerCase();
+                      return (window.PGV_MAP_EMAIL_ID && window.PGV_MAP_EMAIL_ID[key]) ? `[${window.PGV_MAP_EMAIL_ID[key]}]:` : match;
+                  });
+                  // Bỏ dấu gạch trùng sau mã ID nếu có (vd: [H.ThuyA2]: - Đồng chí... -> [H.ThuyA2]: Đồng chí...)
+                  strDong = strDong.replace(/:\s*[-*•+–—]\s*/, ': ');
+                  strDong = strDong.trim();
+                  if (strDong !== "") {
+                      dsDongYkien.push("- " + strDong);
+                  }
+              }
+          });
+
+          let ndYkienXuat = dsDongYkien.join('\n');
+
+          dsHang.push({
+              stt: stt++,
+              tenn: String(item.tenn || "").trim(),
+              maId: maIdChuan || "Chưa xác định",
+              thang: String(item.thang || "").trim() || "Chưa rõ tháng",
+              diemTuCham: String(item.diemTuCham || "").trim() || "Chưa đánh giá",
+              ykien: ndYkienXuat
+          });
+      });
+
+      function escapeXmlText(unsafe) {
+          if (!unsafe) return '';
+          return String(unsafe)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&apos;')
+              .replace(/\r?\n/g, '&#10;');
+      }
+
+      // XUẤT FILE EXCEL XML SPREADSHEET 2003 ĐẢM BẢO 100% MỌI Ô ĐỀU LÀ FONT TIMES NEW ROMAN
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\r\n' +
+          '<?mso-application progid="Excel.Sheet"?>\r\n' +
+          '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\r\n' +
+          ' xmlns:o="urn:schemas-microsoft-com:office:office"\r\n' +
+          ' xmlns:x="urn:schemas-microsoft-com:office:excel"\r\n' +
+          ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\r\n' +
+          ' xmlns:html="http://www.w3.org/TR/REC-html40">\r\n' +
+          ' <Styles>\r\n' +
+          '  <Style ss:ID="Default" ss:Name="Normal">\r\n' +
+          '   <Alignment ss:Vertical="Center"/>\r\n' +
+          '   <Font ss:FontName="Times New Roman" ss:Size="11"/>\r\n' +
+          '  </Style>\r\n' +
+          '  <Style ss:ID="Title">\r\n' +
+          '   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>\r\n' +
+          '   <Font ss:FontName="Times New Roman" ss:Size="14" ss:Bold="1" ss:Color="#DC3545"/>\r\n' +
+          '  </Style>\r\n' +
+          '  <Style ss:ID="SubTitle">\r\n' +
+          '   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>\r\n' +
+          '   <Font ss:FontName="Times New Roman" ss:Size="11" ss:Italic="1" ss:Color="#333333"/>\r\n' +
+          '  </Style>\r\n' +
+          '  <Style ss:ID="Header">\r\n' +
+          '   <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>\r\n' +
+          '   <Borders>\r\n' +
+          '    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>\r\n' +
+          '    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>\r\n' +
+          '    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>\r\n' +
+          '    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>\r\n' +
+          '   </Borders>\r\n' +
+          '   <Font ss:FontName="Times New Roman" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>\r\n' +
+          '   <Interior ss:Color="#0D6EFD" ss:Pattern="Solid"/>\r\n' +
+          '  </Style>\r\n' +
+          '  <Style ss:ID="CellBorder">\r\n' +
+          '   <Alignment ss:Vertical="Center" ss:WrapText="1"/>\r\n' +
+          '   <Borders>\r\n' +
+          '    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '   </Borders>\r\n' +
+          '   <Font ss:FontName="Times New Roman" ss:Size="11"/>\r\n' +
+          '  </Style>\r\n' +
+          '  <Style ss:ID="CellCenter">\r\n' +
+          '   <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>\r\n' +
+          '   <Borders>\r\n' +
+          '    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '   </Borders>\r\n' +
+          '   <Font ss:FontName="Times New Roman" ss:Size="11"/>\r\n' +
+          '  </Style>\r\n' +
+          '  <Style ss:ID="CellName">\r\n' +
+          '   <Alignment ss:Vertical="Center" ss:WrapText="1"/>\r\n' +
+          '   <Borders>\r\n' +
+          '    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '   </Borders>\r\n' +
+          '   <Font ss:FontName="Times New Roman" ss:Size="11" ss:Bold="1" ss:Color="#0D6EFD"/>\r\n' +
+          '  </Style>\r\n' +
+          '  <Style ss:ID="CellScore">\r\n' +
+          '   <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>\r\n' +
+          '   <Borders>\r\n' +
+          '    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CCCCCC"/>\r\n' +
+          '   </Borders>\r\n' +
+          '   <Font ss:FontName="Times New Roman" ss:Size="11" ss:Bold="1" ss:Color="#DC3545"/>\r\n' +
+          '  </Style>\r\n' +
+          ' </Styles>\r\n' +
+          ' <Worksheet ss:Name="Y_Kien_Giam_Sat">\r\n' +
+          '  <Table>\r\n' +
+          '   <Column ss:Width="35"/>\r\n' +
+          '   <Column ss:Width="150"/>\r\n' +
+          '   <Column ss:Width="90"/>\r\n' +
+          '   <Column ss:Width="85"/>\r\n' +
+          '   <Column ss:Width="160"/>\r\n' +
+          '   <Column ss:Width="420"/>\r\n' +
+          '   <Row ss:Height="30">\r\n' +
+          '    <Cell ss:MergeAcross="5" ss:StyleID="Title"><Data ss:Type="String">TỔNG HỢP Ý KIẾN THAM MƯU, ĐÁNH GIÁ CỦA LÃNH ĐẠO VÀ BAN GIÁM SÁT</Data></Cell>\r\n' +
+          '   </Row>\r\n' +
+          '   <Row ss:Height="20">\r\n' +
+          '    <Cell ss:MergeAcross="5" ss:StyleID="SubTitle"><Data ss:Type="String">Thời gian: ' + escapeXmlText(chuThichThoiGian) + '</Data></Cell>\r\n' +
+          '   </Row>\r\n' +
+          '   <Row ss:Height="20">\r\n' +
+          '    <Cell ss:MergeAcross="5" ss:StyleID="SubTitle"><Data ss:Type="String">Ngày xuất: ' + escapeXmlText(thoiGianXuat) + '</Data></Cell>\r\n' +
+          '   </Row>\r\n' +
+          '   <Row ss:Height="8"></Row>\r\n' +
+          '   <Row ss:Height="26">\r\n' +
+          '    <Cell ss:StyleID="Header"><Data ss:Type="String">STT</Data></Cell>\r\n' +
+          '    <Cell ss:StyleID="Header"><Data ss:Type="String">Họ và tên</Data></Cell>\r\n' +
+          '    <Cell ss:StyleID="Header"><Data ss:Type="String">Mã ID</Data></Cell>\r\n' +
+          '    <Cell ss:StyleID="Header"><Data ss:Type="String">Thời gian</Data></Cell>\r\n' +
+          '    <Cell ss:StyleID="Header"><Data ss:Type="String">Kết quả tự đánh giá</Data></Cell>\r\n' +
+          '    <Cell ss:StyleID="Header"><Data ss:Type="String">Nội dung ý kiến đánh giá</Data></Cell>\r\n' +
+          '   </Row>\r\n';
+
+      dsHang.forEach(r => {
+          xml += '   <Row ss:AutoFitHeight="1">\r\n' +
+              '    <Cell ss:StyleID="CellCenter"><Data ss:Type="Number">' + r.stt + '</Data></Cell>\r\n' +
+              '    <Cell ss:StyleID="CellName"><Data ss:Type="String">' + escapeXmlText(r.tenn) + '</Data></Cell>\r\n' +
+              '    <Cell ss:StyleID="CellCenter"><Data ss:Type="String">' + escapeXmlText(r.maId) + '</Data></Cell>\r\n' +
+              '    <Cell ss:StyleID="CellCenter"><Data ss:Type="String">' + escapeXmlText(r.thang) + '</Data></Cell>\r\n' +
+              '    <Cell ss:StyleID="CellScore"><Data ss:Type="String">' + escapeXmlText(r.diemTuCham) + '</Data></Cell>\r\n' +
+              '    <Cell ss:StyleID="CellBorder"><Data ss:Type="String">' + escapeXmlText(r.ykien) + '</Data></Cell>\r\n' +
+              '   </Row>\r\n';
+      });
+
+      xml += '  </Table>\r\n' +
+          ' </Worksheet>\r\n' +
+          '</Workbook>';
+
+      let blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+      let link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = tenTep + ".xls";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000);
   }
 
   $(document).on('click', '#tabYkienGiamSat', () => { 
