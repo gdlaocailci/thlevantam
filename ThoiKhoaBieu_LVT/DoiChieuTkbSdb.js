@@ -1,10 +1,11 @@
 // =========================================================================
-// TỆP ĐỘC LẬP: DoiChieuTkbSdb.js (PHIÊN BẢN 2.0 - TỰ ĐỘNG KHẮC PHỤC TRIỆT ĐỂ)
+// TỆP ĐỘC LẬP: DoiChieuTkbSdb.js (PHIÊN BẢN 3.0 - ĐỒNG BỘ SÂU RAM & CACHE 2 CHIỀU)
 // TÍNH NĂNG: ĐỐI CHIẾU & TỰ ĐỘNG SỬA LỆCH GIỮA SỔ ĐẦU BÀI VÀ THỜI KHÓA BIỂU
 // Nguyên tắc:
 // 1. Chạy 100% trên RAM/Cache đã nạp sẵn (0ms), không làm chậm hệ thống.
-// 2. Tự động hợp nhất TKB mới nhất từ lưới UI TKB sang bộ nhớ Sổ đầu bài.
-// 3. Tự động sửa trực tiếp trên RAM + DOM: Môn học, Giáo viên, Tiết PPCT, Tên bài dạy.
+// 2. Tự động hợp nhất TKB mới nhất từ lưới UI TKB và boNhoTkbTheoTuan (mọi tuần) sang RAM SĐB.
+// 3. Tự động đồng bộ ngược vào RAM + Snapshot Cache (SDB_SNAPSHOT_FAST_V2) ngay khi Lưu SĐB hoặc Lưu TKB.
+// 4. Sửa triệt để lỗi ghi đè lại Tiết PPCT cũ của hàm thucThiKetXuatSoDauBaiLenLuoi() trong SoDauBai.js.
 // Thiết kế và phát triển Hoàng Ngọc Lâm
 // =========================================================================
 
@@ -14,6 +15,7 @@
     let ketQuaDoiChieuToanCuc = [];
     let danhSachTuanCoDuLieu = [];
     let danhSachLopCoDuLieu = [];
+    let _daGanHookDongBoSauKhiLuu = false;
 
     // -------------------------------------------------------------------------
     // 1. TỰ ĐỘNG GẮN NÚT CÔNG CỤ VÀ KHỞI TẠO MODAL TRÊN DOM
@@ -70,7 +72,7 @@
                             </div>
                             <div>
                                 <h3 class="text-base md:text-lg font-extrabold uppercase tracking-wide leading-tight">Trung tâm Đối chiếu & Tự động Khắc phục Chênh lệch TKB - Sổ Đầu Bài</h3>
-                                <p class="text-[11px] text-teal-100 font-medium">Quét 6 trục tọa độ trên RAM (0ms) • Tự động chuẩn hóa Môn học, Giáo viên, Tiết PPCT và Tên bài dạy</p>
+                                <p class="text-[11px] text-teal-100 font-medium">Quét 6 trục tọa độ trên RAM (0ms) • Tự động đồng bộ sâu RAM + Snapshot Cache ngay sau khi Lưu</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
@@ -144,7 +146,7 @@
                     <!-- FOOTER -->
                     <div class="bg-slate-100 px-4 py-2.5 border-t border-slate-300 flex flex-col sm:flex-row justify-between items-center gap-2 flex-none text-xs">
                         <div class="text-slate-600 font-medium">
-                            💡 <b>Cơ chế tự động:</b> Khi ấn <b>"⚡ Tự động khắc phục"</b>, hệ thống sẽ cập nhật ngay Môn học, Giáo viên, tính lại toàn bộ Tiết PPCT + Tên bài của lớp và mở Sổ đầu bài để đồng chí kiểm tra hoặc Lưu ngay.
+                            💡 <b>Đồng bộ 2 chiều:</b> Mọi thao tác Lưu Sổ đầu bài hoặc Lưu Thời khóa biểu đều tự động cập nhật ngay vào RAM và bộ nhớ đệm Snapshot để đối chiếu chính xác 100%.
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="thucThiQuetDoiChieuTrenRAM(true)" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-4 py-1.5 rounded-lg shadow transition cursor-pointer">
@@ -159,6 +161,8 @@
             </div>`;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
         }
+
+        caiDatHookDongBoSauKhiLuu();
     }
 
     // -------------------------------------------------------------------------
@@ -191,27 +195,203 @@
     }
 
     // -------------------------------------------------------------------------
-    // 3. ĐỒNG BỘ TKB MỚI NHẤT TỪ LƯỚI UI SANG RAM SỔ ĐẦU BÀI
-    // (Khắc phục triệt để lỗi: vừa sửa TKB bên tab TKB nhưng SĐB vẫn giữ TKB cũ)
+    // 3. CƠ CHẾ ĐỒNG BỘ SÂU RAM + SNAPSHOT CACHE SAU KHI LƯU (SĐB & TKB)
+    // Đảm bảo sau khi Lưu, RAM và Storage luôn khớp 100% với Server mà không cần tải lại
+    // -------------------------------------------------------------------------
+    function capNhatSnapshotCacheSoDauBai() {
+        try {
+            let layKhoa = (typeof window.layKhoaCachLy === 'function') ? window.layKhoaCachLy : (k => k);
+            let snapshotKey = layKhoa('SDB_SNAPSHOT_FAST_V2');
+            let rawSnap = sessionStorage.getItem(snapshotKey) || localStorage.getItem(snapshotKey);
+            let snapData = rawSnap ? JSON.parse(rawSnap) : {};
+
+            let namHoc = (typeof namHocHeThongSDB !== 'undefined' && namHocHeThongSDB)
+                ? namHocHeThongSDB
+                : ((typeof thongSoHocVu !== 'undefined' && thongSoHocVu.NAM_HOC) ? thongSoHocVu.NAM_HOC : '');
+
+            // Tái tạo mảng SO_DAU_BAI nén từ duLieuTKBGopDaMap đã lưu trên RAM
+            if (typeof duLieuTKBGopDaMap !== 'undefined' && Array.isArray(duLieuTKBGopDaMap)) {
+                let dsSdbNen = [];
+                duLieuTKBGopDaMap.forEach(d => {
+                    if (d.DaLuu === true) {
+                        let tuan = String(d['Tuần'] || '').replace(/\D/g, '');
+                        let lop = String(d['Mã Lớp'] || '').trim().toUpperCase();
+                        let thu = chuanHoaThu(d['Thứ']);
+                        let buoi = chuanHoaBuoi(d['Buổi']) === 'sáng' ? 'Sáng' : 'Chiều';
+                        let tiet = String(d['Tiết'] || '').trim();
+                        let maLuuTru = d['Mã Lưu Trữ'] || `${namHoc ? namHoc + '_' : ''}${tuan}_${lop}_${thu}_${buoi}_${tiet}`;
+                        dsSdbNen.push({
+                            A: maLuuTru,
+                            B: tuan,
+                            C: lop,
+                            D: thu,
+                            E: String(d['Ngày'] || ''),
+                            F: buoi,
+                            G: tiet,
+                            H: String(d['Môn Học'] || ''),
+                            I: String(d['TietPPCT_Thuc'] || ''),
+                            J: String(d['TenBai_Thuc'] || ''),
+                            K: String(d['NhanXet_Thuc'] || ''),
+                            L: String(d['XepLoai_Thuc'] || ''),
+                            M: String(d['ChuKy_Thuc'] || ''),
+                            N: String(d['ChuyenCan_Thuc'] || '')
+                        });
+                    }
+                });
+
+                // Giữ lại các dòng TONGHOP (Nhận xét GVCN/BGH)
+                if (window.duLieuTongHopSDB) {
+                    Object.keys(window.duLieuTongHopSDB).forEach(kTH => {
+                        let th = window.duLieuTongHopSDB[kTH];
+                        if (th && th.daLuu) {
+                            let parts = kTH.split('_');
+                            let t = parts[0], l = parts.slice(1).join('_');
+                            dsSdbNen.push({
+                                A: th.maLuuTru || `${namHoc ? namHoc + '_' : ''}${t}_${l}_TONGHOP`,
+                                B: t,
+                                C: l,
+                                D: 'TONGHOP',
+                                E: '',
+                                F: 'TONGHOP',
+                                G: 'TONGHOP',
+                                H: 'Tổng hợp đánh giá tuần',
+                                I: th.nxGVCN || '',
+                                J: th.kyGVCN || '',
+                                K: th.nxBGH || '',
+                                L: th.kyBGH || ''
+                            });
+                        }
+                    });
+                }
+                snapData.SO_DAU_BAI = dsSdbNen;
+                snapData.thoiDiemLuu = Date.now();
+                let strSnap = JSON.stringify(snapData);
+                try { sessionStorage.setItem(snapshotKey, strSnap); } catch (e) {}
+                try { localStorage.setItem(snapshotKey, strSnap); } catch (e) {}
+            }
+        } catch (err) {
+            console.warn('Không thể cập nhật Snapshot SĐB:', err);
+        }
+    }
+
+    function caiDatHookDongBoSauKhiLuu() {
+        if (_daGanHookDongBoSauKhiLuu) return;
+        _daGanHookDongBoSauKhiLuu = true;
+
+        // 1. Bọc hàm luuSoDauBaiSangMayChu để đảm bảo Môn học & Mã GV trên DOM luôn được ghi vào duLieuTKBGopDaMap + Snapshot Cache
+        if (typeof window.luuSoDauBaiSangMayChu === 'function') {
+            const hamLuuSdbGoc = window.luuSoDauBaiSangMayChu;
+            window.luuSoDauBaiSangMayChu = async function(...args) {
+                // Trước khi lưu: đồng bộ Môn học từ DOM vào duLieuTKBGopDaMap (vì hàm gốc chỉ gán TietPPCT/TenBai mà quên gán lại cột 'Môn Học' nếu dòng đó đã có sẵn)
+                try {
+                    let tuanChon = document.getElementById('chonTuanSo')?.value;
+                    let lopChon = document.getElementById('chonLopSo')?.value;
+                    if (tuanChon && lopChon && typeof duLieuTKBGopDaMap !== 'undefined') {
+                        let tuanSo = parseInt(String(tuanChon).replace(/\D/g, ''), 10);
+                        let lopUpper = String(lopChon).trim().toUpperCase();
+                        let mapTkb = dongBoTkbMoiNhatSangBoNhoSDB();
+
+                        let cacDong = document.querySelectorAll('#vungHienThiSoDauBai .bang-so-dau-bai-container table tbody tr');
+                        let thuHienTai = '';
+                        cacDong.forEach(dong => {
+                            let cellThu = dong.querySelector('td[rowspan]');
+                            if (cellThu) {
+                                thuHienTai = chuanHoaThu(cellThu.innerText.split('\n')[0].trim());
+                            }
+                            let cellMon = dong.querySelector('td[data-loai="mon"]');
+                            let mon = '';
+                            if (cellMon) {
+                                for (let node of cellMon.childNodes) {
+                                    if (node.nodeType === 3) mon += node.textContent;
+                                }
+                                mon = mon.trim();
+                            }
+                            let oTiet = dong.querySelector('td[data-loai="tietSDB"]');
+                            let tiet = oTiet ? oTiet.innerText.trim() : '';
+                            let buoiNorm = chuanHoaBuoi(dong.getAttribute('data-buoi') || 'Sáng');
+
+                            if (thuHienTai && tiet) {
+                                let idxRam = duLieuTKBGopDaMap.findIndex(d =>
+                                    parseInt(String(d['Tuần'] || '').replace(/\D/g, ''), 10) === tuanSo &&
+                                    String(d['Mã Lớp'] || '').trim().toUpperCase() === lopUpper &&
+                                    chuanHoaThu(d['Thứ']) === thuHienTai &&
+                                    chuanHoaBuoi(d['Buổi']) === buoiNorm &&
+                                    String(d['Tiết'] || '').trim() === tiet
+                                );
+                                let tkbSlot = mapTkb[`${tuanSo}_${lopUpper}_${thuHienTai}_${buoiNorm}_${tiet}`];
+                                if (idxRam !== -1) {
+                                    duLieuTKBGopDaMap[idxRam]['Môn Học'] = mon;
+                                    if (tkbSlot && tkbSlot['Mã GV']) {
+                                        duLieuTKBGopDaMap[idxRam]['Mã GV'] = tkbSlot['Mã GV'];
+                                    }
+                                }
+                            }
+                        });
+                    }
+                } catch (ePre) {}
+
+                const ketQua = await hamLuuSdbGoc.apply(this, args);
+
+                // Sau khi lưu thành công: xóa các bản ghi rỗng (tiết đã bị xóa môn) khỏi trạng thái DaLuu và cập nhật chỉ mục + Snapshot Cache
+                try {
+                    if (typeof duLieuTKBGopDaMap !== 'undefined' && Array.isArray(duLieuTKBGopDaMap)) {
+                        duLieuTKBGopDaMap.forEach(d => {
+                            if (String(d['Môn Học'] || '').trim() === '') {
+                                d.DaLuu = false;
+                            }
+                        });
+                    }
+                    if (typeof window.xayDungChiMucNhanhSDB === 'function') {
+                        window.xayDungChiMucNhanhSDB();
+                    }
+                    capNhatSnapshotCacheSoDauBai();
+                } catch (ePost) {}
+
+                return ketQua;
+            };
+        }
+
+        // 2. Bọc hàm luuSuaCucBoTKB và luuDuLieu của app.js để khi Lưu TKB ở bất kỳ tuần nào, mapTkbToanTap cập nhật ngay lập tức
+        if (typeof window.luuSuaCucBoTKB === 'function') {
+            const hamLuuSuaTkbGoc = window.luuSuaCucBoTKB;
+            window.luuSuaCucBoTKB = async function(...args) {
+                const kq = await hamLuuSuaTkbGoc.apply(this, args);
+                dongBoTkbMoiNhatSangBoNhoSDB();
+                return kq;
+            };
+        }
+        if (typeof window.luuDuLieu === 'function') {
+            const hamLuuTkbGoc = window.luuDuLieu;
+            window.luuDuLieu = async function(...args) {
+                const kq = await hamLuuTkbGoc.apply(this, args);
+                dongBoTkbMoiNhatSangBoNhoSDB();
+                return kq;
+            };
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. ĐỒNG BỘ TKB MỚI NHẤT TỪ LƯỚI UI & CACHE ĐA TUẦN SANG RAM SỔ ĐẦU BÀI
+    // (Đảm bảo sửa TKB ở Tuần hiện tại hay Tuần quá khứ đều cập nhật vào mapTkbToanTap)
     // -------------------------------------------------------------------------
     function dongBoTkbMoiNhatSangBoNhoSDB() {
         let mapTkb = window.mapTkbToanTap || (typeof mapTkbToanTapToanCuc !== 'undefined' ? mapTkbToanTapToanCuc : {});
 
-        // 1. Lấy từ mảng duLieuTkbHienTai (của app.js)
-        if (typeof duLieuTkbHienTai !== 'undefined' && Array.isArray(duLieuTkbHienTai) && duLieuTkbHienTai.length > 0) {
-            let tXem = parseInt(String(duLieuTkbHienTai[0].tuan || (typeof tuanDangXem !== 'undefined' ? tuanDangXem : 0)).replace(/\D/g, ''), 10);
+        const ghiMangTietVaoMap = (dsTiet, tuanMacDinh) => {
+            if (!Array.isArray(dsTiet) || dsTiet.length === 0) return;
+            let tXem = parseInt(String(dsTiet[0].tuan || tuanMacDinh || 0).replace(/\D/g, ''), 10);
             if (tXem > 0) {
-                // Xóa các slot cũ của tuần đang xem trong mapTkb để nhận trạng thái mới nhất (kể cả tiết bị xóa trắng)
                 Object.keys(mapTkb).forEach(k => {
                     if (k.startsWith(tXem + '_')) delete mapTkb[k];
                 });
-                duLieuTkbHienTai.forEach(item => {
+                dsTiet.forEach(item => {
                     let t = parseInt(String(item.tuan || tXem).replace(/\D/g, ''), 10);
                     let lop = String(item.maLop || '').trim().toUpperCase();
                     let thu = chuanHoaThu(item.thu);
                     let buoi = chuanHoaBuoi(item.buoi);
                     let tiet = String(item.tiet || '').trim();
-                    if (t > 0 && lop && thu && tiet) {
+                    let mon = String(item.monHoc || '').trim();
+                    if (t > 0 && lop && thu && tiet && mon !== '' && mon !== '--' && mon !== '---') {
                         let k = `${t}_${lop}_${thu}_${buoi}_${tiet}`;
                         mapTkb[k] = {
                             'Tuần': t,
@@ -219,16 +399,32 @@
                             'Thứ': thu,
                             'Buổi': buoi,
                             'Tiết': tiet,
-                            'Môn Học': String(item.monHoc || '').trim(),
+                            'Môn Học': mon,
                             'Mã GV': String(item.maGv || '').trim(),
                             'Ngày': String(item.ngay || '').trim()
                         };
                     }
                 });
             }
+        };
+
+        // 1. Đồng bộ từ tất cả các tuần đã được lưu trong bộ nhớ đệm đa tuần (window.boNhoTkbTheoTuan) của app.js
+        if (window.boNhoTkbTheoTuan && typeof window.boNhoTkbTheoTuan === 'object') {
+            Object.keys(window.boNhoTkbTheoTuan).forEach(khoaCache => {
+                if (khoaCache.includes('_TEMPLATE')) return;
+                let dsTuan = window.boNhoTkbTheoTuan[khoaCache];
+                if (Array.isArray(dsTuan) && dsTuan.length > 0) {
+                    ghiMangTietVaoMap(dsTuan);
+                }
+            });
         }
 
-        // 2. Nếu người dùng vừa gõ sửa trực tiếp trên ô input của lưới TKB (#khungTKB) mà chưa kịp lưu
+        // 2. Đồng bộ từ mảng duLieuTkbHienTai (tuần đang mở trên tab TKB)
+        if (typeof duLieuTkbHienTai !== 'undefined' && Array.isArray(duLieuTkbHienTai) && duLieuTkbHienTai.length > 0) {
+            ghiMangTietVaoMap(duLieuTkbHienTai, typeof tuanDangXem !== 'undefined' ? tuanDangXem : 0);
+        }
+
+        // 3. Nếu người dùng đang gõ sửa trực tiếp trên ô input của lưới TKB (#khungTKB)
         const khungTKB = document.getElementById('khungTKB');
         if (khungTKB && typeof tuanDangXem !== 'undefined') {
             let tDom = parseInt(tuanDangXem, 10) || 0;
@@ -275,7 +471,7 @@
     }
 
     // -------------------------------------------------------------------------
-    // 4. MỞ MODAL & NAP BỘ LỌC
+    // 5. MỞ MODAL & NẠP BỘ LỌC
     // -------------------------------------------------------------------------
     window.moModalDoiChieuTkbSdb = async function(nguonMo) {
         khoiTaoGiaoDienDoiChieu();
@@ -373,7 +569,7 @@
     }
 
     // -------------------------------------------------------------------------
-    // 5. THUẬT TOÁN QUÉT CHÊNH LỆCH TOÀN DIỆN (6 LOẠI SAI LỆCH)
+    // 6. THUẬT TOÁN QUÉT CHÊNH LỆCH TOÀN DIỆN (6 LOẠI SAI LỆCH)
     // -------------------------------------------------------------------------
     window.thucThiQuetDoiChieuTrenRAM = function() {
         ketQuaDoiChieuToanCuc = [];
@@ -400,7 +596,7 @@
 
                 let kTL = `${t}_${lop}`;
                 if (!thongKeLuuTheoTuanLop[kTL]) thongKeLuuTheoTuanLop[kTL] = { tuan: t, lop: lop, coMonTKB: 0, daLuuSDB: 0 };
-                if (d.DaLuu === true && String(d['Môn Học'] || '').trim() !== '') {
+                if ((d.DaLuu === true || d.DaDongBoTKB === true || d.TrangThaiThayDoi === true) && String(d['Môn Học'] || '').trim() !== '') {
                     thongKeLuuTheoTuanLop[kTL].daLuuSDB++;
                 }
             });
@@ -467,7 +663,6 @@
                     return (parseInt(pA[4], 10) || 0) - (parseInt(pB[4], 10) || 0);
                 });
 
-                // Tính mốc Tiết PPCT tích lũy của các tuần trước tuần đang xét cho lớp này
                 let boDemPPCT = {};
                 if (typeof duLieuTKBGopDaMap !== 'undefined') {
                     duLieuTKBGopDaMap.forEach(d => {
@@ -662,7 +857,7 @@
     };
 
     // -------------------------------------------------------------------------
-    // 6. KẾT XUẤT BẢNG BÁO CÁO & THỐNG KÊ TRỰC QUAN
+    // 7. KẾT XUẤT BẢNG BÁO CÁO & THỐNG KÊ TRỰC QUAN
     // -------------------------------------------------------------------------
     window.ketXuatBangDoiChieu = function() {
         const tbody = document.getElementById('tbodyKetQuaDoiChieu');
@@ -777,8 +972,7 @@
     };
 
     // -------------------------------------------------------------------------
-    // 7. ĐỘNG CƠ TỰ ĐỘNG KHẮC PHỤC TRIỆT ĐỂ (CẬP NHẬT TRỰC TIẾP RAM + DOM SĐB)
-    // Xử lý cả 6 loại lệch: Môn học, Giáo viên, Thừa/Thiếu tiết, Tiết PPCT, Tên bài
+    // 8. ĐỘNG CƠ TỰ ĐỘNG KHẮC PHỤC TRIỆT ĐỂ (CẬP NHẬT TRỰC TIẾP RAM + DOM SĐB)
     // -------------------------------------------------------------------------
     window.tuDongKhacPhucToanDienLop = function(tuanMucTieu, lopMucTieu, thucThiSuaTuDong) {
         const tuanSo = parseInt(String(tuanMucTieu).replace(/\D/g, ''), 10);
@@ -786,19 +980,17 @@
 
         if (!tuanSo || !lopUpper) return;
 
-        // Nếu chỉ bấm "Mở xem SĐB" -> Điều hướng sang xem mà không sửa
         if (!thucThiSuaTuDong) {
             dongModalDoiChieuTkbSdb();
             dieuHuongMoTabSoDauBai(tuanSo, lopUpper);
             return;
         }
 
-        // Kiểm tra khóa sổ
         if (typeof window.kiemTraTuanDaKhoa === 'function' && window.kiemTraTuanDaKhoa(tuanSo)) {
             return alert(`⛔ Sổ đầu bài Tuần ${tuanSo} đã bị khóa toàn trường. Vui lòng mở khóa trước khi khắc phục!`);
         }
 
-        // 1. Đồng bộ TKB mới nhất từ lưới UI vào mapTkbToanTap
+        // 1. Đồng bộ TKB mới nhất từ lưới UI & Cache đa tuần vào mapTkbToanTap
         const mapTkbChuan = dongBoTkbMoiNhatSangBoNhoSDB();
 
         // 2. Tính mốc Tiết PPCT tích lũy của các tuần trước (< tuanSo) cho lớp này
@@ -865,7 +1057,6 @@
             let gvTKB = tkbItem ? String(tkbItem['Mã GV'] || '').trim() : '';
             let ngayTKB = tkbItem ? String(tkbItem['Ngày'] || '').trim() : '';
 
-            // Tính Tiết PPCT chuẩn và Tên bài chuẩn từ PPCT theo đúng thứ tự TKB
             let tietPpctChuan = '';
             let tenBaiChuan = '';
             if (monTKB !== '') {
@@ -877,7 +1068,6 @@
                 }
             }
 
-            // Tìm bản ghi tương ứng trong duLieuTKBGopDaMap
             let idxSDB = -1;
             if (typeof duLieuTKBGopDaMap !== 'undefined') {
                 idxSDB = duLieuTKBGopDaMap.findIndex(d =>
@@ -915,14 +1105,14 @@
 
                 let lechPPCT = (monTKB !== '' && String(ppctCu) !== String(tietPpctChuan));
                 let lechTenBai = (monTKB !== '' && tenBaiChuan !== '' && (tenBaiCu === '' || lechPPCT || doiMon));
+                let chuaLuu = (monTKB !== '' && sdbObj.DaLuu !== true);
 
-                if (doiMon || doiGV || lechPPCT || lechTenBai) {
+                if (doiMon || doiGV || lechPPCT || lechTenBai || chuaLuu) {
                     sdbObj['Môn Học'] = monTKB;
                     sdbObj['Mã GV'] = gvTKB;
                     if (ngayTKB) sdbObj['Ngày'] = ngayTKB;
 
                     if (monTKB === '') {
-                        // Tiết bị xóa trên TKB -> Xóa sạch thông tin tiết dư trong SĐB
                         sdbObj['TietPPCT_Thuc'] = '';
                         sdbObj['TenBai_Thuc'] = '';
                         sdbObj['NhanXet_Thuc'] = '';
@@ -930,10 +1120,9 @@
                         sdbObj['ChuKy_Thuc'] = '';
                     } else {
                         sdbObj['TietPPCT_Thuc'] = tietPpctChuan;
-                        if (tenBaiChuan !== '' && (doiMon || lechPPCT || tenBaiCu === '')) {
+                        if (tenBaiChuan !== '' && (doiMon || lechPPCT || tenBaiCu === '' || chuaLuu)) {
                             sdbObj['TenBai_Thuc'] = tenBaiChuan;
                         }
-                        // Nếu đổi môn hoặc đổi GV phụ trách thì làm sạch chữ ký/nhận xét của người cũ
                         if (doiMon || doiGV) {
                             sdbObj['ChuKy_Thuc'] = '';
                             sdbObj['NhanXet_Thuc'] = '';
@@ -944,10 +1133,9 @@
                     sdbObj.TrangThaiThayDoi = true;
                     sdbObj.DaDongBoTKB = true;
                     soTietDaSua++;
-                    chiTietDaSua.push(`${thu} (${buoiNorm === 'sáng' ? 'Sáng' : 'Chiều'} - T${tiet}): ${monTKB || 'Trống'} ${tietPpctChuan ? `[PPCT: ${tietPpctChuan}]` : ''}`);
+                    chiTietDaSua.push(`${thu} (${buoiNorm === 'sáng' ? 'Sáng' : 'Chiều'} - T${tiet}): ${monTKB || 'Xóa tiết trống'} ${tietPpctChuan ? `[PPCT: ${tietPpctChuan}]` : ''}`);
                 }
             } else if (monTKB !== '') {
-                // Tiết mới có trên TKB nhưng chưa có trong duLieuTKBGopDaMap -> Chèn mới hoàn toàn
                 duLieuTKBGopDaMap.push({
                     'Tuần': String(tuanSo),
                     'Mã Lớp': lopUpper,
@@ -999,7 +1187,6 @@
             const selLop = document.getElementById('chonLopSo');
             if (!selTuan || !selLop) return;
 
-            // Tạm tắt cờ chưa lưu trong tích tắc khi chuyển dropdown sang lớp mục tiêu để không bị hộp thoại cảnh báo chặn
             let coThayDoiTam = (typeof coThayDoiChuaLuu_SDB !== 'undefined') ? coThayDoiChuaLuu_SDB : false;
             if (typeof coThayDoiChuaLuu_SDB !== 'undefined') coThayDoiChuaLuu_SDB = false;
 
@@ -1058,18 +1245,28 @@
                         ) : null;
 
                         if (dongRam && (dongRam.TrangThaiThayDoi === true || dongRam.DaDongBoTKB === true)) {
+                            // Đảm bảo giá trị Tiết PPCT và Tên bài trên DOM khớp tuyệt đối với dongRam vừa tính
+                            let inpTiet = tr.querySelector('td[data-loai="tiet"] input');
+                            if (inpTiet && dongRam['TietPPCT_Thuc'] !== undefined) {
+                                inpTiet.value = dongRam['TietPPCT_Thuc'];
+                            }
+                            let taTenBai = tr.querySelector('td[data-loai="tenBai"] textarea');
+                            if (taTenBai && dongRam['TenBai_Thuc'] !== undefined) {
+                                taTenBai.value = dongRam['TenBai_Thuc'];
+                                taTenBai.style.height = 'auto';
+                                taTenBai.style.height = (taTenBai.scrollHeight) + 'px';
+                            }
+
                             if (typeof danhDauDongThayDoi === 'function') {
                                 danhDauDongThayDoi(tr);
                             } else {
                                 tr.setAttribute('data-thaydoi', 'true');
                             }
-                            // Highlight nhẹ nền dòng vừa được khắc phục để dễ nhìn
                             tr.classList.add('bg-amber-50/70');
                         }
                     });
                 }
 
-                // Hiển thị thông báo kết quả và hỏi lưu ngay nếu muốn
                 setTimeout(() => {
                     let tomTat = chiTietDaSua.slice(0, 10).join('\n- ');
                     if (chiTietDaSua.length > 10) tomTat += `\n... và ${chiTietDaSua.length - 10} tiết khác.`;
@@ -1077,13 +1274,13 @@
                     let hoiLuuNgay = confirm(
                         `✅ ĐÃ TỰ ĐỘNG KHẮC PHỤC THÀNH CÔNG ${soTietDaSua} TIẾT CỦA LỚP ${lopUpper} (TUẦN ${tuanSo}):\n\n` +
                         `- ${tomTat}\n\n` +
-                        `Toàn bộ Môn học, Giáo viên, Tiết PPCT và Tên bài dạy đã được điền chuẩn lên lưới Sổ đầu bài.\n\n` +
+                        `Toàn bộ Môn học, Giáo viên, Tiết PPCT và Tên bài dạy đã được điền chuẩn lên lưới Sổ đầu bài & cập nhật vào RAM.\n\n` +
                         `👉 Đồng chí có muốn LƯU NGAY Sổ đầu bài lớp ${lopUpper} lên máy chủ không?\n` +
                         `(Bấm [OK] để Lưu ngay, hoặc bấm [Hủy] để xem lại trên màn hình trước khi lưu)`
                     );
 
-                    if (hoiLuuNgay && typeof luuSoDauBaiSangMayChu === 'function') {
-                        luuSoDauBaiSangMayChu();
+                    if (hoiLuuNgay && typeof window.luuSoDauBaiSangMayChu === 'function') {
+                        window.luuSoDauBaiSangMayChu();
                     }
                 }, 150);
             } else {
@@ -1093,7 +1290,7 @@
     }
 
     // -------------------------------------------------------------------------
-    // 8. XUẤT BÁO CÁO CHÊNH LỆCH RA EXCEL (.XLSX)
+    // 9. XUẤT BÁO CÁO CHÊNH LỆCH RA EXCEL (.XLSX)
     // -------------------------------------------------------------------------
     window.xuatExcelBaoCaoDoiChieu = function() {
         if (typeof XLSX === 'undefined') {
