@@ -1468,6 +1468,167 @@ window.danhDauDongThayDoiTKB = function(inputEl) {
     }
 };
 
+// =========================================================================
+// HÀM KIỂM TRA MÔN HOẠT ĐỘNG TRẢI NGHIỆM / HOẠT ĐỘNG TẬP THỂ (ĐƯỢC PHÉP TRÙNG TIẾT)
+// =========================================================================
+window.laTietHoatDongTapTheDuocPhepTrung = function(monHoc, ut) {
+    if (!monHoc) return false;
+    let monNorm = String(monHoc).trim().toLowerCase().normalize('NFC');
+    let monKhongDau = monNorm.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+    
+    // Nhận diện các biến thể của Hoạt động trải nghiệm (HĐTN)
+    if (monNorm.includes('hđtn') || 
+        monKhongDau.includes('hdtn') || 
+        monNorm.includes('hoạt động trải nghiệm') || 
+        monKhongDau.includes('hoat dong trai nghiem')) {
+        return true;
+    }
+    
+    // Tiết Chào cờ / Sinh hoạt dưới cờ / Hoạt động tập thể
+    if (monNorm.includes('chào cờ') || monKhongDau.includes('chao co') || 
+        monNorm.includes('dưới cờ') || monKhongDau.includes('duoi co')) {
+        return true;
+    }
+    
+    // Môn có độ ưu tiên 1 hoặc 6 trong Khung chương trình (thường là Chào cờ hoặc Sinh hoạt lớp tập thể)
+    if (ut === 1 || ut === 6) {
+        return true;
+    }
+    
+    return false;
+};
+
+// =========================================================================
+// HÀM KIỂM TRA TRÙNG GIÁO VIÊN KHI XẾP LỊCH TKB (NGOẠI TRỪ TIẾT HĐTN TẬP THỂ)
+// =========================================================================
+window.kiemTraVaXuLyTrungGiaoVienKhiXep = function(inputEl, tenGvMoi) {
+    if (!inputEl || !inputEl.id || !inputEl.id.startsWith('gv_') || !tenGvMoi) return true;
+    
+    let parts = inputEl.id.split('_');
+    if (parts.length < 5) return true;
+    let thu = parts[1];
+    let buoi = parts[2];
+    let tiet = parts[3];
+    let lopHienTai = parts.slice(4).join('_');
+    
+    let giaTriCu = inputEl.dataset.val || '';
+    let tenGvMoiNorm = tenGvMoi.trim().toLowerCase().normalize('NFC');
+    let giaTriCuNorm = giaTriCu.trim().toLowerCase().normalize('NFC');
+    
+    // Nếu giá trị mới không đổi so với giá trị trước khi sửa của ô này thì không kiểm tra
+    if (tenGvMoiNorm === giaTriCuNorm) return true;
+    
+    // Lấy thông tin ưu tiên môn học từ khung chương trình
+    const khung = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.KHUNG_CHUONG_TRINH) ? thongSoHocVu.KHUNG_CHUONG_TRINH : {};
+    let keyUuTien = "";
+    for (let k in khung) {
+        if (k.toLowerCase().replace(/\s+/g, '').indexOf("ưutiên") !== -1 || k.toLowerCase().replace(/\s+/g, '').indexOf("uutien") !== -1) {
+            keyUuTien = k;
+            break;
+        }
+    }
+    const uuTienMon = keyUuTien ? khung[keyUuTien] : {};
+    
+    // Môn học tại ô hiện tại:
+    let theMonHienTai = document.getElementById(`mon_${thu}_${buoi}_${tiet}_${lopHienTai}`);
+    let monHienTai = theMonHienTai ? theMonHienTai.value.trim() : '';
+    let utHienTai = parseInt(uuTienMon[monHienTai]) || 99;
+    let hienTaiLaHDTN = window.laTietHoatDongTapTheDuocPhepTrung(monHienTai, utHienTai);
+    
+    let dsLopTrung = [];
+    let setLopUI = new Set();
+    document.querySelectorAll('th[data-cotlop]').forEach(th => setLopUI.add(th.getAttribute('data-cotlop')));
+    
+    // 1. Quét các ô giáo viên cùng tiết trên giao diện DOM:
+    let cacOGvCungTiet = document.querySelectorAll(`input[id^="gv_${thu}_${buoi}_${tiet}_"]`);
+    cacOGvCungTiet.forEach(oGv => {
+        if (oGv === inputEl) return;
+        let gvVal = oGv.value.trim();
+        if (!gvVal || gvVal === '--' || gvVal === '---') return;
+        
+        let partsKhac = oGv.id.split('_');
+        let lopKhac = partsKhac.slice(4).join('_');
+        
+        let theMonKhac = document.getElementById(`mon_${thu}_${buoi}_${tiet}_${lopKhac}`);
+        let monKhac = theMonKhac ? theMonKhac.value.trim() : '';
+        let utKhac = parseInt(uuTienMon[monKhac]) || 99;
+        let lopKhacLaHDTN = window.laTietHoatDongTapTheDuocPhepTrung(monKhac, utKhac);
+        
+        // Ngoại trừ tiết HĐTN / hoạt động tập thể thì được phép trùng tiết (1 giáo viên có thể tổ chức cho cả trường)
+        if (hienTaiLaHDTN && lopKhacLaHDTN) return;
+        
+        let tapGv = gvVal.toLowerCase().normalize('NFC').split(/[,;&-]/).map(s => s.trim());
+        if (tapGv.includes(tenGvMoiNorm) || gvVal.toLowerCase().normalize('NFC') === tenGvMoiNorm) {
+            dsLopTrung.push({
+                lop: lopKhac,
+                mon: monKhac,
+                thu: thu,
+                buoi: buoi,
+                tiet: tiet
+            });
+        }
+    });
+    
+    // 2. Quét các lớp ẩn trong duLieuTkbHienTai (nếu có):
+    if (typeof duLieuTkbHienTai !== 'undefined' && Array.isArray(duLieuTkbHienTai) && duLieuTkbHienTai.length > 0) {
+        duLieuTkbHienTai.forEach(tietGoc => {
+            if (!tietGoc || !tietGoc.maGv) return;
+            if (setLopUI.has(tietGoc.maLop)) return;
+            
+            let thuGoc = String(tietGoc.thu || '').trim();
+            let buoiGoc = String(tietGoc.buoi || '').trim();
+            let tietSoGoc = String(tietGoc.tiet || '').trim();
+            
+            if (thuGoc === thu && buoiGoc === buoi && tietSoGoc === String(tiet)) {
+                let monAn = tietGoc.monHoc || '';
+                let utAn = parseInt(uuTienMon[monAn]) || 99;
+                let lopAnLaHDTN = window.laTietHoatDongTapTheDuocPhepTrung(monAn, utAn);
+                
+                // Ngoại trừ tiết HĐTN / hoạt động tập thể thì được phép trùng tiết
+                if (hienTaiLaHDTN && lopAnLaHDTN) return;
+                
+                let tapGvAn = String(tietGoc.maGv).toLowerCase().normalize('NFC').split(/[,;&-]/).map(s => s.trim());
+                if (tapGvAn.includes(tenGvMoiNorm) || String(tietGoc.maGv).toLowerCase().normalize('NFC') === tenGvMoiNorm) {
+                    dsLopTrung.push({
+                        lop: tietGoc.maLop + ' (ẩn)',
+                        mon: monAn,
+                        thu: thu,
+                        buoi: buoi,
+                        tiet: tiet
+                    });
+                }
+            }
+        });
+    }
+    
+    if (dsLopTrung.length > 0) {
+        let thongTinCacLop = dsLopTrung.map(it => `Lớp ${it.lop} (${it.thu}, ${it.buoi}, Tiết ${it.tiet}${it.mon ? ' - Môn: ' + it.mon : ''})`).join('\n- ');
+        
+        alert(`⚠️ CẢNH BÁO TRÙNG LỊCH GIÁO VIÊN:\n\nGiáo viên "${tenGvMoi}" đã được xếp lịch ở:\n- ${thongTinCacLop} rồi!\n\n(Lưu ý: Chỉ các tiết HĐTN/hoạt động tập thể mới được phép trùng giáo viên).\n\nVui lòng kiểm tra lại.`);
+        
+        // Trả về giá trị trước khi thay đổi:
+        inputEl.value = giaTriCu;
+        if (!inputEl.value) {
+            inputEl.placeholder = '--';
+        }
+        
+        // Khôi phục trạng thái cờ sửa chữa nếu ô chưa sửa trước đó:
+        let td = inputEl.closest('td');
+        if (td && inputEl.dataset.daSuaTruocDo !== '1') {
+            td.removeAttribute('data-thaydoi');
+            let icon = td.querySelector('.icon-sua-chua');
+            if (icon) icon.remove();
+        }
+        
+        if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
+            kiemTraTrungGiaoVienToanBang(true);
+        }
+        return false;
+    }
+    
+    return true;
+};
+
 function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '', coQuyenSua = quyenSuaChua) {
     let idThocTinh = idPhanTu ? `id="${idPhanTu}"` : '';
     let thuocTinhKhoa = coQuyenSua ? '' : 'disabled'; 
@@ -1478,49 +1639,61 @@ function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = 
     let kieuKiemTraGV = (idPhanTu && idPhanTu.startsWith('gv_')) ? `if(typeof kiemTraTrungGiaoVienToanBang === 'function') kiemTraTrungGiaoVienToanBang();` : '';
     let triggerThayDoi = `if(typeof danhDauDongThayDoiTKB === 'function') danhDauDongThayDoiTKB(this);`;
     
-    let onFocusClick = `this.dataset.val=this.value; if(this.value !== ''){ this.placeholder=this.value; this.value=''; } if(this.showPicker) this.showPicker();`;
+    let onFocusClick = `this.dataset.val=this.value; this.dataset.valGoc=this.value; this.dataset.daSuaTruocDo=(this.closest('td')&&this.closest('td').getAttribute('data-thaydoi')==='true')?'1':'0'; if(this.value !== ''){ this.placeholder=this.value; this.value=''; } if(this.showPicker) this.showPicker();`;
     let onBlurLogic = `if(this.value.trim() === '') { this.value = this.dataset.val || ''; } this.placeholder='--'; xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV}`;
     
-    let suKienMoi = `oninput="${kieuKiemTraGV} ${triggerThayDoi}" onchange="xacThucGiaTriHopLe(this, '${loaiDanhSach}'); ${kieuKiemTraGV} ${triggerThayDoi}" onfocus="${onFocusClick}" onclick="if(this.showPicker) this.showPicker();" onblur="${onBlurLogic}"`;
+    let suKienMoi = `oninput="${kieuKiemTraGV} ${triggerThayDoi}" onchange="if(xacThucGiaTriHopLe(this, '${loaiDanhSach}') !== false){ ${kieuKiemTraGV} ${triggerThayDoi} }" onfocus="${onFocusClick}" onclick="if(this.showPicker) this.showPicker();" onblur="${onBlurLogic}"`;
 
-    let html = `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" ${suKienMoi}>`; 
+    let html = `<input type="text" size="1" list="${idDatalist}" ${idThocTinh} ${thuocTinhKhoa} data-val="${giaTriMacDinh || ''}" data-val-goc="${giaTriMacDinh || ''}" value="${giaTriMacDinh || ''}" placeholder="--" class="w-full h-full min-w-0 bg-transparent outline-none text-center ${cssKhoa} py-1 font-bold ${kieuText} ${cssAn}" style="font-family:'Times New Roman',Times,serif;" autocomplete="off" ${suKienMoi}>`; 
     
     return html;
 }
 
-window.xacThucGiaTriHopLe = function(inputEl, loaiDanhSach) {
-    if (!inputEl) return;
+window.xacThucGiaTriHopLe = function(inputEl, loaiDanhSach, kiemTraTrung = true) {
+    if (!inputEl) return true;
     let giaTri = inputEl.value.trim();
 
     // [NÂNG CẤP]: Xóa trắng ô hoàn toàn nếu người dùng chọn "---" hoặc "--"
     if (giaTri === '---' || giaTri === '--') { 
         inputEl.value = ''; 
         inputEl.dataset.val = ''; // Xóa bộ nhớ tạm để ngăn hàm onblur khôi phục lại chữ cũ
-        return; 
+        return true; 
     }
 
-    if (giaTri === '') { inputEl.value = ''; return; }
+    if (giaTri === '') { inputEl.value = ''; return true; }
 
     let danhSachChuan = (loaiDanhSach === 'mon') ? (thongSoHocVu.DANH_SACH_MON_HOC || []) : (thongSoHocVu.DANH_SACH_GIAO_VIEN || []);
 
-    if (danhSachChuan.includes(giaTri)) { inputEl.value = giaTri; return; }
-
-    let giaTriChuanHoa = giaTri.normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
     let giaTriDung = null;
-
-    for (let i = 0; i < danhSachChuan.length; i++) {
-        let itemChuanHoa = danhSachChuan[i].normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
-        if (giaTriChuanHoa === itemChuanHoa) { giaTriDung = danhSachChuan[i]; break; }
+    if (danhSachChuan.includes(giaTri)) {
+        giaTriDung = giaTri;
+    } else {
+        let giaTriChuanHoa = giaTri.normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
+        for (let i = 0; i < danhSachChuan.length; i++) {
+            let itemChuanHoa = danhSachChuan[i].normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
+            if (giaTriChuanHoa === itemChuanHoa) { giaTriDung = danhSachChuan[i]; break; }
+        }
     }
 
-    if (giaTriDung) { inputEl.value = giaTriDung; } 
-    else {
+    if (giaTriDung) {
+        // Kiểm tra xếp trùng giáo viên nếu là ô giáo viên (ngoại trừ HĐTN)
+        if (loaiDanhSach === 'gv' && kiemTraTrung && inputEl.id && inputEl.id.startsWith('gv_')) {
+            let hopLe = window.kiemTraVaXuLyTrungGiaoVienKhiXep(inputEl, giaTriDung);
+            if (!hopLe) {
+                return false; // Đã trùng và đã trả về giá trị trước khi thay đổi
+            }
+        }
+        inputEl.value = giaTriDung;
+        inputEl.dataset.val = giaTriDung;
+        return true;
+    } else {
         inputEl.value = '';
         if (inputEl.parentElement && inputEl.parentElement.tagName === 'TD') {
             let theTd = inputEl.parentElement;
             theTd.classList.add('bg-red-300', 'transition-colors', 'duration-300');
             setTimeout(() => { theTd.classList.remove('bg-red-300'); }, 800);
         }
+        return false;
     }
 };
 
@@ -2615,14 +2788,17 @@ function thucThiKiemTraTrungGiaoVienToanBang() {
                 let slotKey = `${thu}_${buoi}_${tiet}`;
                 let demGv = {}; let chiTietLop = {};
 
-                let dsAn = mapTkbAnTheoTiet[slotKey];
+               let dsAn = mapTkbAnTheoTiet[slotKey];
                 if (dsAn) {
                     dsAn.forEach(tietGoc => {
                         let tenGv = tietGoc.maGv ? tietGoc.maGv.trim() : "";
                         let monHoc = tietGoc.monHoc ? tietGoc.monHoc.trim() : "";
                         if (tenGv !== "" && tenGv !== "--") {
                             let ut = parseInt(uuTienMon[monHoc]) || 99;
-                            if (ut !== 1 && ut !== 6) {
+                            let laHDTN = (typeof window.laTietHoatDongTapTheDuocPhepTrung === 'function') 
+                                ? window.laTietHoatDongTapTheDuocPhepTrung(monHoc, ut)
+                                : (ut === 1 || ut === 6);
+                            if (!laHDTN) {
                                 demGv[tenGv] = (demGv[tenGv] || 0) + 1;
                                 if (!chiTietLop[tenGv]) chiTietLop[tenGv] = [];
                                 chiTietLop[tenGv].push(`${tietGoc.maLop}(ẩn)`);
@@ -2635,7 +2811,10 @@ function thucThiKiemTraTrungGiaoVienToanBang() {
                 if (dsHien) {
                     dsHien.forEach(item => {
                         let ut = parseInt(uuTienMon[item.monHoc]) || 99;
-                        if (ut !== 1 && ut !== 6) {
+                        let laHDTN = (typeof window.laTietHoatDongTapTheDuocPhepTrung === 'function') 
+                            ? window.laTietHoatDongTapTheDuocPhepTrung(item.monHoc, ut)
+                            : (ut === 1 || ut === 6);
+                        if (!laHDTN) {
                             demGv[item.tenGv] = (demGv[item.tenGv] || 0) + 1;
                             if (!chiTietLop[item.tenGv]) chiTietLop[item.tenGv] = [];
                             chiTietLop[item.tenGv].push(item.lop);
