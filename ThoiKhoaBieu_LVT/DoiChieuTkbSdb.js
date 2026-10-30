@@ -915,7 +915,7 @@
                         mucDo: 'TRUNG_BINH',
                         tkbMon: `${tk.coMonTKB} tiết trên TKB`,
                         tkbGV: 'Theo phân công TKB',
-                        sdbMon: 'Chưa lưu vào sheet SoDauBai',
+                        sdbMon: 'Chưa lưu vào kho lưu trữ sổ đầu bài',
                         sdbGV: 'Chưa ký',
                         sdbTietPPCT: '--',
                         sdbTenBai: '--',
