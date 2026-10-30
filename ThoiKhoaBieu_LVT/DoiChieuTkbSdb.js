@@ -84,24 +84,25 @@
                         </div>
                     </div>
 
-                    <!-- BỘ LỌC & THỐNG KÊ NHANH -->
-                    <div class="bg-slate-100 p-3 border-b border-slate-300 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 flex-none">
-                        <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
-                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs">
+                   <!-- BỘ LỌC & THỐNG KÊ NHANH -->
+                    <div class="bg-slate-100 p-3 border-b border-slate-300 flex flex-col gap-3 flex-none">
+                        <!-- DÒNG 1: CÁC Ô LỌC -->
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs whitespace-nowrap">
                                 <span class="text-xs font-bold text-slate-600">Tuần:</span>
                                 <select id="locTuanDoiChieu" onchange="thucThiQuetDoiChieuTrenRAM()" class="text-xs font-extrabold text-teal-900 bg-transparent outline-none cursor-pointer">
                                     <option value="ALL">Tất cả các tuần</option>
                                 </select>
                             </div>
 
-                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs">
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs whitespace-nowrap">
                                 <span class="text-xs font-bold text-slate-600">Lớp:</span>
                                 <select id="locLopDoiChieu" onchange="ketXuatBangDoiChieu()" class="text-xs font-extrabold text-blue-900 bg-transparent outline-none cursor-pointer">
                                     <option value="ALL">Toàn trường</option>
                                 </select>
                             </div>
 
-                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs">
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs whitespace-nowrap">
                                 <span class="text-xs font-bold text-slate-600">Loại lệch:</span>
                                 <select id="locLoaiLoiDoiChieu" onchange="ketXuatBangDoiChieu()" class="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer">
                                     <option value="ALL">Tất cả chênh lệch</option>
@@ -113,14 +114,17 @@
                                     <option value="CHUA_LUU_SDB">6. Lớp chưa lưu Sổ đầu bài tuần</option>
                                 </select>
                             </div>
+                        </div>
 
-                            <div class="relative flex-1 min-w-[180px]">
+                       <!-- DÒNG 2: TÌM KIẾM & CÁC NÚT THỐNG KÊ -->
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="relative w-full sm:w-[320px]">
                                 <input type="text" id="timKiemDoiChieu" oninput="ketXuatBangDoiChieu()" placeholder="Tìm môn, tên GV, bài dạy..." class="w-full pl-7 pr-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-teal-500">
                                 <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             </div>
+                        
+                            <div id="vungThongKeNhanhDoiChieu" class="flex flex-wrap items-center gap-2"></div>
                         </div>
-
-                        <div id="vungThongKeNhanhDoiChieu" class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end"></div>
                     </div>
 
                     <!-- BẢNG KẾT QUẢ CHI TIẾT -->
@@ -988,6 +992,9 @@
 
         if (typeof window.kiemTraTuanDaKhoa === 'function' && window.kiemTraTuanDaKhoa(tuanSo)) {
             return alert(`⛔ Sổ đầu bài Tuần ${tuanSo} đã bị khóa toàn trường. Vui lòng mở khóa trước khi khắc phục!`);
+        }
+        if (typeof window.kiemTraQuyenLienQuanLopSDB === 'function' && !window.kiemTraQuyenLienQuanLopSDB(lopUpper, tuanSo)) {
+            return alert(`⛔ TỪ CHỐI THAO TÁC:\n\nĐồng chí không được phân công giảng dạy tại Lớp ${lopUpper} nên không có quyền khắc phục và lưu thay đổi của lớp này!`);
         }
 
         // 1. Đồng bộ TKB mới nhất từ lưới UI & Cache đa tuần vào mapTkbToanTap
