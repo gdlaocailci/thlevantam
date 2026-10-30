@@ -17,6 +17,21 @@
     let danhSachLopCoDuLieu = [];
     let _daGanHookDongBoSauKhiLuu = false;
 
+    const thuTuThu = { "Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5, "Thứ 6": 6, "Thứ 7": 7, "Chủ nhật": 8 };
+    const thuTuBuoi = { "sáng": 1, "chiều": 2 };
+
+    function soSanhThuTuTiet(a, b) {
+        let tA = thuTuThu[chuanHoaThu(a.thu || a['Thứ'])] || 99;
+        let tB = thuTuThu[chuanHoaThu(b.thu || b['Thứ'])] || 99;
+        if (tA !== tB) return tA - tB;
+        let bA = thuTuBuoi[chuanHoaBuoi(a.buoi || a['Buổi'])] || 99;
+        let bB = thuTuBuoi[chuanHoaBuoi(b.buoi || b['Buổi'])] || 99;
+        if (bA !== bB) return bA - bB;
+        let tietA = parseInt(String(a.tiet || a['Tiết'] || '').replace(/\D/g, ''), 10) || 0;
+        let tietB = parseInt(String(b.tiet || b['Tiết'] || '').replace(/\D/g, ''), 10) || 0;
+        return tietA - tietB;
+    }
+
     // -------------------------------------------------------------------------
     // 1. TỰ ĐỘNG GẮN NÚT CÔNG CỤ VÀ KHỞI TẠO MODAL TRÊN DOM
     // -------------------------------------------------------------------------
@@ -84,25 +99,25 @@
                         </div>
                     </div>
 
-                   <!-- BỘ LỌC & THỐNG KÊ NHANH -->
-                    <div class="bg-slate-100 p-3 border-b border-slate-300 flex flex-col gap-3 flex-none">
-                        <!-- DÒNG 1: CÁC Ô LỌC -->
+                    <!-- BỘ LỌC & THỐNG KÊ NHANH -->
+                    <div class="bg-slate-100 p-3 border-b border-slate-300 flex flex-col gap-2.5 flex-none">
+                        <!-- DÒNG 1: CÁC BỘ LỌC CHỌN (TUẦN, LỚP, LOẠI LỆCH) -->
                         <div class="flex flex-wrap items-center gap-2.5">
-                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs whitespace-nowrap">
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs">
                                 <span class="text-xs font-bold text-slate-600">Tuần:</span>
                                 <select id="locTuanDoiChieu" onchange="thucThiQuetDoiChieuTrenRAM()" class="text-xs font-extrabold text-teal-900 bg-transparent outline-none cursor-pointer">
                                     <option value="ALL">Tất cả các tuần</option>
                                 </select>
                             </div>
 
-                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs whitespace-nowrap">
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs">
                                 <span class="text-xs font-bold text-slate-600">Lớp:</span>
                                 <select id="locLopDoiChieu" onchange="ketXuatBangDoiChieu()" class="text-xs font-extrabold text-blue-900 bg-transparent outline-none cursor-pointer">
                                     <option value="ALL">Toàn trường</option>
                                 </select>
                             </div>
 
-                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs whitespace-nowrap">
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-xs">
                                 <span class="text-xs font-bold text-slate-600">Loại lệch:</span>
                                 <select id="locLoaiLoiDoiChieu" onchange="ketXuatBangDoiChieu()" class="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer">
                                     <option value="ALL">Tất cả chênh lệch</option>
@@ -116,14 +131,14 @@
                             </div>
                         </div>
 
-                       <!-- DÒNG 2: TÌM KIẾM & CÁC NÚT THỐNG KÊ -->
-                        <div class="flex flex-wrap items-center gap-3">
-                            <div class="relative w-full sm:w-[320px]">
+                        <!-- DÒNG 2: Ô TÌM KIẾM THU GỌN VÀ CÁC Ô TỔNG HỢP CÙNG HÀNG -->
+                        <div class="flex flex-wrap justify-between items-center gap-2.5">
+                            <div class="relative w-56 sm:w-64 flex-none">
                                 <input type="text" id="timKiemDoiChieu" oninput="ketXuatBangDoiChieu()" placeholder="Tìm môn, tên GV, bài dạy..." class="w-full pl-7 pr-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-teal-500">
                                 <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             </div>
-                        
-                            <div id="vungThongKeNhanhDoiChieu" class="flex flex-wrap items-center gap-2"></div>
+
+                            <div id="vungThongKeNhanhDoiChieu" class="flex flex-wrap items-center gap-2 justify-end"></div>
                         </div>
                     </div>
 
@@ -369,6 +384,97 @@
             window.luuDuLieu = async function(...args) {
                 const kq = await hamLuuTkbGoc.apply(this, args);
                 dongBoTkbMoiNhatSangBoNhoSDB();
+                return kq;
+            };
+        }
+
+        // 3. Bọc hàm layDsTietTheoTuanLopSDB để lưới SĐB luôn nhận danh sách tiết được sắp xếp chuẩn xác tuần tự theo thời gian
+        if (typeof window.layDsTietTheoTuanLopSDB === 'function' && !window._daHookLayDsTietTheoTuanLopSDB) {
+            window._daHookLayDsTietTheoTuanLopSDB = true;
+            const hamGocLayDsTiet = window.layDsTietTheoTuanLopSDB;
+            window.layDsTietTheoTuanLopSDB = function(tuanSo, lopUpper) {
+                let ds = hamGocLayDsTiet.call(this, tuanSo, lopUpper);
+                if (Array.isArray(ds) && ds.length > 0) {
+                    ds.sort(soSanhThuTuTiet);
+                }
+                return ds;
+            };
+        }
+
+        // 4. Bọc hàm thucThiKetXuatSoDauBaiLenLuoi để sau khi render DOM không bị ghi đè các mốc Tiết PPCT chuẩn đã chốt
+        if (typeof window.thucThiKetXuatSoDauBaiLenLuoi === 'function' && !window._daHookKetXuatSDB) {
+            window._daHookKetXuatSDB = true;
+            const hamKetXuatGoc = window.thucThiKetXuatSoDauBaiLenLuoi;
+            window.thucThiKetXuatSoDauBaiLenLuoi = function(...args) {
+                const kq = hamKetXuatGoc.apply(this, args);
+                try {
+                    let tuanChon = document.getElementById('chonTuanSo')?.value;
+                    let lopChon = document.getElementById('chonLopSo')?.value;
+                    if (tuanChon && lopChon && typeof duLieuTKBGopDaMap !== 'undefined') {
+                        let tuanSo = parseInt(String(tuanChon).replace(/\D/g, ''), 10);
+                        let lopUpper = String(lopChon).trim().toUpperCase();
+                        const vungHienThi = document.getElementById('vungHienThiSoDauBai');
+                        if (vungHienThi) {
+                            const cacDongTR = vungHienThi.querySelectorAll('.bang-so-dau-bai-container table tbody tr');
+                            cacDongTR.forEach(tr => {
+                                let oTiet = tr.querySelector('td[data-loai="tietSDB"]');
+                                let tietText = oTiet ? oTiet.innerText.trim() : '';
+                                let buoiNorm = chuanHoaBuoi(tr.getAttribute('data-buoi') || '');
+                                let tdThu = tr.querySelector('td[rowspan]');
+                                let thuText = '';
+                                if (tdThu) {
+                                    thuText = chuanHoaThu(tdThu.innerText.split('\n')[0].trim());
+                                } else {
+                                    let prev = tr.previousElementSibling;
+                                    while (prev) {
+                                        let pThu = prev.querySelector('td[rowspan]');
+                                        if (pThu) { thuText = chuanHoaThu(pThu.innerText.split('\n')[0].trim()); break; }
+                                        prev = prev.previousElementSibling;
+                                    }
+                                }
+                                if (!thuText || !tietText) return;
+
+                                let dongRam = duLieuTKBGopDaMap.find(d =>
+                                    parseInt(String(d['Tuần'] || '').replace(/\D/g, ''), 10) === tuanSo &&
+                                    String(d['Mã Lớp'] || '').trim().toUpperCase() === lopUpper &&
+                                    chuanHoaThu(d['Thứ']) === thuText &&
+                                    chuanHoaBuoi(d['Buổi']) === buoiNorm &&
+                                    String(d['Tiết'] || '').trim() === tietText
+                                );
+
+                                if (dongRam && dongRam._tietPpctChuanKhoa) {
+                                    dongRam['TietPPCT_Thuc'] = dongRam._tietPpctChuanKhoa;
+                                    if (dongRam._tenBaiChuanKhoa) dongRam['TenBai_Thuc'] = dongRam._tenBaiChuanKhoa;
+
+                                    let cellTiet = tr.querySelector('td[data-loai="tiet"]');
+                                    if (cellTiet) {
+                                        let inp = cellTiet.querySelector('input');
+                                        if (inp && inp.value !== dongRam._tietPpctChuanKhoa) {
+                                            inp.value = dongRam._tietPpctChuanKhoa;
+                                            inp.setAttribute('value', dongRam._tietPpctChuanKhoa);
+                                        } else if (!inp) {
+                                            let sp = cellTiet.querySelector('span');
+                                            if (sp && sp.innerText !== dongRam._tietPpctChuanKhoa) sp.innerText = dongRam._tietPpctChuanKhoa;
+                                        }
+                                    }
+
+                                    let cellTenBai = tr.querySelector('td[data-loai="tenBai"]');
+                                    if (cellTenBai && dongRam._tenBaiChuanKhoa) {
+                                        let ta = cellTenBai.querySelector('textarea, input');
+                                        if (ta && ta.value !== dongRam._tenBaiChuanKhoa) {
+                                            ta.value = dongRam._tenBaiChuanKhoa;
+                                            ta.style.height = 'auto';
+                                            ta.style.height = ta.scrollHeight + 'px';
+                                        } else if (!ta) {
+                                            let sp = cellTenBai.querySelector('span');
+                                            if (sp && sp.innerText !== dongRam._tenBaiChuanKhoa) sp.innerText = dongRam._tenBaiChuanKhoa;
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } catch (eHook) {}
                 return kq;
             };
         }
@@ -660,11 +766,11 @@
 
                 let dsKhoaSorted = Array.from(tapKhoaSlot).sort((a, b) => {
                     let pA = a.split('_'), pB = b.split('_');
-                    let tA = thuTuThu[pA[2]] || 99, tB = thuTuThu[pB[2]] || 99;
+                    let tA = thuTuThu[chuanHoaThu(pA[pA.length - 3])] || 99, tB = thuTuThu[chuanHoaThu(pB[pB.length - 3])] || 99;
                     if (tA !== tB) return tA - tB;
-                    let bA = thuTuBuoi[pA[3]] || 99, bB = thuTuBuoi[pB[3]] || 99;
+                    let bA = thuTuBuoi[chuanHoaBuoi(pA[pA.length - 2])] || 99, bB = thuTuBuoi[chuanHoaBuoi(pB[pB.length - 2])] || 99;
                     if (bA !== bB) return bA - bB;
-                    return (parseInt(pA[4], 10) || 0) - (parseInt(pB[4], 10) || 0);
+                    return (parseInt(String(pA[pA.length - 1] || '').replace(/\D/g, ''), 10) || 0) - (parseInt(String(pB[pB.length - 1] || '').replace(/\D/g, ''), 10) || 0);
                 });
 
                 let boDemPPCT = {};
@@ -688,9 +794,10 @@
 
                 dsKhoaSorted.forEach(khoa => {
                     let parts = khoa.split('_');
-                    let thu = parts[2];
-                    let buoi = parts[3] === 'sáng' ? 'Sáng' : 'Chiều';
-                    let tiet = parts[4];
+                    let thu = chuanHoaThu(parts[parts.length - 3]);
+                    let buoiNorm = chuanHoaBuoi(parts[parts.length - 2]);
+                    let buoi = buoiNorm === 'sáng' ? 'Sáng' : 'Chiều';
+                    let tiet = String(parts[parts.length - 1] || '').trim();
 
                     let tkbItem = mapTkbChuan[khoa];
                     let sdbItem = mapSdbThucTe[khoa];
@@ -1042,22 +1149,24 @@
 
         let dsKhoaSorted = Array.from(tapKhoaSlot).sort((a, b) => {
             let pA = a.split('_'), pB = b.split('_');
-            let tA = thuTuThu[pA[2]] || 99, tB = thuTuThu[pB[2]] || 99;
+            let tA = thuTuThu[chuanHoaThu(pA[pA.length - 3])] || 99, tB = thuTuThu[chuanHoaThu(pB[pB.length - 3])] || 99;
             if (tA !== tB) return tA - tB;
-            let bA = thuTuBuoi[pA[3]] || 99, bB = thuTuBuoi[pB[3]] || 99;
+            let bA = thuTuBuoi[chuanHoaBuoi(pA[pA.length - 2])] || 99, bB = thuTuBuoi[chuanHoaBuoi(pB[pB.length - 2])] || 99;
             if (bA !== bB) return bA - bB;
-            return (parseInt(pA[4], 10) || 0) - (parseInt(pB[4], 10) || 0);
+            return (parseInt(String(pA[pA.length - 1] || '').replace(/\D/g, ''), 10) || 0) - (parseInt(String(pB[pB.length - 1] || '').replace(/\D/g, ''), 10) || 0);
         });
 
         let demMonTrongTuan = {};
         let soTietDaSua = 0;
         let chiTietDaSua = [];
+        let banDoPPCTChuanTheoSlot = {};
 
         dsKhoaSorted.forEach(khoa => {
             let parts = khoa.split('_');
-            let thu = parts[2];
-            let buoiNorm = parts[3]; // 'sáng' hoặc 'chiều'
-            let tiet = parts[4];
+            let thu = chuanHoaThu(parts[parts.length - 3]);
+            let buoiNorm = chuanHoaBuoi(parts[parts.length - 2]);
+            let buoi = buoiNorm === 'sáng' ? 'Sáng' : 'Chiều';
+            let tiet = String(parts[parts.length - 1] || '').trim();
 
             let tkbItem = mapTkbChuan[khoa];
             let monTKB = tkbItem ? String(tkbItem['Môn Học'] || '').trim() : '';
@@ -1074,6 +1183,19 @@
                     tenBaiChuan = window.timTenBaiChuanSDB(khoiChon, monTKB, tietPpctChuan) || '';
                 }
             }
+
+            let kSlot = `${thu}_${buoiNorm}_${tiet}`;
+            banDoPPCTChuanTheoSlot[kSlot] = {
+                thu: thu,
+                buoi: buoiNorm,
+                tiet: tiet,
+                monHoc: monTKB,
+                maGV: gvTKB,
+                ngay: ngayTKB,
+                tietPPCT: tietPpctChuan,
+                tenBai: tenBaiChuan,
+                daSua: false
+            };
 
             let idxSDB = -1;
             if (typeof duLieuTKBGopDaMap !== 'undefined') {
@@ -1137,10 +1259,16 @@
                         }
                     }
 
+                    sdbObj._tietPpctChuanKhoa = tietPpctChuan;
+                    sdbObj._tenBaiChuanKhoa = tenBaiChuan;
                     sdbObj.TrangThaiThayDoi = true;
                     sdbObj.DaDongBoTKB = true;
+                    banDoPPCTChuanTheoSlot[kSlot].daSua = true;
                     soTietDaSua++;
                     chiTietDaSua.push(`${thu} (${buoiNorm === 'sáng' ? 'Sáng' : 'Chiều'} - T${tiet}): ${monTKB || 'Xóa tiết trống'} ${tietPpctChuan ? `[PPCT: ${tietPpctChuan}]` : ''}`);
+                } else {
+                    sdbObj._tietPpctChuanKhoa = tietPpctChuan;
+                    sdbObj._tenBaiChuanKhoa = tenBaiCu || tenBaiChuan;
                 }
             } else if (monTKB !== '') {
                 duLieuTKBGopDaMap.push({
@@ -1161,8 +1289,11 @@
                     'ChuyenCan_Thuc': '',
                     'DaLuu': false,
                     'TrangThaiThayDoi': true,
-                    'DaDongBoTKB': true
+                    'DaDongBoTKB': true,
+                    '_tietPpctChuanKhoa': tietPpctChuan,
+                    '_tenBaiChuanKhoa': tenBaiChuan
                 });
+                banDoPPCTChuanTheoSlot[kSlot].daSua = true;
                 soTietDaSua++;
                 chiTietDaSua.push(`${thu} (${buoiNorm === 'sáng' ? 'Sáng' : 'Chiều'} - T${tiet}): Thêm mới [${monTKB} - PPCT ${tietPpctChuan}]`);
             }
@@ -1178,10 +1309,10 @@
 
         // 5. Đóng Modal đối chiếu, chuyển sang Tab Sổ đầu bài của đúng Tuần & Lớp đó và vẽ lại lưới kèm icon cây bút
         dongModalDoiChieuTkbSdb();
-        dieuHuongMoTabSoDauBai(tuanSo, lopUpper, true, soTietDaSua, chiTietDaSua);
+        dieuHuongMoTabSoDauBai(tuanSo, lopUpper, true, soTietDaSua, chiTietDaSua, banDoPPCTChuanTheoSlot);
     };
 
-    function dieuHuongMoTabSoDauBai(tuanSo, lopUpper, daSuaTuDong = false, soTietDaSua = 0, chiTietDaSua = []) {
+    function dieuHuongMoTabSoDauBai(tuanSo, lopUpper, daSuaTuDong = false, soTietDaSua = 0, chiTietDaSua = [], banDoPPCTChuan = null) {
         let khungSDB = document.getElementById('khungSoDauBai');
         if (khungSDB && khungSDB.classList.contains('hidden')) {
             if (typeof window.kichHoatTab === 'function') {
@@ -1220,7 +1351,7 @@
             if (daSuaTuDong) {
                 if (typeof coThayDoiChuaLuu_SDB !== 'undefined') coThayDoiChuaLuu_SDB = true;
 
-                // Gắn cờ data-thaydoi="true" và biểu tượng cây bút cho tất cả các dòng vừa được tự động khắc phục trên DOM
+                // Gắn cờ data-thaydoi="true" và cập nhật chuẩn xác tuần tự 100% lên lưới DOM
                 const vungHienThi = document.getElementById('vungHienThiSoDauBai');
                 if (vungHienThi) {
                     const cacDongTR = vungHienThi.querySelectorAll('.bang-so-dau-bai-container table tbody tr');
@@ -1242,6 +1373,10 @@
                                 prev = prev.previousElementSibling;
                             }
                         }
+                        if (!thuText || !tietText) return;
+
+                        let kSlot = `${thuText}_${buoiNorm}_${tietText}`;
+                        let thongTin = banDoPPCTChuan ? banDoPPCTChuan[kSlot] : null;
 
                         let dongRam = (typeof duLieuTKBGopDaMap !== 'undefined') ? duLieuTKBGopDaMap.find(d =>
                             parseInt(String(d['Tuần'] || '').replace(/\D/g, ''), 10) === tuanSo &&
@@ -1251,17 +1386,51 @@
                             String(d['Tiết'] || '').trim() === tietText
                         ) : null;
 
-                        if (dongRam && (dongRam.TrangThaiThayDoi === true || dongRam.DaDongBoTKB === true)) {
-                            // Đảm bảo giá trị Tiết PPCT và Tên bài trên DOM khớp tuyệt đối với dongRam vừa tính
-                            let inpTiet = tr.querySelector('td[data-loai="tiet"] input');
-                            if (inpTiet && dongRam['TietPPCT_Thuc'] !== undefined) {
-                                inpTiet.value = dongRam['TietPPCT_Thuc'];
+                        let valTiet = (thongTin && thongTin.tietPPCT) ? thongTin.tietPPCT : (dongRam ? (dongRam._tietPpctChuanKhoa || dongRam['TietPPCT_Thuc']) : '');
+                        let valTenBai = (thongTin && thongTin.tenBai) ? thongTin.tenBai : (dongRam ? (dongRam._tenBaiChuanKhoa || dongRam['TenBai_Thuc']) : '');
+
+                        if (dongRam && valTiet !== '') {
+                            dongRam['TietPPCT_Thuc'] = valTiet;
+                            if (valTenBai) dongRam['TenBai_Thuc'] = valTenBai;
+                            dongRam._tietPpctChuanKhoa = valTiet;
+                            dongRam._tenBaiChuanKhoa = valTenBai;
+                        }
+
+                        if ((thongTin && thongTin.daSua) || (dongRam && (dongRam.TrangThaiThayDoi === true || dongRam.DaDongBoTKB === true))) {
+                            // Cột Môn học
+                            let cellMon = tr.querySelector('td[data-loai="mon"]');
+                            if (cellMon && thongTin && thongTin.monHoc) {
+                                let iconSua = cellMon.querySelector('button, svg, span[class*="cursor"]');
+                                cellMon.innerHTML = `${thongTin.monHoc}${iconSua ? iconSua.outerHTML : ''}`;
                             }
-                            let taTenBai = tr.querySelector('td[data-loai="tenBai"] textarea');
-                            if (taTenBai && dongRam['TenBai_Thuc'] !== undefined) {
-                                taTenBai.value = dongRam['TenBai_Thuc'];
-                                taTenBai.style.height = 'auto';
-                                taTenBai.style.height = (taTenBai.scrollHeight) + 'px';
+
+                            // Cột Tiết PPCT
+                            let cellTiet = tr.querySelector('td[data-loai="tiet"]');
+                            if (cellTiet && valTiet !== '') {
+                                let inpTiet = cellTiet.querySelector('input');
+                                if (inpTiet) {
+                                    inpTiet.value = valTiet;
+                                    inpTiet.setAttribute('value', valTiet);
+                                } else {
+                                    let spanTiet = cellTiet.querySelector('span');
+                                    if (spanTiet) spanTiet.innerText = valTiet;
+                                    else cellTiet.innerText = valTiet;
+                                }
+                            }
+
+                            // Cột Tên bài
+                            let cellTenBai = tr.querySelector('td[data-loai="tenBai"]');
+                            if (cellTenBai && valTenBai !== '') {
+                                let taTenBai = cellTenBai.querySelector('textarea, input');
+                                if (taTenBai) {
+                                    taTenBai.value = valTenBai;
+                                    taTenBai.style.height = 'auto';
+                                    taTenBai.style.height = (taTenBai.scrollHeight) + 'px';
+                                } else {
+                                    let spanTenBai = cellTenBai.querySelector('span');
+                                    if (spanTenBai) spanTenBai.innerText = valTenBai;
+                                    else cellTenBai.innerText = valTenBai;
+                                }
                             }
 
                             if (typeof danhDauDongThayDoi === 'function') {
