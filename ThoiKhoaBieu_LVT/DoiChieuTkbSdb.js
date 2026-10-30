@@ -186,10 +186,77 @@
 
     // -------------------------------------------------------------------------
     // 2. HÀM CHUẨN HÓA DỮ LIỆU ĐỂ ĐỐI SÁNH CHÍNH XÁC 100%
+    // (Chuẩn hóa dấu tiếng Việt úy/uý, óa/oá, òe/oè... ở đầu phụ âm hay nguyên âm đều đúng;
+    //  đối chiếu linh hoạt ID giáo viên, Họ và tên và Môn học)
     // -------------------------------------------------------------------------
+    const BANG_DAU_CU_SANG_MOI = {
+        'òa': 'oà', 'óa': 'oá', 'ỏa': 'oả', 'õa': 'oã', 'ọa': 'oạ',
+        'òe': 'oè', 'óe': 'oé', 'ỏe': 'oẻ', 'õe': 'oẽ', 'ọe': 'oẹ',
+        'ùy': 'uỳ', 'úy': 'uý', 'ủy': 'uỷ', 'ũy': 'uỹ', 'ụy': 'uỵ',
+        'Òa': 'Oà', 'Óa': 'Oá', 'Ỏa': 'Oả', 'Õa': 'Oã', 'Ọa': 'Oạ',
+        'Òe': 'Oè', 'Óe': 'Oé', 'Ỏe': 'Oẻ', 'Õe': 'Oẽ', 'Ọe': 'Oẹ',
+        'Ùy': 'Uỳ', 'Úy': 'Uý', 'Ủy': 'Uỷ', 'Ũy': 'Uỹ', 'Ụy': 'Uỵ',
+        'ÒA': 'OÀ', 'ÓA': 'OÁ', 'ỎA': 'OẢ', 'ÕA': 'OÃ', 'ỌA': 'OẠ',
+        'ÒE': 'OÈ', 'ÓE': 'OÉ', 'ỎE': 'OẺ', 'ÕE': 'OẼ', 'ỌE': 'OẸ',
+        'ÙY': 'UỲ', 'ÚY': 'UÝ', 'ỦY': 'UỶ', 'ŨY': 'UỸ', 'ỤY': 'UỴ'
+    };
+
+    function chuyenDauKieuMoi(str) {
+        if (!str) return '';
+        let s = String(str).normalize('NFC');
+        for (const [cu, moi] of Object.entries(BANG_DAU_CU_SANG_MOI)) {
+            s = s.split(cu).join(moi);
+        }
+        return s;
+    }
+
+    function chuyenDauKieuCu(str) {
+        if (!str) return '';
+        let s = String(str).normalize('NFC');
+        for (const [cu, moi] of Object.entries(BANG_DAU_CU_SANG_MOI)) {
+            if (moi.toLowerCase().startsWith('u')) {
+                s = s.replace(new RegExp('(?<![qQ])' + moi, 'g'), cu);
+            } else {
+                s = s.split(moi).join(cu);
+            }
+        }
+        return s;
+    }
+
     function chuanHoaChuoi(str) {
         if (!str) return '';
-        return String(str).trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+        let s = chuyenDauKieuMoi(String(str).trim()).normalize('NFD');
+        // Gom dấu thanh (huyền, sắc, hỏi, ngã, nặng) dù đặt ở đầu phụ âm hay bất kỳ nguyên âm nào trong âm tiết về vị trí chuẩn
+        s = s.replace(/([bcdfghjklmnpqrstvwxzđBCDFGHJKLMNPQRSTVWXZĐ\u0300\u0301\u0303\u0309\u0323]*)([aeiouyAEIOUY\u0302\u0306\u031b\u0300\u0301\u0303\u0309\u0323]+)/g, (match, p1, p2) => {
+            let tones = (p1 + p2).match(/[\u0300\u0301\u0303\u0309\u0323]/g);
+            if (!tones || tones.length !== 1) return match;
+            let cleanP1 = p1.replace(/[\u0300\u0301\u0303\u0309\u0323]/g, '');
+            let cleanP2 = p2.replace(/[\u0300\u0301\u0303\u0309\u0323]/g, '');
+            return cleanP1 + cleanP2 + tones[0];
+        });
+        return s.toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+    }
+
+    function chuanHoaMonHoc(monStr) {
+        if (!monStr) return '';
+        return chuanHoaChuoi(String(monStr).replace(/[0-9\(\)]/g, ''));
+    }
+
+    function timTenBaiChuanLinhHoat(khoi, monHoc, tietPPCT) {
+        if (typeof window.timTenBaiChuanSDB !== 'function' || !monHoc) return '';
+        let kq = window.timTenBaiChuanSDB(khoi, monHoc, tietPPCT);
+        if (kq) return kq;
+        let monCu = chuyenDauKieuCu(monHoc);
+        if (monCu !== monHoc) {
+            kq = window.timTenBaiChuanSDB(khoi, monCu, tietPPCT);
+            if (kq) return kq;
+        }
+        let monMoi = chuyenDauKieuMoi(monHoc);
+        if (monMoi !== monHoc) {
+            kq = window.timTenBaiChuanSDB(khoi, monMoi, tietPPCT);
+            if (kq) return kq;
+        }
+        return '';
     }
 
     function chuanHoaThu(thuStr) {
@@ -205,12 +272,111 @@
         return (s === 'sáng' || s === 'sang' || s === 's') ? 'sáng' : 'chiều';
     }
 
+    function traCuuTenMotGV(ma) {
+        if (!ma) return '';
+        let m = String(ma).trim();
+        if (!m) return '';
+        if (typeof window.layHoTenDayDuGiaoVienSDB === 'function') {
+            let kq = window.layHoTenDayDuGiaoVienSDB(m);
+            if (!kq || chuanHoaChuoi(kq) === chuanHoaChuoi(m)) {
+                let mCu = chuyenDauKieuCu(m);
+                if (mCu !== m) {
+                    let kqCu = window.layHoTenDayDuGiaoVienSDB(mCu);
+                    if (kqCu && chuanHoaChuoi(kqCu) !== chuanHoaChuoi(m)) kq = kqCu;
+                }
+            }
+            if (!kq || chuanHoaChuoi(kq) === chuanHoaChuoi(m)) {
+                let mMoi = chuyenDauKieuMoi(m);
+                if (mMoi !== m) {
+                    let kqMoi = window.layHoTenDayDuGiaoVienSDB(mMoi);
+                    if (kqMoi && chuanHoaChuoi(kqMoi) !== chuanHoaChuoi(m)) kq = kqMoi;
+                }
+            }
+            if (kq) return String(kq).trim();
+        }
+        return m;
+    }
+
     function layHoTenGV(maGV) {
         if (!maGV) return '';
-        if (typeof window.layHoTenDayDuGiaoVienSDB === 'function') {
-            return String(maGV).split(/[,;&-]/).map(m => window.layHoTenDayDuGiaoVienSDB(m.trim()) || m.trim()).filter(Boolean).join(', ');
-        }
-        return String(maGV).trim();
+        let raw = String(maGV).trim();
+        if (!raw) return '';
+        let dsKetQua = [];
+        let daCo = new Set();
+        const themKetQua = (ten) => {
+            let t = String(ten || '').trim();
+            let norm = chuanHoaChuoi(t);
+            if (norm && !daCo.has(norm)) {
+                daCo.add(norm);
+                dsKetQua.push(t);
+            }
+        };
+
+        let cacNhom = raw.split(/[,;&]/).map(s => s.trim()).filter(Boolean);
+        cacNhom.forEach(nhom => {
+            let traThang = traCuuTenMotGV(nhom);
+            if (traThang && chuanHoaChuoi(traThang) !== chuanHoaChuoi(nhom)) {
+                themKetQua(traThang);
+            } else if (nhom.includes('-')) {
+                nhom.split('-').map(x => x.trim()).filter(Boolean).forEach(p => {
+                    themKetQua(traCuuTenMotGV(p) || p);
+                });
+            } else {
+                themKetQua(traThang || nhom);
+            }
+        });
+        return dsKetQua.join(', ');
+    }
+
+    function layTapDinhDanhGV(chuoiGV) {
+        if (!chuoiGV) return [];
+        let raw = String(chuoiGV).trim().replace(/^(đã ký|phân công cũ|gv|giáo viên|ký tên)\s*:\s*/i, '').trim();
+        if (!raw) return [];
+        let tap = new Set();
+        const them = (val) => {
+            let n = chuanHoaChuoi(val);
+            if (n && n !== '--' && n !== '---') tap.add(n);
+        };
+
+        let cacPhan = raw.split(/[,;&/|]/).map(s => s.trim()).filter(Boolean);
+        cacPhan.forEach(phan => {
+            them(phan);
+            let tenFull = traCuuTenMotGV(phan);
+            if (tenFull) them(tenFull);
+
+            let cacCon = phan.split(/[\(\)\[\]\-]/).map(s => s.trim()).filter(Boolean);
+            cacCon.forEach(con => {
+                them(con);
+                let tenCon = traCuuTenMotGV(con);
+                if (tenCon) {
+                    them(tenCon);
+                    tenCon.split(/[\(\)\[\]\-]/).map(s => s.trim()).filter(Boolean).forEach(c2 => them(c2));
+                }
+            });
+        });
+        return Array.from(tap);
+    }
+
+    function soKhopGiaoVien(gvA, gvB) {
+        let tapA = layTapDinhDanhGV(gvA);
+        let tapB = layTapDinhDanhGV(gvB);
+        if (tapA.length === 0 || tapB.length === 0) return false;
+        if (tapA.some(a => tapB.some(b => a === b))) return true;
+
+        let coHoTenDayDuA = tapA.some(x => x.includes(' '));
+        let coHoTenDayDuB = tapB.some(x => x.includes(' '));
+
+        return tapA.some(a => tapB.some(b => {
+            if (a.length <= 2 || b.length <= 2) return false;
+            let ngan = a.length < b.length ? a : b;
+            let dai = a.length < b.length ? b : a;
+            // Nếu cả 2 phía đã phân giải được Họ và tên đầy đủ (có khoảng trắng), chỉ so khớp cụm Họ tên đầy đủ để tránh trùng tên gọi đơn lẻ
+            if (coHoTenDayDuA && coHoTenDayDuB && !ngan.includes(' ')) return false;
+            if (!dai.includes(ngan)) return false;
+            let escaped = ngan.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            let re = new RegExp('(^|[\\s,;&/\\(\\)\\[\\]\\-_:])' + escaped + '($|[\\s,;&/\\(\\)\\[\\]\\-_:])', 'i');
+            return re.test(dai);
+        }));
     }
 
     // -------------------------------------------------------------------------
@@ -781,7 +947,7 @@
                         if (lTruoc === lop && tTruoc < tuan && d.DaLuu === true) {
                             let m = String(d['Môn Học'] || '').trim();
                             if (m !== '') {
-                                let mNorm = m.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+                                let mNorm = chuanHoaMonHoc(m);
                                 let tietLuu = parseInt(String(d['TietPPCT_Thuc'] || '').replace(/\D/g, ''), 10) || 0;
                                 if (tietLuu > 0) boDemPPCT[mNorm] = Math.max(boDemPPCT[mNorm] || 0, tietLuu);
                                 else boDemPPCT[mNorm] = (boDemPPCT[mNorm] || 0) + 1;
@@ -817,12 +983,10 @@
                     let tietPpctKyVong = '';
                     let tenBaiKyVong = '';
                     if (monTKB !== '') {
-                        let mNorm = monTKB.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+                        let mNorm = chuanHoaMonHoc(monTKB);
                         demMonTrongTuanTKB[mNorm] = (demMonTrongTuanTKB[mNorm] || 0) + 1;
                         tietPpctKyVong = String((boDemPPCT[mNorm] || 0) + demMonTrongTuanTKB[mNorm]);
-                        if (typeof window.timTenBaiChuanSDB === 'function') {
-                            tenBaiKyVong = window.timTenBaiChuanSDB(khoi, monTKB, tietPpctKyVong) || '';
-                        }
+                        tenBaiKyVong = timTenBaiChuanLinhHoat(khoi, monTKB, tietPpctKyVong);
                     }
 
                     let coKyCu = (chuKySDB !== '' || nhanXetSDB !== '' || xepLoaiSDB !== '');
@@ -880,20 +1044,12 @@
 
                     // PHÂN LOẠI 4: CÙNG MÔN HỌC NHƯNG ĐỔI GIÁO VIÊN DẠY TRÊN TKB
                     if (monTKB !== '' && gvTKB !== '') {
-                        let dsMaGvTKB = gvTKB.split(/[,;&-]/).map(g => g.trim()).filter(Boolean);
-                        let tapTenVaMaGvMoi = [];
-                        dsMaGvTKB.forEach(m => {
-                            tapTenVaMaGvMoi.push(chuanHoaChuoi(m));
-                            let tenDayDu = layHoTenGV(m);
-                            if (tenDayDu) tapTenVaMaGvMoi.push(chuanHoaChuoi(tenDayDu));
-                        });
-
                         let chuKyNorm = chuanHoaChuoi(chuKySDB);
-                        let khacMaGv = (gvSDB !== '' && chuanHoaChuoi(gvSDB) !== chuanHoaChuoi(gvTKB));
-                        let daKyBoiNguoiCu = (chuKyNorm !== '' && !tapTenVaMaGvMoi.some(g => g === chuKyNorm || (g.length > 2 && chuKyNorm.includes(g))));
+                        let daKyBoiNguoiCu = (chuKyNorm !== '' && !soKhopGiaoVien(gvTKB, chuKySDB));
+                        let khacMaGv = (gvSDB !== '' && !soKhopGiaoVien(gvTKB, gvSDB) && (chuKyNorm === '' || daKyBoiNguoiCu));
 
                         if (khacMaGv || daKyBoiNguoiCu) {
-                            let tenGvCu = chuKySDB || layHoTenGV(gvSDB) || gvSDB || 'Chưa rõ';
+                            let tenGvCu = (daKyBoiNguoiCu ? (layHoTenGV(chuKySDB) || chuKySDB) : (layHoTenGV(gvSDB) || gvSDB)) || 'Chưa rõ';
                             let tenGvMoi = layHoTenGV(gvTKB) || gvTKB;
                             ketQuaDoiChieuToanCuc.push({
                                 khoa: khoa,
@@ -1119,7 +1275,7 @@
                 if (lTruoc === lopUpper && tTruoc < tuanSo && d.DaLuu === true) {
                     let m = String(d['Môn Học'] || '').trim();
                     if (m !== '') {
-                        let mNorm = m.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+                        let mNorm = chuanHoaMonHoc(m);
                         let tietLuu = parseInt(String(d['TietPPCT_Thuc'] || '').replace(/\D/g, ''), 10) || 0;
                         if (tietLuu > 0) boDemPPCT[mNorm] = Math.max(boDemPPCT[mNorm] || 0, tietLuu);
                         else boDemPPCT[mNorm] = (boDemPPCT[mNorm] || 0) + 1;
@@ -1176,12 +1332,10 @@
             let tietPpctChuan = '';
             let tenBaiChuan = '';
             if (monTKB !== '') {
-                let mNorm = monTKB.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+                let mNorm = chuanHoaMonHoc(monTKB);
                 demMonTrongTuan[mNorm] = (demMonTrongTuan[mNorm] || 0) + 1;
                 tietPpctChuan = String((boDemPPCT[mNorm] || 0) + demMonTrongTuan[mNorm]);
-                if (typeof window.timTenBaiChuanSDB === 'function') {
-                    tenBaiChuan = window.timTenBaiChuanSDB(khoiChon, monTKB, tietPpctChuan) || '';
-                }
+                tenBaiChuan = timTenBaiChuanLinhHoat(khoiChon, monTKB, tietPpctChuan);
             }
 
             let kSlot = `${thu}_${buoiNorm}_${tiet}`;
@@ -1219,16 +1373,9 @@
                 let doiMon = (chuanHoaChuoi(monCu) !== chuanHoaChuoi(monTKB));
                 let doiGV = false;
                 if (!doiMon && monTKB !== '' && gvTKB !== '') {
-                    let dsMaGvMoi = gvTKB.split(/[,;&-]/).map(g => g.trim()).filter(Boolean);
-                    let tapTenVaMaGvMoi = [];
-                    dsMaGvMoi.forEach(m => {
-                        tapTenVaMaGvMoi.push(chuanHoaChuoi(m));
-                        let tenDayDu = layHoTenGV(m);
-                        if (tenDayDu) tapTenVaMaGvMoi.push(chuanHoaChuoi(tenDayDu));
-                    });
                     let chuKyNorm = chuanHoaChuoi(chuKyCu);
-                    let khacMaGv = (gvCu !== '' && chuanHoaChuoi(gvCu) !== chuanHoaChuoi(gvTKB));
-                    let daKyBoiNguoiCu = (chuKyNorm !== '' && !tapTenVaMaGvMoi.some(g => g === chuKyNorm || (g.length > 2 && chuKyNorm.includes(g))));
+                    let daKyBoiNguoiCu = (chuKyNorm !== '' && !soKhopGiaoVien(gvTKB, chuKyCu));
+                    let khacMaGv = (gvCu !== '' && !soKhopGiaoVien(gvTKB, gvCu) && (chuKyNorm === '' || daKyBoiNguoiCu));
                     doiGV = (khacMaGv || daKyBoiNguoiCu);
                 }
 
