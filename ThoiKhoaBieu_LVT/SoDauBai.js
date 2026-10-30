@@ -2670,6 +2670,68 @@ async function luuSoDauBaiSangMayChu() {
     let quyenQuanTri = coToanQuyenSDB || (theChotQuyen ? (theChotQuyen.getAttribute('data-quantri') === 'true' || theChotQuyen.getAttribute('data-quantri') === true) : false);
     let maGvDangNhapLC = window.chuanHoaDinhDanhGiaoVien(madinhdanhGV);
 
+    // =========================================================================
+    // [ĐIỀU KIỆN QUYỀN GHI MÁY CHỦ]: Người ấn nút phải là người có tiết được phân công giảng dạy ở lớp đó
+    // (Cho dù tiết người đó không có thay đổi nhưng vẫn có quyền ấn lưu những thay đổi của tiết khác, người khác)
+    // =========================================================================
+    let coQuyenLuuLopNay = quyenQuanTri;
+    if (!coQuyenLuuLopNay && madinhdanhGV) {
+        let lopUp = String(lopChon).trim().toUpperCase();
+        
+        // 1. Kiểm tra trong ma trận phân công chuyên môn theo lớp (tuDienQuyenPhanCong)
+        if (typeof tuDienQuyenPhanCong !== 'undefined' && tuDienQuyenPhanCong) {
+            let dsMon = tuDienQuyenPhanCong[lopUp] || tuDienQuyenPhanCong[lopChon];
+            if (Array.isArray(dsMon) && dsMon.length > 0) {
+                coQuyenLuuLopNay = true;
+            }
+        }
+        
+        // 2. Kiểm tra trực tiếp trên các tiết TKB của lớp đó trong tuần này
+        if (!coQuyenLuuLopNay && Array.isArray(duLieuTKBGopDaMap)) {
+            let tapNguoiDung = [maGvDangNhapLC];
+            let tenDayDuUser = window.layHoTenDayDuGiaoVienSDB(theChotQuyen?.getAttribute('data-tendinhdanh') || madinhdanhGV);
+            if (tenDayDuUser) tapNguoiDung.push(window.chuanHoaDinhDanhGiaoVien(tenDayDuUser));
+
+            let tkbTuanNay = duLieuTKBGopDaMap.filter(d => 
+                parseInt(String(d['Tuần']).replace(/\D/g, ''), 10) === tuanSo && 
+                String(d['Mã Lớp']).trim().toUpperCase() === lopUp
+            );
+
+            coQuyenLuuLopNay = tkbTuanNay.some(dong => {
+                let monHoc = String(dong['Môn Học'] || '').trim();
+                if (monHoc === '') return false;
+                let gvTkb = String(dong['Mã GV'] || '').trim();
+                if (gvTkb === '') return false;
+                
+                let gvTkbNorm = window.chuanHoaDinhDanhGiaoVien(gvTkb);
+                let tenDayDuTkb = window.layHoTenDayDuGiaoVienSDB(gvTkb);
+                let tenDayDuTkbNorm = window.chuanHoaDinhDanhGiaoVien(tenDayDuTkb);
+                let dsGvTkbSplit = gvTkb.split(/[,;&-]/).map(g => window.chuanHoaDinhDanhGiaoVien(g)).filter(Boolean);
+                
+                let tapHopGv = [gvTkbNorm, tenDayDuTkbNorm, ...dsGvTkbSplit].filter(Boolean);
+                return tapHopGv.some(g => tapNguoiDung.includes(g) || tapNguoiDung.some(u => (u.includes(g) || g.includes(u)) && g.length > 2));
+            });
+        }
+
+        // 3. Kiểm tra trường hợp là Giáo viên chủ nhiệm của lớp đó
+        if (!coQuyenLuuLopNay) {
+            let maGvcnLop = (typeof tuDienGvcnTheoLopToanCuc !== 'undefined' && tuDienGvcnTheoLopToanCuc[lopUp]) ? tuDienGvcnTheoLopToanCuc[lopUp] :
+                           ((typeof thongSoHocVu !== 'undefined' && thongSoHocVu.GVCN_THEO_LOP && thongSoHocVu.GVCN_THEO_LOP[lopChon]) ? thongSoHocVu.GVCN_THEO_LOP[lopChon] : '');
+            if (maGvcnLop) {
+                let gvcnNorm = window.chuanHoaDinhDanhGiaoVien(maGvcnLop);
+                let tenDayDuGvcn = window.layHoTenDayDuGiaoVienSDB(maGvcnLop);
+                let tenDayDuGvcnNorm = window.chuanHoaDinhDanhGiaoVien(tenDayDuGvcn);
+                if (maGvDangNhapLC === gvcnNorm || (tenDayDuGvcnNorm && maGvDangNhapLC === tenDayDuGvcnNorm)) {
+                    coQuyenLuuLopNay = true;
+                }
+            }
+        }
+    }
+
+    if (!coQuyenLuuLopNay) {
+        return alert(`⛔ TỪ CHỐI TRUY CẬP:\n\nĐồng chí không có tiết được phân công giảng dạy tại Lớp ${lopChon} nên không có quyền thực hiện Lưu sổ đầu bài của lớp này!`);
+    }
+
     let duLieuQuetDuoc = [];
     let danhSachThongBao = []; 
     let soDongCoThayDoi = 0; 
