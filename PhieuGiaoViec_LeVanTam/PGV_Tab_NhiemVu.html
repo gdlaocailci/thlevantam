@@ -622,14 +622,13 @@ function thietLapNutKhoa(trangThai, ngayKhoa = "") {
     let ttKhoa = String(trangThai || "Mở").trim();
     trangThaiKhoa = ttKhoa;
     
-    let isBGH = kiemTraLaBGH();
-    let isGS = kiemTraLaGS();
+    let isXXX = kiemTraLaXXX();
     let btnAll = document.getElementById("nutKhoaTatCa");
     let btn = document.getElementById("nutMoKhoa");
     let spanNgay = document.getElementById("hienThiNgayKhoa"); 
     
     if(btnAll) {
-        if(isBGH) {
+        if(isXXX) {
             btnAll.style.setProperty('display', 'inline-block', 'important');
             if (ttKhoa === "Khóa") {
                 btnAll.setAttribute("data-tt", "Mở");
@@ -646,8 +645,7 @@ function thietLapNutKhoa(trangThai, ngayKhoa = "") {
     }
 
     if (btn) {
-       // if (isBGH || isGS) {
-           if (isBGH) {
+        if (isXXX) {
             btn.style.setProperty('display', 'inline-flex', 'important');
         } else {
             btn.style.setProperty('display', 'none', 'important');
@@ -674,7 +672,7 @@ function thietLapNutKhoa(trangThai, ngayKhoa = "") {
 }
 
 function doiTrangThaiKhoa() {
-    if (!kiemTraLaBGH() && !kiemTraLaGS()) {
+    if (!kiemTraLaXXX()) {
         if (typeof hienThongb === 'function') hienThongb('loi', "⚠️ Đồng chí không có thẩm quyền thao tác nút chức năng này.");
         return;
     }
@@ -730,7 +728,7 @@ function doiTrangThaiKhoa() {
 }
 
   function doiTrangThaiKhoaTatCa() {
-    if (!kiemTraLaBGH()) {
+    if (!kiemTraLaXXX()) {
         if (typeof hienThongb === 'function') hienThongb('loi', "⚠️ Đồng chí không có thẩm quyền!");
         return;
     }
@@ -1824,9 +1822,10 @@ function khoiTaoTheoQuyen() {
         kiemTraQuyenTruyCap();
     }
     
+    let isXXX = kiemTraLaXXX();
     let btn = document.getElementById("nutMoKhoa");
     if(btn) {
-        if(kiemTraLaBGH() || kiemTraLaGS()) {
+        if(isXXX) {
             btn.style.setProperty('display', 'inline-flex', 'important');
         } else {
             btn.style.setProperty('display', 'none', 'important');
@@ -1835,7 +1834,7 @@ function khoiTaoTheoQuyen() {
     
     let btnAll = document.getElementById("nutKhoaTatCa");
     if(btnAll) {
-        if(kiemTraLaBGH()) {
+        if(isXXX) {
             btnAll.style.setProperty('display', 'inline-block', 'important');
         } else {
             btnAll.style.setProperty('display', 'none', 'important');
