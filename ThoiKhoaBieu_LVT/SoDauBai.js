@@ -50,32 +50,57 @@ let chiMucTuanLopSDB = {}; // Chỉ mục O(1) tra cứu nhanh danh sách tiết
 let chiMucLopSDB = {}; // Chỉ mục O(1) tra cứu nhanh danh sách tiết theo "LOP"
 let tapTuanChuaLuuTheoLopSDB = {}; // Chỉ mục O(1) kiểm tra nhanh các tuần có môn nhưng chưa lưu của từng lớp
 
+// Hàm chuẩn hóa khóa số nguyên dòng thời gian O(1) - Không dùng Regex, miễn nhiễm lỗi Unicode NFC/NFD
+window.tinhTimelineKeySDB = function(d) {
+    let thuStr = String(d['Thứ'] || '');
+    let thuOrder = 99;
+    for (let i = 0; i < thuStr.length; i++) {
+        let code = thuStr.charCodeAt(i);
+        if (code >= 50 && code <= 55) { // Mã ASCII từ '2' đến '7'
+            thuOrder = code - 48;
+            break;
+        }
+    }
+    if (thuOrder === 99 && thuStr.length > 0) {
+        let low = thuStr.toLowerCase().normalize('NFC');
+        if (low.indexOf('nhật') !== -1 || low.indexOf('nhat') !== -1 || low === 'cn') thuOrder = 8;
+        else if (low.indexOf('hai') !== -1) thuOrder = 2;
+        else if (low.indexOf('ba') !== -1) thuOrder = 3;
+        else if (low.indexOf('tư') !== -1 || low.indexOf('bốn') !== -1) thuOrder = 4;
+        else if (low.indexOf('năm') !== -1) thuOrder = 5;
+        else if (low.indexOf('sáu') !== -1) thuOrder = 6;
+        else if (low.indexOf('bảy') !== -1) thuOrder = 7;
+    }
+
+    let buoiRaw = String(d['Buổi'] || '').trim().toLowerCase().normalize('NFC');
+    let buoiChuan = (buoiRaw === 'sáng' || buoiRaw === 'sang' || buoiRaw === 's') ? 'sáng' : 'chiều';
+    let buoiOrder = buoiChuan === 'sáng' ? 1 : 2;
+    let tietSo = d._tietSo !== undefined ? d._tietSo : (parseInt(String(d['Tiết'] || '').replace(/\D/g, ''), 10) || 0);
+
+    d._thuChuan = (thuOrder >= 2 && thuOrder <= 7) ? ('Thứ ' + thuOrder) : (thuOrder === 8 ? 'Chủ nhật' : thuStr.trim());
+    d._buoiChuan = buoiChuan;
+    d._thuOrder = thuOrder;
+    d._buoiOrder = buoiOrder;
+    d._tietSo = tietSo;
+    d._timelineKey = thuOrder * 100 + buoiOrder * 10 + tietSo;
+    return d._timelineKey;
+};
+
 // Hàm xây dựng chỉ mục O(1) giúp mở Sổ đầu bài, chuyển Tuần/Lớp và mở danh sách Tuần trong < 1ms
 window.xayDungChiMucNhanhSDB = function() {
     chiMucTuanLopSDB = {};
     chiMucLopSDB = {};
     tapTuanChuaLuuTheoLopSDB = {};
-
-    const thuTuThu = { "Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5, "Thứ 6": 6, "Thứ 7": 7, "Chủ nhật": 8 };
-    const thuTuBuoi = { "sáng": 1, "chiều": 2, "tối": 3 };
     let thongKeLuuTuanLop = {};
 
     for (let i = 0; i < duLieuTKBGopDaMap.length; i++) {
         let d = duLieuTKBGopDaMap[i];
         let t = d._tuanSo !== undefined ? d._tuanSo : (parseInt(String(d['Tuần'] || '').replace(/\D/g, ''), 10) || 0);
         let l = d._lopUpper !== undefined ? d._lopUpper : String(d['Mã Lớp'] || '').trim().toUpperCase();
-        let thuRaw = String(d['Thứ'] || '').trim().toLowerCase();
-        let thuChuan = thuRaw ? (thuRaw.charAt(0).toUpperCase() + thuRaw.slice(1)) : '';
-        let buoiChuan = String(d['Buổi'] || '').trim().toLowerCase() === 'sáng' ? 'sáng' : 'chiều';
-        let tietSo = d._tietSo !== undefined ? d._tietSo : (parseInt(String(d['Tiết'] || '').replace(/\D/g, ''), 10) || 0);
 
         d._tuanSo = t;
         d._lopUpper = l;
-        d._thuChuan = thuChuan;
-        d._buoiChuan = buoiChuan;
-        d._thuOrder = thuTuThu[thuChuan] || 99;
-        d._buoiOrder = thuTuBuoi[buoiChuan] || 99;
-        d._tietSo = tietSo;
+        window.tinhTimelineKeySDB(d);
 
         if (!t || !l) continue;
         let kTL = `${t}_${l}`;
@@ -94,11 +119,7 @@ window.xayDungChiMucNhanhSDB = function() {
     }
 
     Object.keys(chiMucTuanLopSDB).forEach(kTL => {
-        chiMucTuanLopSDB[kTL].sort((a, b) => {
-            if (a._thuOrder !== b._thuOrder) return a._thuOrder - b._thuOrder;
-            if (a._buoiOrder !== b._buoiOrder) return a._buoiOrder - b._buoiOrder;
-            return a._tietSo - b._tietSo;
-        });
+        chiMucTuanLopSDB[kTL].sort((a, b) => a._timelineKey - b._timelineKey);
     });
 
     Object.values(thongKeLuuTuanLop).forEach(tk => {
@@ -117,7 +138,7 @@ window.layDsTietTheoTuanLopSDB = function(tuanSo, lopUpper) {
     return duLieuTKBGopDaMap.filter(d =>
         (d._tuanSo || parseInt(String(d['Tuần']).replace(/\D/g, ''), 10)) === tuanSo &&
         (d._lopUpper || String(d['Mã Lớp']).trim().toUpperCase()) === lopUpper
-    );
+    ).sort((a, b) => (a._timelineKey || window.tinhTimelineKeySDB(a)) - (b._timelineKey || window.tinhTimelineKeySDB(b)));
 };
 
 window.timTuanTruocChuaLuuSDB = function(tuanMucTieu, lopUpper) {
