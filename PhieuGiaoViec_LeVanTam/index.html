@@ -501,7 +501,7 @@ async function chbiHt() {
 async function taiGiaoDienUuTien(daCoSanCache = false) {
     try {
         const ver = (typeof PGV_PHIEN_BAN !== 'undefined') ? PGV_PHIEN_BAN : new Date().getHours();
-        const mb = "?v=" + ver; // Tận dụng Cache của trình duyệt theo Version, không phá cache liên tục
+        const mb = "?v=" + ver;
 
         const [phMenu, phNhiemVu] = await Promise.all([
             fetch('./Menu_Doc.html' + mb), 
@@ -511,11 +511,7 @@ async function taiGiaoDienUuTien(daCoSanCache = false) {
         const txtMenu = await phMenu.text();
         const txtNV = await phNhiemVu.text();
 
-        // Lưu bản mẫu HTML vào cache cục bộ
-        localStorage.setItem("PGV_SWR_MENU", txtMenu);
-        localStorage.setItem("PGV_SWR_TAB_NV", txtNV);
-
-        // Nếu lúc nãy chưa có cache thì chèn vào DOM và kích hoạt script
+        // 1. Luôn chèn và hiển thị giao diện trước
         if (!daCoSanCache) {
             document.getElementById('khuVucMenu').innerHTML = txtMenu; 
             document.getElementById('khuNhiemVu').innerHTML = txtNV; 
@@ -526,6 +522,15 @@ async function taiGiaoDienUuTien(daCoSanCache = false) {
             ['khuVucMenu', 'khuNhiemVu'].forEach(i => thuchScript(document.getElementById(i)));
             thietLapSuKienTienNhiem();
         }
+
+        // 2. Thử lưu cache phòng vệ (nếu đầy bộ nhớ thì bỏ qua, không chặn luồng chính)
+        try {
+            localStorage.setItem("PGV_SWR_MENU", txtMenu);
+            localStorage.setItem("PGV_SWR_TAB_NV", txtNV);
+        } catch (eStorage) {
+            console.warn("Không thể ghi cache giao diện do đầy hạn mức localStorage:", eStorage);
+        }
+
     } catch (e) { 
         if (!daCoSanCache) throw new Error("LỖI KẾT NỐI TỆP GIAO DIỆN CỐT LÕI: " + e.message); 
     }
