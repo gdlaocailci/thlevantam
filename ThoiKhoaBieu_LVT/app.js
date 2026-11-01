@@ -1649,10 +1649,45 @@ window.xacThucGiaTriHopLe = function(inputEl, loaiDanhSach, kiemTraTrung = true)
     if (giaTri === '---' || giaTri === '--') { 
         inputEl.value = ''; 
         inputEl.dataset.val = ''; // Xóa bộ nhớ tạm để ngăn hàm onblur khôi phục lại chữ cũ
+        
+        // [TỰ ĐỘNG XÓA CỜ]: Khi xóa môn về -- thì cờ phải được tự động xóa
+        if (inputEl.id && inputEl.id.startsWith('mon_')) {
+            let parts = inputEl.id.split('_');
+            if (parts.length >= 5) {
+                let thu = parts[1], buoi = parts[2], tiet = parts[3], lop = parts.slice(4).join('_');
+                if (typeof window.xoaCoDayTheTietTKB === 'function') {
+                    window.xoaCoDayTheTietTKB(thu, buoi, tiet, lop);
+                } else {
+                    let tdMon = inputEl.closest('td');
+                    let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
+                    let tdGv = oGv ? oGv.closest('td') : null;
+                    if (tdMon) { let b = tdMon.querySelector('.badge-day-the'); if (b) b.remove(); }
+                    if (tdGv) { let b = tdGv.querySelector('.badge-day-the'); if (b) b.remove(); }
+                }
+            }
+        }
         return true; 
     }
 
-    if (giaTri === '') { inputEl.value = ''; return true; }
+    if (giaTri === '') { 
+        inputEl.value = ''; 
+        if (inputEl.id && inputEl.id.startsWith('mon_')) {
+            let parts = inputEl.id.split('_');
+            if (parts.length >= 5) {
+                let thu = parts[1], buoi = parts[2], tiet = parts[3], lop = parts.slice(4).join('_');
+                if (typeof window.xoaCoDayTheTietTKB === 'function') {
+                    window.xoaCoDayTheTietTKB(thu, buoi, tiet, lop);
+                } else {
+                    let tdMon = inputEl.closest('td');
+                    let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
+                    let tdGv = oGv ? oGv.closest('td') : null;
+                    if (tdMon) { let b = tdMon.querySelector('.badge-day-the'); if (b) b.remove(); }
+                    if (tdGv) { let b = tdGv.querySelector('.badge-day-the'); if (b) b.remove(); }
+                }
+            }
+        }
+        return true; 
+    }
 
     let danhSachChuan = (loaiDanhSach === 'mon') ? (thongSoHocVu.DANH_SACH_MON_HOC || []) : (thongSoHocVu.DANH_SACH_GIAO_VIEN || []);
 
@@ -2970,6 +3005,13 @@ async function luuSuaCucBoTKB(event) {
 
         let valMon = oMon.value.trim();
         let valGv = oGv ? oGv.value.trim() : "";
+        if (valMon === '--' || valMon === '---') valMon = '';
+        if (valGv === '--' || valGv === '---') valGv = '';
+        
+        // Khi xóa môn về rỗng/-- thì lập tức xóa cờ
+        if (valMon === '' && typeof window.xoaCoDayTheTietTKB === 'function') {
+            window.xoaCoDayTheTietTKB(thu, buoi, tiet, lop);
+        }
         
         let thongTinNgay = tinhNgayDocLap(ngayDauTuanUI, thu, tuanDangXem);
         let namHocDung = namHocChuan || thongTinNgay.nam;
@@ -3015,8 +3057,9 @@ async function luuSuaCucBoTKB(event) {
             let monGoc = tietGoc ? (tietGoc.monHoc || "").trim() : "";
             let gvGoc = tietGoc ? (tietGoc.maGv || "").trim() : "";
             
+            let laTietXoa = (valMon === "" && valGv === "") || (valMon === "");
             let msg = `- ${lop} (${thu}, T${tiet}): `;
-            if (valMon === "" && valGv === "") msg += `Xóa trắng tiết`;
+            if (laTietXoa) msg += `Xóa trắng tiết`;
             else if (monGoc === "" && gvGoc === "") msg += `Thêm mới [Môn: ${valMon || '--'}, GV: ${valGv || '--'}]`;
             else {
                 let chiTiet = [];
@@ -3038,7 +3081,9 @@ async function luuSuaCucBoTKB(event) {
                 tiet: tiet, 
                 maLop: lop, 
                 monHoc: valMon, 
-                maGv: valGv 
+                maGv: valGv,
+                xoa: laTietXoa,
+                daXoa: laTietXoa
             });
         }
     });
@@ -3121,12 +3166,20 @@ async function luuSuaCucBoTKB(event) {
                         String(t.buoi).trim().toLowerCase() === String(tietMoi.buoi).trim().toLowerCase() &&
                         String(t.tiet).trim() === String(tietMoi.tiet).trim()
                     );
+                    let laXoa = (tietMoi.xoa === true || tietMoi.daXoa === true) || 
+                                (!tietMoi.monHoc || String(tietMoi.monHoc).trim() === '' || tietMoi.monHoc === '--' || tietMoi.monHoc === '---');
                     if (idx !== -1) {
-                        duLieuTkbHienTai[idx] = { ...duLieuTkbHienTai[idx], ...tietMoi };
-                    } else {
+                        if (laXoa) {
+                            duLieuTkbHienTai.splice(idx, 1);
+                        } else {
+                            duLieuTkbHienTai[idx] = { ...duLieuTkbHienTai[idx], ...tietMoi };
+                        }
+                    } else if (!laXoa && tietMoi.monHoc && String(tietMoi.monHoc).trim() !== '' && tietMoi.monHoc !== '--' && tietMoi.monHoc !== '---') {
                         duLieuTkbHienTai.push(tietMoi);
                     }
                 });
+                // Làm sạch bất kỳ bản ghi rỗng nào còn sót lại trong RAM
+                duLieuTkbHienTai = duLieuTkbHienTai.filter(t => t && t.monHoc && String(t.monHoc).trim() !== '' && t.monHoc !== '--' && t.monHoc !== '---');
             }
             
             document.querySelectorAll('td[data-thaydoi="true"]').forEach(td => {
