@@ -40,6 +40,44 @@ window.luuCoDayTheTietTKB = function() {
     } catch (e) {}
 };
 
+window.xoaCoDayTheTietTKB = function(thu, buoi, tiet, lop) {
+    let namHoc = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.NAM_HOC) ? thongSoHocVu.NAM_HOC : 'NH';
+    let tSo = (typeof tuanDangXem !== 'undefined') ? parseInt(String(tuanDangXem).replace(/\D/g, ''), 10) || 1 : 1;
+    let maO = `${namHoc}_${tSo}_${thu}_${buoi}_${tiet}_${lop}`;
+    let maOKhongNH = `${tSo}_${thu}_${buoi}_${tiet}_${lop}`;
+    let maOTuanRaw = `${namHoc}_${tuanDangXem}_${thu}_${buoi}_${tiet}_${lop}`;
+    let maOTuanThuong = `${tuanDangXem}_${thu}_${buoi}_${tiet}_${lop}`;
+
+    delete window.trangThaiDacBietTKB[maO];
+    delete window.trangThaiDacBietTKB[maOKhongNH];
+    delete window.trangThaiDacBietTKB[maOTuanRaw];
+    delete window.trangThaiDacBietTKB[maOTuanThuong];
+
+    function xoaTrongMang(arr) {
+        if (!Array.isArray(arr)) return;
+        arr.forEach(t => {
+            if (parseInt(String(t.tuan).replace(/\D/g, ''), 10) === tSo &&
+                String(t.maLop).trim().toUpperCase() === String(lop).trim().toUpperCase() &&
+                String(t.thu).trim().toLowerCase() === String(thu).trim().toLowerCase() &&
+                String(t.buoi).trim().toLowerCase() === String(buoi).trim().toLowerCase() &&
+                String(t.tiet).trim() === String(tiet).trim()) {
+                t.trangThai = '';
+                if (t.ghiChu === 'THE_TIET' || t.ghiChu === 'DAY_TIET' || t.ghiChu === 'THẾ' || t.ghiChu === 'ĐẨY') {
+                    t.ghiChu = '';
+                }
+            }
+        });
+    }
+    if (typeof duLieuTkbHienTai !== 'undefined') xoaTrongMang(duLieuTkbHienTai);
+    if (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.TKB_TUAN) xoaTrongMang(thongSoHocVu.TKB_TUAN);
+
+    window.luuCoDayTheTietTKB();
+    window.veNhanDayTheTietTrenO(thu, buoi, tiet, lop);
+    if (typeof window.capNhatCanhBaoChiTietMonTrenLuoi === 'function') {
+        window.capNhatCanhBaoChiTietMonTrenLuoi(lop);
+    }
+};
+
 window.chuyenDoiCheDoDayTheTiet = function(thu, buoi, tiet, lop) {
     if (typeof window.kiemTraTuanTkbDaKhoa === 'function' && window.kiemTraTuanTkbDaKhoa(tuanDangXem)) {
         alert(`⚠️ Thời khóa biểu Tuần ${tuanDangXem} đang bị KHÓA. Không thể thay đổi trạng thái tiết học!`);
@@ -122,7 +160,6 @@ window.chuyenDoiCheDoDayTheTiet = function(thu, buoi, tiet, lop) {
     window.capNhatCanhBaoChiTietMonTrenLuoi(); // Cập nhật lại cảnh báo ngay lập tức trên dòng lớp
 
     // [BẮT BUỘC ĐỂ LƯU SỬA (MAP)]: Đánh dấu ô này đã bị thay đổi cờ trạng thái để luuSuaCucBoTKB thu thập vào dsThayDoi
-    let oMon = document.getElementById(`mon_${thu}_${buoi}_${tiet}_${lop}`);
     let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
     if (oMon) {
         let tdMon = oMon.closest('td');
@@ -157,11 +194,20 @@ window.veNhanDayTheTietTrenO = function(thu, buoi, tiet, lop) {
     let tdGv = oGv ? oGv.closest('td') : null;
     if (!tdMon) return;
 
+    let nhanMonCu = tdMon.querySelector('.badge-day-the');
+    if (nhanMonCu) nhanMonCu.remove();
+    if (tdGv) {
+        let nhanGvCu = tdGv.querySelector('.badge-day-the');
+        if (nhanGvCu) nhanGvCu.remove();
+    }
+
     let namHoc = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.NAM_HOC) ? thongSoHocVu.NAM_HOC : 'NH';
     let tSo = (typeof tuanDangXem !== 'undefined') ? parseInt(String(tuanDangXem).replace(/\D/g, ''), 10) || 1 : 1;
     let maO = `${namHoc}_${tSo}_${thu}_${buoi}_${tiet}_${lop}`;
     let maOKhongNH = `${tSo}_${thu}_${buoi}_${tiet}_${lop}`;
     let maOTuanRaw = `${namHoc}_${tuanDangXem}_${thu}_${buoi}_${tiet}_${lop}`;
+
+    
 
     let co = window.trangThaiDacBietTKB[maO] || window.trangThaiDacBietTKB[maOKhongNH] || window.trangThaiDacBietTKB[maOTuanRaw] || '';
 
@@ -188,13 +234,6 @@ window.veNhanDayTheTietTrenO = function(thu, buoi, tiet, lop) {
                 window.trangThaiDacBietTKB[maO] = co;
             }
         }
-    }
-
-    let nhanMonCu = tdMon.querySelector('.badge-day-the');
-    if (nhanMonCu) nhanMonCu.remove();
-    if (tdGv) {
-        let nhanGvCu = tdGv.querySelector('.badge-day-the');
-        if (nhanGvCu) nhanGvCu.remove();
     }
 
     if (co === 'DAY_TIET') {
@@ -1136,6 +1175,15 @@ window.kiemTraTruocKhiLuuTKB = function(loaiLuu) {
     document.addEventListener('change', function(e) {
         if (e.target && e.target.id && e.target.id.startsWith('mon_')) {
             let parts = e.target.id.split('_');
+            if (parts.length >= 5) {
+                let thu = parts[1], buoi = parts[2], tiet = parts[3], lop = parts.slice(4).join('_');
+                let v = String(e.target.value || '').trim();
+                if (v === '' || v === '--' || v === '---') {
+                    if (typeof window.xoaCoDayTheTietTKB === 'function') {
+                        window.xoaCoDayTheTietTKB(thu, buoi, tiet, lop);
+                    }
+                }
+            }
             let lop = parts.length >= 5 ? parts.slice(4).join('_') : null;
             window.capNhatCanhBaoChiTietMonTrenLuoi(lop);
             setTimeout(() => window.hienThiGoiYMonConThieuKhiFocus(e.target), 120);
@@ -1182,6 +1230,20 @@ window.kiemTraTruocKhiLuuTKB = function(loaiLuu) {
                         let maO = `${nh}_${tBanGhi}_${item.thu}_${item.buoi}_${item.tiet}_${item.maLop}`;
                         let maOKhongNH = `${tBanGhi}_${item.thu}_${item.buoi}_${item.tiet}_${item.maLop}`;
                         let maOTuanRaw = `${nh}_${t}_${item.thu}_${item.buoi}_${item.tiet}_${item.maLop}`;
+                        
+                        let mon = String(item.monHoc || '').trim();
+                        if (!mon || mon === '--' || mon === '---' || item.xoa === true || item.daXoa === true) {
+                            delete window.trangThaiDacBietTKB[maO];
+                            delete window.trangThaiDacBietTKB[maOKhongNH];
+                            delete window.trangThaiDacBietTKB[maOTuanRaw];
+                            delete window.trangThaiDacBietTKB[`${tBanGhi}_${item.thu}_${item.buoi}_${item.tiet}_${item.maLop}`];
+                            item.trangThai = '';
+                            item.ghiChu = '';
+                            item.xoa = true;
+                            item.daXoa = true;
+                            return;
+                        }
+
                         let co = window.trangThaiDacBietTKB[maO] || window.trangThaiDacBietTKB[maOKhongNH] || window.trangThaiDacBietTKB[maOTuanRaw] || '';
                         item.trangThai = co; // Nếu cờ đã bị xóa (mất đi) thì gửi rỗng '' để xóa cờ tại Cột L máy chủ
                         item.ghiChu = co;
