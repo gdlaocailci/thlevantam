@@ -677,35 +677,19 @@ function capNhatNgayDauTuan(ngayLapTuc = false) {
 // =========================================================================
 window.layHoacTaoSpinnerBenCanhNutThaoTac = function() {
     let spinner = document.getElementById('spinnerBenCanhNutThaoTac');
-    if (spinner) return spinner;
-
-    let vungMenu = document.getElementById('vungMenuThaoTacTKB');
-    if (!vungMenu) return null;
-
-    spinner = document.createElement('div');
-    spinner.id = 'spinnerBenCanhNutThaoTac';
-    spinner.className = 'hidden inline-flex items-center gap-1.5 ml-2 px-2.5 py-1.5 bg-blue-50 text-blue-900 border border-blue-300 rounded-lg text-xs font-bold shadow-md flex-none transition-all duration-200 select-none';
-    spinner.innerHTML = `
-        <svg class="w-4 h-4 text-blue-600 animate-spin flex-none" viewBox="0 0 24 24" fill="none">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span id="nhanSpinnerThaoTacTKB" class="whitespace-nowrap font-sans font-extrabold tracking-wide">Đang xử lý...</span>
-    `;
-
-    // Chèn ngay sau vungMenu trong thanh công cụ
-    if (vungMenu.parentElement) {
-        vungMenu.parentElement.insertBefore(spinner, vungMenu.nextSibling);
-    } else {
-        vungMenu.appendChild(spinner);
+    if (spinner) {
+        spinner.remove();
     }
-    return spinner;
+    return null;
 };
 
 window.khoaNutThaoTacTKB = function(khoa, tenTacVu = '') {
     let btnMenu = document.getElementById('btnMenuThaoTacTKB');
     let dropdown = document.getElementById('dropdownMenuThaoTacTKB');
-    let spinner = window.layHoacTaoSpinnerBenCanhNutThaoTac();
+
+    // Dọn dẹp thẻ spinner bên cạnh nếu còn tồn tại trong DOM
+    let spinnerCu = document.getElementById('spinnerBenCanhNutThaoTac');
+    if (spinnerCu) spinnerCu.remove();
 
     if (khoa) {
         // 1. Đóng menu dropdown nếu đang mở
@@ -717,38 +701,46 @@ window.khoaNutThaoTacTKB = function(khoa, tenTacVu = '') {
             dropdown.style.display = 'none';
         }
 
-        // 2. Lập tức khóa nút thao tác (chống bấm đúp, chống thao tác chồng chéo)
+        // 2. Khóa nút và hiển thị hiệu ứng xoay ngay trên nút Thao tác
         if (btnMenu) {
+            if (!btnMenu.dataset.htmlGoc) {
+                btnMenu.dataset.htmlGoc = btnMenu.innerHTML;
+            }
             btnMenu.disabled = true;
             btnMenu.setAttribute('data-dang-chay', 'true');
-            btnMenu.classList.add('opacity-60', 'cursor-not-allowed', 'pointer-events-none');
+            btnMenu.classList.add('opacity-80', 'cursor-wait', 'pointer-events-none');
             btnMenu.classList.remove('cursor-pointer', 'hover:bg-blue-800');
-            btnMenu.title = 'Hệ thống đang thực thi thao tác, vui lòng chờ...';
-        }
+            btnMenu.title = tenTacVu ? (tenTacVu + '...') : 'Hệ thống đang thực thi thao tác, vui lòng chờ...';
 
-        // 3. Hiển thị vòng quay bên cạnh nút thao tác
-        if (spinner) {
-            spinner.classList.remove('hidden');
-            spinner.classList.add('inline-flex');
-            let nhan = document.getElementById('nhanSpinnerThaoTacTKB');
-            if (nhan) {
-                nhan.innerText = tenTacVu ? (tenTacVu + '...') : 'Đang xử lý...';
-            }
+            btnMenu.innerHTML = `
+                <svg class="w-5 h-5 text-white animate-spin flex-none" viewBox="0 0 24 24" fill="none">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="font-extrabold tracking-wide">Thao tác</span>
+                <svg class="w-3.5 h-3.5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            `;
         }
     } else {
-        // 4. Mở khóa nút thao tác để tiếp tục
+        // 3. Mở khóa nút thao tác và khôi phục giao diện gốc
         if (btnMenu) {
             btnMenu.disabled = false;
             btnMenu.removeAttribute('data-dang-chay');
-            btnMenu.classList.remove('opacity-60', 'cursor-not-allowed', 'pointer-events-none');
+            btnMenu.classList.remove('opacity-60', 'opacity-80', 'cursor-not-allowed', 'cursor-wait', 'pointer-events-none');
             btnMenu.classList.add('cursor-pointer', 'hover:bg-blue-800');
             btnMenu.title = 'Danh sách các thao tác quản trị Thời khóa biểu';
-        }
 
-        // 5. Ẩn vòng quay bên cạnh nút thao tác
-        if (spinner) {
-            spinner.classList.remove('inline-flex');
-            spinner.classList.add('hidden');
+            if (btnMenu.dataset.htmlGoc) {
+                btnMenu.innerHTML = btnMenu.dataset.htmlGoc;
+            } else {
+                btnMenu.innerHTML = `
+                    <svg class="w-5 h-5 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    <span class="font-extrabold tracking-wide">Thao tác</span>
+                    <svg class="w-3.5 h-3.5 opacity-80 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                `;
+            }
         }
     }
 };
