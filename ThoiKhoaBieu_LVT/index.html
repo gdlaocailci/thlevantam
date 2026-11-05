@@ -74,20 +74,9 @@
                 width: 32px !important;
                 height: 32px !important;
             }
-            /* Cụm điều khiển cửa sổ góc trên bên phải trên Mobile */
+            /* Ẩn hoàn toàn cụm điều khiển cửa sổ trên điện thoại để trả lại giao diện gốc 100% */
             #cumDieuKhienCuaSo {
-                gap: 2px !important;
-                margin-left: 4px !important;
-                padding-left: 4px !important;
-            }
-            #cumDieuKhienCuaSo button {
-                width: 28px !important;
-                height: 28px !important;
-                border-radius: 6px !important;
-            }
-            #cumDieuKhienCuaSo svg {
-                width: 14px !important;
-                height: 14px !important;
+                display: none !important;
             }
 
 
@@ -722,7 +711,7 @@
                         <p id="tenDonVi" class="text-slate-600 font-semibold text-[11px] md:text-sm truncate">SMART CURRICULUM MANAGEMENT</p>
                     </div>
                     <!-- CỤM NÚT ĐIỀU KHIỂN CỬA SỔ: THU NHỎ, PHÓNG TO FULL, CLOSE (GÓC TRÊN BÊN PHẢI) -->
-                    <div id="cumDieuKhienCuaSo" class="ml-auto flex items-center gap-1 md:gap-1.5 flex-none">
+                    <div id="cumDieuKhienCuaSo" class="ml-auto hidden md:flex items-center gap-1 md:gap-1.5 flex-none">
                         <!-- 1. THU NHỎ (MINIMIZE / THOÁT TOÀN MÀN HÌNH) -->
                         <button id="btnThuNhoCuaSo" type="button" onclick="thaoTacThuNhoCuaSo(event)" title="Thu nhỏ (Thoát toàn màn hình)" 
                             class="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-600 hover:text-slate-900 border border-slate-300 shadow-sm transition-all duration-150 cursor-pointer">
@@ -1529,12 +1518,20 @@
 
     <!-- ========================================================================= -->
     <!-- [NÂNG CẤP MỚI]: ĐỘNG CƠ TỰ ĐỘNG BẬT VÀ DUY TRÌ TOÀN MÀN HÌNH (AUTO-FULLSCREEN ENGINE) -->
-    <!-- Tự động chạy khi khởi động và luôn giữ nguyên toàn màn hình khi chuyển đổi mọi UI -->
+    <!-- Tự động chạy trên Desktop/Laptop; hoàn toàn cô lập để điện thoại chạy 100% nguyên bản -->
     <!-- ========================================================================= -->
     <script>
     (function() {
-        // Hàm kích hoạt toàn màn hình đa nền tảng
+        // HÀM KIỂM TRA THIẾT BỊ DI ĐỘNG (ĐIỆN THOẠI / TABLET DƯỚI 768PX)
+        // Nếu là điện thoại: Giữ nguyên 100% cơ chế cuộn, chạm, hiển thị tự nhiên ban đầu, tuyệt đối không can thiệp Fullscreen
+        function laThietBiDiDong() {
+            return (window.innerWidth < 768) || /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // Hàm kích hoạt toàn màn hình (CHỈ ÁP DỤNG TRÊN MÁY TÍNH / DESKTOP / LAPTOP)
         function kichHoatToanManHinhHeThong() {
+            if (laThietBiDiDong()) return; // Điện thoại: Thoát ngay, giữ nguyên bản 100%
+
             var daFull = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
             if (!daFull) {
                 var el = document.documentElement;
@@ -1543,19 +1540,17 @@
                     try {
                         var ketQua = yeuCau.call(el);
                         if (ketQua && typeof ketQua.catch === 'function') {
-                            ketQua.catch(function(err) {
-                                // Trình duyệt cần tương tác người dùng trước khi full màn hình
-                            });
+                            ketQua.catch(function(err) {});
                         }
                     } catch (e) {}
                 }
             }
         }
 
-        // Cờ tạm dừng tự động kích hoạt khi người dùng chủ động bấm nút Thu nhỏ
+        // Cờ tạm dừng tự động kích hoạt khi người dùng chủ động bấm nút Thu nhỏ trên Desktop
         var tamDungAutoFullscreen = false;
 
-        // XỬ LÝ 1: THU NHỎ CỬA SỔ (THOÁT TOÀN MÀN HÌNH)
+        // XỬ LÝ 1: THU NHỎ CỬA SỔ (THOÁT TOÀN MÀN HÌNH - DÀNH CHO DESKTOP)
         function thaoTacThuNhoCuaSo(e) {
             if (e) {
                 e.stopPropagation();
@@ -1580,7 +1575,7 @@
             }
         }
 
-        // XỬ LÝ 2: PHÓNG TO FULL MÀN HÌNH (MAXIMIZE / RESTORE)
+        // XỬ LÝ 2: PHÓNG TO FULL MÀN HÌNH (MAXIMIZE / RESTORE - DÀNH CHO DESKTOP)
         function thaoTacPhongToFull(e) {
             if (e) {
                 e.stopPropagation();
@@ -1597,6 +1592,7 @@
 
         // Cập nhật biểu tượng ô vuông Maximize / Restore khi trạng thái màn hình thay đổi
         function capNhatIconCuaSo() {
+            if (laThietBiDiDong()) return;
             var isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
             var iconMax = document.getElementById('iconMaxSquare');
             var iconRestore = document.getElementById('iconRestoreSquare');
@@ -1635,27 +1631,31 @@
         window.thaoTacThuNhoCuaSo = thaoTacThuNhoCuaSo;
         window.thaoTacPhongToFull = thaoTacPhongToFull;
         window.thaoTacDongHeThong = thaoTacDongHeThong;
+        window.kichHoatToanManHinhHeThong = kichHoatToanManHinhHeThong;
 
-        // 1. TỰ ĐỘNG CHẠY KHI KHỞI ĐỘNG (NGAY CÚ CHẠM / CLICK / GÕ PHÍM ĐẦU TIÊN CỦA NGƯỜI DÙNG)
+        // 1. TỰ ĐỘNG CHẠY KHI KHỞI ĐỘNG (CHỈ ÁP DỤNG TRÊN MÁY TÍNH / DESKTOP)
         function tuDongChayKhiTuongTacDauTien() {
+            if (laThietBiDiDong()) return; // Trên mobile tuyệt đối không can thiệp
             if (tamDungAutoFullscreen) return;
             kichHoatToanManHinhHeThong();
         }
 
-        // Thử kích hoạt ngay lập tức khi trang tải (Dành cho chế độ App / Kiosk / WebView)
+        // Thử kích hoạt ngay lập tức khi trang tải (Chế độ Desktop App / Kiosk)
         window.addEventListener('load', function() {
-            kichHoatToanManHinhHeThong();
+            if (!laThietBiDiDong()) {
+                kichHoatToanManHinhHeThong();
+            }
         });
 
-        // Bắt mọi tương tác đầu tiên ở bất kỳ vị trí nào trên màn hình
+        // Bắt tương tác trên Desktop (Chuột & Bàn phím máy tính)
         window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { passive: true });
-        window.addEventListener('touchstart', tuDongChayKhiTuongTacDauTien, { passive: true });
-        window.addEventListener('pointerdown', tuDongChayKhiTuongTacDauTien, { passive: true });
         window.addEventListener('keydown', tuDongChayKhiTuongTacDauTien, { passive: true });
 
-        // 2. DUY TRÌ NGUYÊN VẸN FULL MÀN HÌNH KHI CHUYỂN QUA LẠI GIỮA CÁC UI KHÁC NHAU
+        // 2. DUY TRÌ FULL MÀN HÌNH KHI CHUYỂN QUA LẠI GIỮA CÁC UI (CHỈ TRÊN MÁY TÍNH)
         document.addEventListener('DOMContentLoaded', function() {
-            // Theo dõi tất cả các thẻ menu chuyển tab và các nút chức năng
+            if (laThietBiDiDong()) return; // Trên mobile giữ nguyên luồng gốc của các tab
+
+            // Theo dõi các menu chuyển tab trên Desktop
             var menuLinks = document.querySelectorAll('#sidebarMenu nav a, #sidebarMenu button, #thanhCongCuTKB button');
             menuLinks.forEach(function(item) {
                 item.addEventListener('click', function() {
@@ -1663,32 +1663,32 @@
                 });
             });
 
-            // Can thiệp bảo vệ hàm kichHoatTab gốc nếu có để luôn duy trì toàn màn hình
+            // Can thiệp bảo vệ hàm kichHoatTab gốc trên Desktop để duy trì full màn hình
             if (typeof window.kichHoatTab === 'function') {
                 var kichHoatTabGoc = window.kichHoatTab;
                 window.kichHoatTab = function() {
                     var kq = kichHoatTabGoc.apply(this, arguments);
-                    setTimeout(kichHoatToanManHinhHeThong, 80);
+                    if (!laThietBiDiDong()) {
+                        setTimeout(kichHoatToanManHinhHeThong, 80);
+                    }
                     return kq;
                 };
             }
         });
 
-        // Đảm bảo khi người dùng thao tác chuyển bất kỳ tab hay bấm phím vẫn giữ full màn hình
+        // Tự động bung lại trên Desktop nếu bị thoát ngoài ý muốn
         document.addEventListener('fullscreenchange', function() {
-            // Khi thoát toàn màn hình, tiếp tục sẵn sàng tự động bung lại ở cú nhấp chuột tiếp theo
+            if (laThietBiDiDong()) return;
             if (!document.fullscreenElement) {
                 window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { once: true, passive: true });
             }
         });
         document.addEventListener('webkitfullscreenchange', function() {
+            if (laThietBiDiDong()) return;
             if (!document.webkitFullscreenElement) {
                 window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { once: true, passive: true });
             }
         });
-
-        // Xuất hàm ra phạm vi toàn cục để bất cứ đâu cũng có thể gọi nếu cần
-        window.kichHoatToanManHinhHeThong = kichHoatToanManHinhHeThong;
     })();
     </script>
 </body>
