@@ -6,6 +6,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Đánh giá hiệu quả công việc</title>
+
+  <!-- CẤU HÌNH WEB APP / PWA STANDALONE TOÀN MÀN HÌNH -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   
@@ -251,6 +257,36 @@ function xulyPhienDn(phanho) {
 th.cot-thang-hien-tai-th { background-color: #ffc107 !important; color: #000 !important; }
 
     /* ========================================================== */
+    /* CỤM NÚT ĐIỀU KHIỂN CỬA SỔ DESKTOP (THU NHỎ, FULL, CLOSE)  */
+    /* ========================================================== */
+    #cumDieuKhienCuaSo {
+        transition: all 0.2s ease;
+    }
+    #cumDieuKhienCuaSo button {
+        width: 30px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-radius: 6px;
+        transition: all 0.15s ease-in-out;
+        cursor: pointer;
+    }
+    #cumDieuKhienCuaSo #btnDongCuaSo:hover {
+        background-color: #dc3545 !important;
+        color: white !important;
+    }
+    #cumDieuKhienCuaSo #btnPhongToFullCuaSo:hover {
+        background-color: #0d6efd !important;
+        color: white !important;
+    }
+    #cumDieuKhienCuaSo #btnThuNhoCuaSo:hover {
+        background-color: #e9ecef !important;
+        color: #212529 !important;
+    }
+
+    /* ========================================================== */
     /* NÂNG CẤP: THUẬT TOÁN RESPONSIVE MENU OFF-CANVAS CHO MOBILE */
     /* ========================================================== */
     .btn-toggle-menu {
@@ -277,6 +313,11 @@ th.cot-thang-hien-tai-th { background-color: #ffc107 !important; color: #000 !im
 
     /* Kích hoạt khi xem trên điện thoại hoặc máy tính bảng nhỏ */
     @media screen and (max-width: 768px) {
+        /* Ẩn hoàn toàn cụm điều khiển cửa sổ trên điện thoại để trả lại 100% giao diện gốc */
+        #cumDieuKhienCuaSo {
+            display: none !important;
+        }
+
         .btn-toggle-menu { display: inline-flex; align-items: center; gap: 5px; }
         
         #bo-cuc-he-thong { position: relative; display: block; }
@@ -303,6 +344,25 @@ th.cot-thang-hien-tai-th { background-color: #ffc107 !important; color: #000 !im
 </head>
 
 <body>
+  <!-- CỤM NÚT ĐIỀU KHIỂN CỬA SỔ (THU NHỎ, PHÓNG TO FULL, CLOSE) - GÓC TRÊN BÊN PHẢI (CHỈ HIỂN THỊ TRÊN DESKTOP) -->
+  <div id="cumDieuKhienCuaSo" class="d-none d-md-flex align-items-center gap-1 position-fixed shadow-sm border border-secondary-subtle rounded-3 px-1 py-1" style="top: 10px; right: 15px; z-index: 10002; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(4px);">
+      <!-- 1. THU NHỎ (MINIMIZE / THOÁT TOÀN MÀN HÌNH) -->
+      <button id="btnThuNhoCuaSo" type="button" onclick="thaoTacThuNhoCuaSo(event)" class="btn btn-sm btn-light border-0 text-secondary" title="Thu nhỏ (Thoát toàn màn hình)">
+          <i class="bi bi-dash-lg fw-bold"></i>
+      </button>
+
+      <!-- 2. PHÓNG TO FULL (MAXIMIZE / RESTORE) -->
+      <button id="btnPhongToFullCuaSo" type="button" onclick="thaoTacPhongToFull(event)" class="btn btn-sm btn-light border-0 text-primary" title="Phóng to Full màn hình">
+          <i id="iconMaxSquare" class="bi bi-square"></i>
+          <i id="iconRestoreSquare" class="bi bi-fullscreen-exit d-none"></i>
+      </button>
+
+      <!-- 3. CLOSE (ĐÓNG CỬA SỔ / THOÁT HỆ THỐNG) -->
+      <button id="btnDongCuaSo" type="button" onclick="thaoTacDongHeThong(event)" class="btn btn-sm btn-light border-0 text-danger" title="Đóng hệ thống">
+          <i class="bi bi-x-lg fw-bold"></i>
+      </button>
+  </div>
+
   <div class="modal fade" id="htDungt" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" style="z-index: 10005;">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content text-center p-4 border-0 shadow-lg" style="background: rgba(255, 255, 255, 0.95);">
@@ -2175,6 +2235,183 @@ function saoChepDanhSachNhac() {
 $(document).on('click', '#tabNhacBaoCao', () => { 
     taiDlNhacBaoCao(false); 
 });
+</script>
+
+<!-- ========================================================================= -->
+<!-- [NÂNG CẤP]: ĐỘNG CƠ TỰ ĐỘNG BẬT VÀ DUY TRÌ TOÀN MÀN HÌNH (AUTO-FULLSCREEN ENGINE) -->
+<!-- Tự động chạy trên Desktop/Laptop; hoàn toàn cô lập để điện thoại chạy 100% nguyên bản -->
+<!-- ========================================================================= -->
+<script>
+(function() {
+    // HÀM KIỂM TRA THIẾT BỊ DI ĐỘNG (ĐIỆN THOẠI / TABLET DƯỚI 768PX)
+    // Nếu là điện thoại: Giữ nguyên 100% cơ chế cuộn, chạm, hiển thị tự nhiên ban đầu, tuyệt đối không can thiệp Fullscreen
+    function laThietBiDiDong() {
+        return (window.innerWidth < 768) || /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    // Hàm kích hoạt toàn màn hình (CHỈ ÁP DỤNG TRÊN MÁY TÍNH / DESKTOP / LAPTOP)
+    function kichHoatToanManHinhHeThong() {
+        if (laThietBiDiDong()) return; // Điện thoại: Thoát ngay, giữ nguyên bản 100%
+
+        var daFull = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+        if (!daFull) {
+            var el = document.documentElement;
+            var yeuCau = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (yeuCau) {
+                try {
+                    var ketQua = yeuCau.call(el);
+                    if (ketQua && typeof ketQua.catch === 'function') {
+                        ketQua.catch(function(err) {});
+                    }
+                } catch (e) {}
+            }
+        }
+    }
+
+    // Cờ tạm dừng tự động kích hoạt khi người dùng chủ động bấm nút Thu nhỏ trên Desktop
+    var tamDungAutoFullscreen = false;
+
+    // XỬ LÝ 1: THU NHỎ CỬA SỔ (THOÁT TOÀN MÀN HÌNH - DÀNH CHO DESKTOP)
+    function thaoTacThuNhoCuaSo(e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        tamDungAutoFullscreen = true;
+        setTimeout(function() {
+            tamDungAutoFullscreen = false;
+        }, 1500);
+
+        var daFull = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+        if (daFull) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(function() {});
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+    }
+
+    // XỬ LÝ 2: PHÓNG TO FULL MÀN HÌNH (MAXIMIZE / RESTORE - DÀNH CHO DESKTOP)
+    function thaoTacPhongToFull(e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        var daFull = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+        if (daFull) {
+            thaoTacThuNhoCuaSo(e);
+        } else {
+            tamDungAutoFullscreen = false;
+            kichHoatToanManHinhHeThong();
+        }
+    }
+
+    // Cập nhật biểu tượng ô vuông Maximize / Restore khi trạng thái màn hình thay đổi
+    function capNhatIconCuaSo() {
+        if (laThietBiDiDong()) return;
+        var isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+        var iconMax = document.getElementById('iconMaxSquare');
+        var iconRestore = document.getElementById('iconRestoreSquare');
+        var btnPhongTo = document.getElementById('btnPhongToFullCuaSo');
+        if (iconMax && iconRestore) {
+            if (isFull) {
+                iconMax.classList.add('d-none');
+                iconRestore.classList.remove('d-none');
+                if (btnPhongTo) btnPhongTo.title = "Thu nhỏ kích thước (Restore)";
+            } else {
+                iconMax.classList.remove('d-none');
+                iconRestore.classList.add('d-none');
+                if (btnPhongTo) btnPhongTo.title = "Phóng to Full màn hình";
+            }
+        }
+    }
+
+    document.addEventListener('fullscreenchange', capNhatIconCuaSo);
+    document.addEventListener('webkitfullscreenchange', capNhatIconCuaSo);
+
+    // XỬ LÝ 3: ĐÓNG CỬA SỔ / THOÁT HỆ THỐNG (CLOSE)
+    function thaoTacDongHeThong(e) {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        if (confirm("Bạn có chắc chắn muốn đóng và thoát khỏi hệ thống không?")) {
+            window.close();
+            setTimeout(function() {
+                var urlDich = (typeof PGV_LINK_TRANG_CHU !== 'undefined' && PGV_LINK_TRANG_CHU.trim() !== '') 
+                              ? PGV_LINK_TRANG_CHU 
+                              : 'https://gdlaocailci.github.io/taphoi/';
+                window.location.href = urlDich;
+            }, 150);
+        }
+    }
+
+    // Xuất hàm ra phạm vi toàn cục
+    window.thaoTacThuNhoCuaSo = thaoTacThuNhoCuaSo;
+    window.thaoTacPhongToFull = thaoTacPhongToFull;
+    window.thaoTacDongHeThong = thaoTacDongHeThong;
+    window.kichHoatToanManHinhHeThong = kichHoatToanManHinhHeThong;
+
+    // 1. TỰ ĐỘNG CHẠY KHI KHỞI ĐỘNG (CHỈ ÁP DỤNG TRÊN MÁY TÍNH / DESKTOP)
+    function tuDongChayKhiTuongTacDauTien() {
+        if (laThietBiDiDong()) return; // Trên mobile tuyệt đối không can thiệp
+        if (tamDungAutoFullscreen) return;
+        kichHoatToanManHinhHeThong();
+    }
+
+    // Thử kích hoạt ngay lập tức khi trang tải (Chế độ Desktop App / Kiosk)
+    window.addEventListener('load', function() {
+        if (!laThietBiDiDong()) {
+            kichHoatToanManHinhHeThong();
+        }
+    });
+
+    // Bắt tương tác trên Desktop (Chuột & Bàn phím máy tính)
+    window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { passive: true });
+    window.addEventListener('keydown', tuDongChayKhiTuongTacDauTien, { passive: true });
+
+    // 2. DUY TRÌ FULL MÀN HÌNH KHI CHUYỂN QUA LẠI GIỮA CÁC UI (CHỈ TRÊN MÁY TÍNH)
+    document.addEventListener('DOMContentLoaded', function() {
+        if (laThietBiDiDong()) return; // Trên mobile giữ nguyên luồng gốc của các tab
+
+        // Theo dõi các liên kết menu và nút bấm chuyển tab trong hệ thống
+        var vungMenu = document.getElementById('khuVucMenu');
+        if (vungMenu) {
+            vungMenu.addEventListener('click', function(e) {
+                if (e.target.closest('a') || e.target.closest('button') || e.target.closest('li')) {
+                    setTimeout(kichHoatToanManHinhHeThong, 80);
+                }
+            });
+        }
+
+        // Theo dõi các nút chuyển tab khác trong ứng dụng
+        var dsNutTab = document.querySelectorAll('.nav-link, [data-bs-toggle="tab"], .tab-pane button');
+        dsNutTab.forEach(function(item) {
+            item.addEventListener('click', function() {
+                setTimeout(kichHoatToanManHinhHeThong, 80);
+            });
+        });
+    });
+
+    // Tự động bung lại trên Desktop nếu bị thoát ngoài ý muốn khi chuyển tab
+    document.addEventListener('fullscreenchange', function() {
+        if (laThietBiDiDong()) return;
+        if (!document.fullscreenElement) {
+            window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { once: true, passive: true });
+        }
+    });
+    document.addEventListener('webkitfullscreenchange', function() {
+        if (laThietBiDiDong()) return;
+        if (!document.webkitFullscreenElement) {
+            window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { once: true, passive: true });
+        }
+    });
+})();
 </script>
 </body>
 </html>
