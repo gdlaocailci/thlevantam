@@ -86,8 +86,87 @@ window.tinhTimelineKeySDB = function(d) {
     return d._timelineKey;
 };
 
+// Hàm chuẩn hóa tính số tiết PPCT tích lũy các tuần trước (< tuanMucTieu) thuần túy theo THỨ TỰ TIẾT
+// Mỗi tiết thực tế trong các tuần từ 1 đến (tuanMucTieu - 1) được cộng +1 theo đúng dòng thời gian,
+// tuyệt đối không dùng Math.max(TietPPCT_Thuc) để tránh lỗi lệch dây chuyền cả tuần (VD: 25 thành 28, 97 thành 109)
+window.tinhBoDemTietPPCTTheoThuTu = function(lopMucTieu, tuanMucTieu) {
+    let boDem = {};
+    let maxTuan = parseInt(String(tuanMucTieu || '').replace(/\D/g, ''), 10) || 0;
+    let lopUp = String(lopMucTieu || '').trim().toUpperCase();
+    if (maxTuan <= 1 || !lopUp) return boDem;
+
+    let dsTietNguon = (typeof chiMucLopSDB !== 'undefined' && chiMucLopSDB && chiMucLopSDB[lopUp])
+        ? chiMucLopSDB[lopUp]
+        : (typeof duLieuTKBGopDaMap !== 'undefined' && Array.isArray(duLieuTKBGopDaMap) ? duLieuTKBGopDaMap : []);
+
+    let daDemSlot = new Set();
+    for (let i = 0; i < dsTietNguon.length; i++) {
+        let d = dsTietNguon[i];
+        if (!d) continue;
+        let t = d._tuanSo !== undefined ? d._tuanSo : (parseInt(String(d['Tuần'] || '').replace(/\D/g, ''), 10) || 0);
+        if (t < 1 || t >= maxTuan) continue;
+        let maLop = d._lopUpper !== undefined ? d._lopUpper : String(d['Mã Lớp'] || '').trim().toUpperCase();
+        if (maLop !== lopUp) continue;
+        if (d.DaLuu !== true) continue;
+
+        let mon = String(d['Môn Học'] || '').trim();
+        if (!mon || mon === '--' || mon === '---') continue;
+
+        let tlKey = d._timelineKey !== undefined ? d._timelineKey : window.tinhTimelineKeySDB(d);
+        let khoaSlot = `${t}_${maLop}_${tlKey}`;
+        if (daDemSlot.has(khoaSlot)) continue;
+        daDemSlot.add(khoaSlot);
+
+        let monPPCT = mon.replace(/[0-9\(\)]/g, '').trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+        if (monPPCT) {
+            boDem[monPPCT] = (boDem[monPPCT] || 0) + 1;
+        }
+    }
+    return boDem;
+};
+
+// Gắn cơ chế bảo vệ trên mảng duLieuTKBGopDaMap để khi DoiChieuTkbSdb.js quét boDemPPCT
+// luôn tính thuần túy theo thứ tự tiết (+1 mỗi tiết đã lưu, không lấy Math.max theo số tiết lỗi cũ)
+window.ganBaoVeDemThuTuTietChoMangSDB = function(arr) {
+    if (!Array.isArray(arr) || arr._daGanBaoVePPCT) return;
+    Object.defineProperty(arr, '_daGanBaoVePPCT', { value: true, enumerable: false, configurable: true });
+    const forEachGoc = Array.prototype.forEach;
+    Object.defineProperty(arr, 'forEach', {
+        value: function(callback, thisArg) {
+            let fnStr = (typeof callback === 'function') ? callback.toString() : '';
+            if (fnStr.indexOf('boDemPPCT') !== -1 && fnStr.indexOf('TietPPCT_Thuc') !== -1) {
+                let daDuyetSlot = new Set();
+                return forEachGoc.call(this, function(d, idx, array) {
+                    if (!d) return;
+                    let t = d._tuanSo !== undefined ? d._tuanSo : (parseInt(String(d['Tuần'] || '').replace(/\D/g, ''), 10) || 0);
+                    let l = d._lopUpper !== undefined ? d._lopUpper : String(d['Mã Lớp'] || '').trim().toUpperCase();
+                    let tlKey = d._timelineKey !== undefined ? d._timelineKey : (window.tinhTimelineKeySDB ? window.tinhTimelineKeySDB(d) : idx);
+                    let kSlot = `${t}_${l}_${tlKey}`;
+                    if (daDuyetSlot.has(kSlot)) return;
+                    daDuyetSlot.add(kSlot);
+
+                    let tietGoc = d['TietPPCT_Thuc'];
+                    d['TietPPCT_Thuc'] = '';
+                    try {
+                        callback.call(thisArg, d, idx, array);
+                    } finally {
+                        d['TietPPCT_Thuc'] = tietGoc;
+                    }
+                });
+            }
+            return forEachGoc.call(this, callback, thisArg);
+        },
+        enumerable: false,
+        configurable: true,
+        writable: true
+    });
+};
+
 // Hàm xây dựng chỉ mục O(1) giúp mở Sổ đầu bài, chuyển Tuần/Lớp và mở danh sách Tuần trong < 1ms
 window.xayDungChiMucNhanhSDB = function() {
+    if (typeof window.ganBaoVeDemThuTuTietChoMangSDB === 'function') {
+        window.ganBaoVeDemThuTuTietChoMangSDB(duLieuTKBGopDaMap);
+    }
     chiMucTuanLopSDB = {};
     chiMucLopSDB = {};
     tapTuanChuaLuuTheoLopSDB = {};
@@ -1893,58 +1972,10 @@ function thucThiDongBoTkbVaoSoDauBai() {
         if (k.monMoi) cacMonBiAnhHuong.add(k.monMoi.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' '));
     });
 
-    // 2. Tính cơ sở Tiết PPCT chuẩn của các môn trong tuần này trước khi thay đổi (ưu tiên lấy từ chính SĐB đã lưu của tuần này để không bị lệch do tuần nghỉ lễ)
-    let boDemTietPPCT = {};
-    duLieuTKBGopDaMap.forEach(d => {
-        let t = parseInt(String(d['Tuần']).replace(/\D/g, ''), 10) || 0;
-        let maLop = String(d['Mã Lớp']).trim().toUpperCase();
-        if (maLop === lopChon.toUpperCase() && t < maxTuanChon && d.DaLuu === true) {
-            let mon = String(d['Môn Học']).trim();
-            if (mon !== '') {
-                let monPPCT = mon.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
-                let tietLuu = parseInt(String(d['TietPPCT_Thuc']).replace(/\D/g, ''), 10) || 0;
-                if (tietLuu > 0) {
-                    boDemTietPPCT[monPPCT] = Math.max(boDemTietPPCT[monPPCT] || 0, tietLuu);
-                } else {
-                    boDemTietPPCT[monPPCT] = (boDemTietPPCT[monPPCT] || 0) + 1;
-                }
-            }
-        }
-    });
-
-    // Nếu trong tuần hiện tại đã có tiết lưu của môn đó với Tiết PPCT hợp lệ, lấy (Tiết PPCT đầu tiên của tuần - 1) làm mốc chuẩn
+    // 2. Tính cơ sở Tiết PPCT chuẩn của các môn theo đúng thứ tự tiết tích lũy từ Tuần 1 đến (maxTuanChon - 1)
+    let boDemTietPPCT = window.tinhBoDemTietPPCTTheoThuTu(lopChon, maxTuanChon);
     const thuTuThu = { "Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5, "Thứ 6": 6, "Thứ 7": 7, "Chủ nhật": 8 };
     const thuTuBuoi = { "sáng": 1, "chiều": 2 };
-
-    let tkbTuanNayTruoc = duLieuTKBGopDaMap.filter(d => 
-        parseInt(String(d['Tuần']).replace(/\D/g, ''), 10) === maxTuanChon && 
-        String(d['Mã Lớp']).trim().toUpperCase() === lopChon.toUpperCase()
-    ).sort((a, b) => {
-        let thuA = thuTuThu[chuanHoaThu(a['Thứ'])] || 99, thuB = thuTuThu[chuanHoaThu(b['Thứ'])] || 99;
-        if (thuA !== thuB) return thuA - thuB;
-        let bA = thuTuBuoi[String(a['Buổi']).trim().toLowerCase() === 'sáng' ? 'sáng' : 'chiều'] || 99;
-        let bB = thuTuBuoi[String(b['Buổi']).trim().toLowerCase() === 'sáng' ? 'sáng' : 'chiều'] || 99;
-        if (bA !== bB) return bA - bB;
-        return (parseInt(String(a['Tiết']).replace(/\D/g, ''), 10) || 0) - (parseInt(String(b['Tiết']).replace(/\D/g, ''), 10) || 0);
-    });
-
-    let daGhiNhanMocTuanNay = new Set();
-    let demTamTruoc = {};
-    tkbTuanNayTruoc.forEach(d => {
-        let mon = String(d['Môn Học'] || '').trim();
-        if (mon !== '' && d.DaLuu === true) {
-            let monPPCT = mon.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
-            demTamTruoc[monPPCT] = (demTamTruoc[monPPCT] || 0) + 1;
-            let tietLuu = parseInt(String(d['TietPPCT_Thuc']).replace(/\D/g, ''), 10) || 0;
-            if (tietLuu > 0 && !daGhiNhanMocTuanNay.has(monPPCT)) {
-                let mocSuyRa = tietLuu - demTamTruoc[monPPCT];
-                if (mocSuyRa >= 0) {
-                    boDemTietPPCT[monPPCT] = mocSuyRa;
-                    daGhiNhanMocTuanNay.add(monPPCT);
-                }
-            }
-        }
-    });
 
     // 3. Cập nhật môn và GV từ TKB vào duLieuTKBGopDaMap
     dsKhacBiet.forEach(k => {
@@ -2123,32 +2154,31 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
 
     let maxTuanChon = parseInt(tuanChon.replace(/\D/g, '')) || 0;
     
-    let boDemTietPPCT = {}; 
-    let demTietTienDo = {}; 
     let lopChonUpper = lopChon.toUpperCase();
+    let boDemTietPPCT = window.tinhBoDemTietPPCTTheoThuTu(lopChonUpper, maxTuanChon); 
+    let demTietTienDo = {}; 
     let dsTietCuaLop = (chiMucLopSDB && chiMucLopSDB[lopChonUpper]) ? chiMucLopSDB[lopChonUpper] : duLieuTKBGopDaMap;
+    let daDemTienDoSlot = new Set();
     
     dsTietCuaLop.forEach(d => {
         let t = d._tuanSo !== undefined ? d._tuanSo : (parseInt(String(d['Tuần']).replace(/\D/g, '')) || 0);
         let maLop = d._lopUpper !== undefined ? d._lopUpper : String(d['Mã Lớp']).trim().toUpperCase();
 
-        if (maLop === lopChonUpper && t <= maxTuanChon) {
+        if (maLop === lopChonUpper && t >= 1 && t <= maxTuanChon) {
             let mon = String(d['Môn Học']).trim();
             if (mon !== '') {
+                let tlKey = d._timelineKey !== undefined ? d._timelineKey : window.tinhTimelineKeySDB(d);
+                let khoaSlot = `${t}_${maLop}_${tlKey}`;
+                if (daDemTienDoSlot.has(khoaSlot)) return;
                 let monGocChuan = mon.toLowerCase().replace(/\s+/g, ' ');
-                let monPPCT = mon.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
 
                 if (t < maxTuanChon) {
                     if (d.DaLuu === true) {
+                        daDemTienDoSlot.add(khoaSlot);
                         demTietTienDo[monGocChuan] = (demTietTienDo[monGocChuan] || 0) + 1;
-                        let tietLuu = parseInt(String(d['TietPPCT_Thuc']).replace(/\D/g, ''), 10) || 0;
-                        if (tietLuu > 0) {
-                            boDemTietPPCT[monPPCT] = Math.max(boDemTietPPCT[monPPCT] || 0, tietLuu);
-                        } else {
-                            boDemTietPPCT[monPPCT] = (boDemTietPPCT[monPPCT] || 0) + 1;
-                        }
                     }
                 } else if (t === maxTuanChon) {
+                    daDemTienDoSlot.add(khoaSlot);
                     demTietTienDo[monGocChuan] = (demTietTienDo[monGocChuan] || 0) + 1;
                 }
             }
@@ -4016,28 +4046,8 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
     let matchKhoiChon = lopChon.match(/\d+/);
     let khoiChon = matchKhoiChon ? matchKhoiChon[0] : '';
     
-    let boDemTietPPCT = {}; 
-    
-    // 1. Quét tiến độ PPCT các tuần trước
-    duLieuTKBGopDaMap.forEach(d => {
-        let t = parseInt(String(d['Tuần']).replace(/\D/g, ''), 10) || 0;
-        let maLop = String(d['Mã Lớp']).trim().toUpperCase();
-
-        if (maLop === lopChon.toUpperCase() && t < maxTuanChon) {
-            let mon = String(d['Môn Học']).trim();
-            if (mon !== '') {
-                let monPPCT = mon.replace(/[0-9\(\)]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
-                if (d.DaLuu === true) {
-                    let tietLuu = parseInt(String(d['TietPPCT_Thuc']).replace(/\D/g, ''), 10) || 0;
-                    if (tietLuu > 0) {
-                        boDemTietPPCT[monPPCT] = Math.max(boDemTietPPCT[monPPCT] || 0, tietLuu);
-                    } else {
-                        boDemTietPPCT[monPPCT] = (boDemTietPPCT[monPPCT] || 0) + 1;
-                    }
-                }
-            }
-        }
-    });
+    // 1. Quét tiến độ PPCT các tuần trước theo đúng thứ tự tiết
+    let boDemTietPPCT = window.tinhBoDemTietPPCTTheoThuTu(lopChon, maxTuanChon);
 
     const thuTuThuNgam = { "Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5, "Thứ 6": 6, "Thứ 7": 7, "Chủ nhật": 8 };
     const thuTuBuoiNgam = { "sáng": 1, "chiều": 2 };
