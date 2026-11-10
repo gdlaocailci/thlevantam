@@ -256,16 +256,71 @@ function xulyPhienDn(phanho) {
     .cot-thang-hien-tai { background-color: #fff3cd !important; color: #856404 !important; font-weight: bold; border-left: 2px solid #ffc107 !important; border-right: 2px solid #ffc107 !important; }
 th.cot-thang-hien-tai-th { background-color: #ffc107 !important; color: #000 !important; }
 
-    /* ========================================================== */
-    /* CỤM NÚT ĐIỀU KHIỂN CỬA SỔ DESKTOP (THU NHỎ, FULL, CLOSE)  */
+   /* ========================================================== */
+    /* CỤM NÚT ĐIỀU KHIỂN CỬA SỔ - DẠNG VẠCH ĐẬM MÉP TỰ BUNG     */
+    /* CĂN THẲNG MÉP TRÁI & PHẢI VỚI KHỐI ĐỐI TƯỢNG BÊN DƯỚI   */
     /* ========================================================== */
     #cumDieuKhienCuaSo {
-        transition: all 0.2s ease;
-        top: 22px !important;
-        right: 38px !important;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
-        border-color: #ced4da !important;
+        position: fixed;
+        top: 0;
+        right: 36px; /* Căn thẳng hàng mép phải với khối đối tượng nội dung */
+        z-index: 10002;
+        padding-top: 0;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
+
+    /* 1. Vạch đậm bám sát mép trên: Chiều rộng phủ 100% thẳng đều 2 mép */
+    #cumDieuKhienCuaSo .vach-mep-dam {
+        width: 100%;
+        min-width: 98px; /* Khớp vừa vặn chiều rộng 3 nút chức năng */
+        height: 6px;
+        background: #0d6efd; /* Màu xanh đậm nổi bật theo mép */
+        border-radius: 0 0 4px 4px;
+        margin: 0; /* Xóa margin auto để hai mép gióng thẳng đứng tuyệt đối */
+        box-shadow: 0 2px 6px rgba(13, 110, 253, 0.45);
+        transition: all 0.25s ease;
+    }
+
+    /* 2. Hộp chứa 3 nút bấm (bình thường được giấu kín) */
+    #cumDieuKhienCuaSo .hop-nut-chuc-nang {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4px;
+        height: 0;
+        padding: 0 6px;
+        opacity: 0;
+        overflow: hidden;
+        pointer-events: none;
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(5px);
+        border: 1px solid transparent;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        box-shadow: none;
+        transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    /* ========================================================== */
+    /* HIỆU ỨNG: KHI RÊ CHUỘT VÀO VẠCH THÌ TỰ ĐỘNG BUNG RA      */
+    /* ========================================================== */
+    #cumDieuKhienCuaSo:hover .vach-mep-dam {
+        height: 3px;
+        border-radius: 0;
+        background: #0d6efd;
+    }
+
+    #cumDieuKhienCuaSo:hover .hop-nut-chuc-nang {
+        height: 36px;
+        padding: 4px 6px;
+        opacity: 1;
+        pointer-events: auto;
+        border-color: #ced4da;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Định dạng các nút bấm bên trong */
     #cumDieuKhienCuaSo button {
         width: 28px;
         height: 26px;
@@ -348,23 +403,29 @@ th.cot-thang-hien-tai-th { background-color: #ffc107 !important; color: #000 !im
 </head>
 
 <body>
-  <!-- CỤM NÚT ĐIỀU KHIỂN CỬA SỔ (THU NHỎ, PHÓNG TO FULL, CLOSE) - GÓC TRÊN BÊN PHẢI (CHỈ HIỂN THỊ TRÊN DESKTOP) -->
-  <div id="cumDieuKhienCuaSo" class="d-none d-md-flex align-items-center gap-1 position-fixed shadow-sm border border-secondary-subtle rounded-2 px-1 py-1" style="top: 22px; right: 38px; z-index: 10002; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(4px);">
-      <!-- 1. THU NHỎ (MINIMIZE / THOÁT TOÀN MÀN HÌNH) -->
-      <button id="btnThuNhoCuaSo" type="button" onclick="thaoTacThuNhoCuaSo(event)" class="btn btn-sm btn-light border-0 text-secondary" title="Thu nhỏ (Thoát toàn màn hình)">
-          <i class="bi bi-dash-lg fw-bold"></i>
-      </button>
+ <!-- CỤM NÚT ĐIỀU KHIỂN CỬA SỔ DẠNG VẠCH MÉP (CHỈ HIỆN TRÊN DESKTOP) -->
+  <div id="cumDieuKhienCuaSo" class="d-none d-md-block" title="Rê chuột vào đây để điều khiển cửa sổ">
+      <!-- Vạch đậm mép trên -->
+      <div class="vach-mep-dam"></div>
 
-      <!-- 2. PHÓNG TO FULL (MAXIMIZE / RESTORE) -->
-      <button id="btnPhongToFullCuaSo" type="button" onclick="thaoTacPhongToFull(event)" class="btn btn-sm btn-light border-0 text-primary" title="Phóng to Full màn hình">
-          <i id="iconMaxSquare" class="bi bi-square"></i>
-          <i id="iconRestoreSquare" class="bi bi-fullscreen-exit d-none"></i>
-      </button>
+      <!-- Hộp chức năng tự bung khi hover -->
+      <div class="hop-nut-chuc-nang">
+          <!-- 1. THU NHỎ (MINIMIZE / THOÁT TOÀN MÀN HÌNH) -->
+          <button id="btnThuNhoCuaSo" type="button" onclick="thaoTacThuNhoCuaSo(event)" class="btn btn-sm btn-light border-0 text-secondary" title="Thu nhỏ (Thoát toàn màn hình)">
+              <i class="bi bi-dash-lg fw-bold"></i>
+          </button>
 
-      <!-- 3. CLOSE (ĐÓNG CỬA SỔ / THOÁT HỆ THỐNG) -->
-      <button id="btnDongCuaSo" type="button" onclick="thaoTacDongHeThong(event)" class="btn btn-sm btn-light border-0 text-danger" title="Đóng hệ thống">
-          <i class="bi bi-x-lg fw-bold"></i>
-      </button>
+          <!-- 2. PHÓNG TO FULL (MAXIMIZE / RESTORE) -->
+          <button id="btnPhongToFullCuaSo" type="button" onclick="thaoTacPhongToFull(event)" class="btn btn-sm btn-light border-0 text-primary" title="Phóng to Full màn hình">
+              <i id="iconMaxSquare" class="bi bi-square"></i>
+              <i id="iconRestoreSquare" class="bi bi-fullscreen-exit d-none"></i>
+          </button>
+
+          <!-- 3. CLOSE (ĐÓNG CỬA SỔ / THOÁT HỆ THỐNG) -->
+          <button id="btnDongCuaSo" type="button" onclick="thaoTacDongHeThong(event)" class="btn btn-sm btn-light border-0 text-danger" title="Đóng hệ thống">
+              <i class="bi bi-x-lg fw-bold"></i>
+          </button>
+      </div>
   </div>
 
   <div class="modal fade" id="htDungt" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" style="z-index: 10005;">
