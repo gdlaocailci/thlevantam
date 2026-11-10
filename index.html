@@ -2591,30 +2591,12 @@ function xuLySuaHoSo() {
         }
     }
 
-    let dangChoTuongTac = true; 
-    const danhSachSuKien = ['click', 'touchstart', 'keydown'];
-
-    function xuLyBungManHinh(e) {
-        if (!dangChoTuongTac || (e && e.target && e.target.closest && e.target.closest('.tray-icon'))) return;
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {});
-        }
-        dangChoTuongTac = false;
-        danhSachSuKien.forEach(suKien => document.removeEventListener(suKien, xuLyBungManHinh));
-    }
-
-    danhSachSuKien.forEach(suKien => document.addEventListener(suKien, xuLyBungManHinh));
-
     document.addEventListener('fullscreenchange', () => {
         const icon = document.getElementById('fullscreen-icon');
         if (document.fullscreenElement) {
             if (icon) icon.innerText = 'fullscreen_exit';
         } else {
             if (icon) icon.innerText = 'fullscreen';
-            setTimeout(() => {
-                dangChoTuongTac = true;
-                danhSachSuKien.forEach(suKien => document.addEventListener(suKien, xuLyBungManHinh));
-            }, 300);
         }
     });
 
