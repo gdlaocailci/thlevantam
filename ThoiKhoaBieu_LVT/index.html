@@ -1632,64 +1632,6 @@
         window.thaoTacPhongToFull = thaoTacPhongToFull;
         window.thaoTacDongHeThong = thaoTacDongHeThong;
         window.kichHoatToanManHinhHeThong = kichHoatToanManHinhHeThong;
-
-        // 1. TỰ ĐỘNG CHẠY KHI KHỞI ĐỘNG (CHỈ ÁP DỤNG TRÊN MÁY TÍNH / DESKTOP)
-        function tuDongChayKhiTuongTacDauTien() {
-            if (laThietBiDiDong()) return; // Trên mobile tuyệt đối không can thiệp
-            if (tamDungAutoFullscreen) return;
-            kichHoatToanManHinhHeThong();
-        }
-
-        // Thử kích hoạt ngay lập tức khi trang tải (Chế độ Desktop App / Kiosk)
-        window.addEventListener('load', function() {
-            if (!laThietBiDiDong()) {
-                kichHoatToanManHinhHeThong();
-            }
-        });
-
-        // Bắt tương tác trên Desktop (Chuột & Bàn phím máy tính)
-        window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { passive: true });
-        window.addEventListener('keydown', tuDongChayKhiTuongTacDauTien, { passive: true });
-
-        // 2. DUY TRÌ FULL MÀN HÌNH KHI CHUYỂN QUA LẠI GIỮA CÁC UI (CHỈ TRÊN MÁY TÍNH)
-        document.addEventListener('DOMContentLoaded', function() {
-            if (laThietBiDiDong()) return; // Trên mobile giữ nguyên luồng gốc của các tab
-
-            // Theo dõi các menu chuyển tab trên Desktop
-            var menuLinks = document.querySelectorAll('#sidebarMenu nav a, #sidebarMenu button, #thanhCongCuTKB button');
-            menuLinks.forEach(function(item) {
-                item.addEventListener('click', function() {
-                    setTimeout(kichHoatToanManHinhHeThong, 80);
-                });
-            });
-
-            // Can thiệp bảo vệ hàm kichHoatTab gốc trên Desktop để duy trì full màn hình
-            if (typeof window.kichHoatTab === 'function') {
-                var kichHoatTabGoc = window.kichHoatTab;
-                window.kichHoatTab = function() {
-                    var kq = kichHoatTabGoc.apply(this, arguments);
-                    if (!laThietBiDiDong()) {
-                        setTimeout(kichHoatToanManHinhHeThong, 80);
-                    }
-                    return kq;
-                };
-            }
-        });
-
-        // Tự động bung lại trên Desktop nếu bị thoát ngoài ý muốn
-        document.addEventListener('fullscreenchange', function() {
-            if (laThietBiDiDong()) return;
-            if (!document.fullscreenElement) {
-                window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { once: true, passive: true });
-            }
-        });
-        document.addEventListener('webkitfullscreenchange', function() {
-            if (laThietBiDiDong()) return;
-            if (!document.webkitFullscreenElement) {
-                window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { once: true, passive: true });
-            }
-        });
-    })();
     </script>
 </body>
 </html>
