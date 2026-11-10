@@ -261,15 +261,19 @@ th.cot-thang-hien-tai-th { background-color: #ffc107 !important; color: #000 !im
     /* ========================================================== */
     #cumDieuKhienCuaSo {
         transition: all 0.2s ease;
+        top: 22px !important;
+        right: 38px !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
+        border-color: #ced4da !important;
     }
     #cumDieuKhienCuaSo button {
-        width: 30px;
-        height: 28px;
+        width: 28px;
+        height: 26px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         padding: 0;
-        border-radius: 6px;
+        border-radius: 4px;
         transition: all 0.15s ease-in-out;
         cursor: pointer;
     }
@@ -345,7 +349,7 @@ th.cot-thang-hien-tai-th { background-color: #ffc107 !important; color: #000 !im
 
 <body>
   <!-- CỤM NÚT ĐIỀU KHIỂN CỬA SỔ (THU NHỎ, PHÓNG TO FULL, CLOSE) - GÓC TRÊN BÊN PHẢI (CHỈ HIỂN THỊ TRÊN DESKTOP) -->
-  <div id="cumDieuKhienCuaSo" class="d-none d-md-flex align-items-center gap-1 position-fixed shadow-sm border border-secondary-subtle rounded-3 px-1 py-1" style="top: 10px; right: 15px; z-index: 10002; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(4px);">
+  <div id="cumDieuKhienCuaSo" class="d-none d-md-flex align-items-center gap-1 position-fixed shadow-sm border border-secondary-subtle rounded-2 px-1 py-1" style="top: 22px; right: 38px; z-index: 10002; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(4px);">
       <!-- 1. THU NHỎ (MINIMIZE / THOÁT TOÀN MÀN HÌNH) -->
       <button id="btnThuNhoCuaSo" type="button" onclick="thaoTacThuNhoCuaSo(event)" class="btn btn-sm btn-light border-0 text-secondary" title="Thu nhỏ (Thoát toàn màn hình)">
           <i class="bi bi-dash-lg fw-bold"></i>
@@ -2356,7 +2360,7 @@ $(document).on('click', '#tabNhacBaoCao', () => {
     window.thaoTacPhongToFull = thaoTacPhongToFull;
     window.thaoTacDongHeThong = thaoTacDongHeThong;
     window.kichHoatToanManHinhHeThong = kichHoatToanManHinhHeThong;
-
+/*
     // 1. TỰ ĐỘNG CHẠY KHI KHỞI ĐỘNG (CHỈ ÁP DỤNG TRÊN MÁY TÍNH / DESKTOP)
     function tuDongChayKhiTuongTacDauTien() {
         if (laThietBiDiDong()) return; // Trên mobile tuyệt đối không can thiệp
@@ -2411,6 +2415,7 @@ $(document).on('click', '#tabNhacBaoCao', () => {
             window.addEventListener('click', tuDongChayKhiTuongTacDauTien, { once: true, passive: true });
         }
     });
+  */
 })();
 </script>
 </body>
