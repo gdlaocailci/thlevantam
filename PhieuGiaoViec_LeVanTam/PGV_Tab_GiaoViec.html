@@ -450,7 +450,7 @@
         <div class="tDe">PHIẾU GIAO NHIỆM VỤ</div>
       </div>
       <div class="hopLoc">
-        <button id="gvNutChth" class="btn btn-danger btn-sm fw-bold nhapTuyChinh" style="display:none; color: white; border: none; padding: 4px 10px;" onclick="gvXlmChth(this)">Chuyển tháng mới</button>
+        <button id="gvNutChth" class="btn btn-danger btn-sm fw-bold nhapTuyChinh" style="display:none; color: white; border: none; padding: 4px 12px; white-space: nowrap; height: auto; min-height: 34px; align-items: center; justify-content: center; line-height: 1.2;" onclick="gvXlmChth(this)">Chuyển tháng mới</button>
         <input type="text" id="gvLocNam" class="form-control nhapTuyChinh" style="width: 140px; background-color: #ffffff;" disabled placeholder="Năm học">
         <select id="gvLocThang" class="form-select nhapTuyChinh" style="width: 120px;">
           <option value="Tháng 1">Tháng 1</option><option value="Tháng 2">Tháng 2</option><option value="Tháng 3">Tháng 3</option><option value="Tháng 4">Tháng 4</option><option value="Tháng 5">Tháng 5</option><option value="Tháng 6">Tháng 6</option><option value="Tháng 7">Tháng 7</option><option value="Tháng 8">Tháng 8</option><option value="Tháng 9">Tháng 9</option><option value="Tháng 10">Tháng 10</option><option value="Tháng 11">Tháng 11</option><option value="Tháng 12">Tháng 12</option>
@@ -1055,7 +1055,7 @@ function gvTaiCanb() {
         
         if (quyen === 'xxx') { 
             // Quyền XXX (Quản trị VIP): Toàn quyền kiểm soát
-            if (btnChuyenThang) btnChuyenThang.style.display = 'flex'; 
+            if (btnChuyenThang) btnChuyenThang.style.display = 'inline-flex';
         } 
         else if (quyen === 'xx') { 
             // Quyền XX (Quản trị): Chỉ được chuyển tháng, KHÔNG được cập nhật tiêu chí chung
