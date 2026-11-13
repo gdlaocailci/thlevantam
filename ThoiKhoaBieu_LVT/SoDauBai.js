@@ -2187,18 +2187,106 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
 
     let matchKhoiChon = lopChon.match(/\d+/);
     let khoiChon = matchKhoiChon ? matchKhoiChon[0] : '';
-    let dinhMucKhoiNay = dinhMucKhungCT[khoiChon] || {};
-    let canhBaoHtml = ''; let hasCanhBao = false;
+    
+    // Ưu tiên lấy định mức chính xác của Lớp từ KHUNG_CHUONG_TRINH, nếu chưa có mới lấy theo Khối
+    let dinhMucLopHoacKhoi = {};
+    let nguonKCT = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.KHUNG_CHUONG_TRINH)
+        ? thongSoHocVu.KHUNG_CHUONG_TRINH
+        : ((typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu.KHUNG_CHUONG_TRINH) ? window.thongSoHocVu.KHUNG_CHUONG_TRINH : null);
+
+    if (nguonKCT && nguonKCT[lopChon] && typeof nguonKCT[lopChon] === 'object') {
+        Object.keys(nguonKCT[lopChon]).forEach(m => {
+            let soT = parseInt(nguonKCT[lopChon][m], 10) || 0;
+            let mNorm = String(m || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            if (mNorm && soT > 0) dinhMucLopHoacKhoi[mNorm] = soT;
+        });
+    } else {
+        dinhMucLopHoacKhoi = { ...(dinhMucKhungCT[khoiChon] || {}) };
+    }
+
+    let canhBaoHtml = ''; 
+    let hasCanhBao = false;
 
     if (maxTuanChon > 0) {
-        for (let mon in dinhMucKhoiNay) {
-            let dinhMuc = dinhMucKhoiNay[mon];
-            let tietThucTe = demTietTienDo[mon] || 0; 
-            let tietChuanDuKien = dinhMuc * maxTuanChon; 
-            
-            let doLech = tietThucTe - tietChuanDuKien;
-            let tenMonIn = mon.charAt(0).toUpperCase() + mon.slice(1);
+        const laMonAI_SDB = (m) => {
+            if (!m) return false;
+            let s = String(m).normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ');
+            return (s === 'ai' || s.startsWith('ai ') || s.endsWith(' ai') || s.includes('trí tuệ nhân tạo') || s.includes('tri tue nhan tao'));
+        };
+        const laMonTC_SDB = (m) => {
+            if (!m) return false;
+            let s = String(m).normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ');
+            let sKd = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+            return (s.startsWith('tc ') || s.startsWith('tc_') || s.startsWith('tc-') || s.includes('tăng cường') || sKd.includes('tang cuong'));
+        };
 
+        let chuanLuyKeMap = {};
+        let tatCaMonXet = Array.from(new Set([...Object.keys(dinhMucLopHoacKhoi), ...Object.keys(demTietTienDo)]));
+        tatCaMonXet.forEach(mon => {
+            chuanLuyKeMap[mon] = (dinhMucLopHoacKhoi[mon] || 0) * maxTuanChon;
+        });
+
+        // [BÙ TRỪ LŨY KẾ LINH HOẠT AI <-> TC TOÁN / TC TV]:
+        let dsMonAI = tatCaMonXet.filter(m => laMonAI_SDB(m));
+        let dsMonTC = tatCaMonXet.filter(m => laMonTC_SDB(m));
+        const dinhMucAiNam = window.DINH_MUC_TIET_AI_NAM || 12;
+
+        dsMonAI.forEach(monAI => {
+            let thucTeAI = demTietTienDo[monAI] || 0;
+            let chuanAI = chuanLuyKeMap[monAI] || 0;
+            let lechAI = thucTeAI - chuanAI;
+
+            // Trường hợp 1: Số tiết AI thực tế nhiều hơn chuẩn lũy kế (khi Khung CT để AI = 0) -> Bù vào số tiết giảm của TC Toán / TC TV
+            if (lechAI > 0) {
+                let canBu = lechAI;
+                dsMonTC.forEach(monTC => {
+                    if (canBu <= 0) return;
+                    let hutTC = (chuanLuyKeMap[monTC] || 0) - (demTietTienDo[monTC] || 0);
+                    if (hutTC > 0) {
+                        let luongBu = Math.min(canBu, hutTC);
+                        chuanLuyKeMap[monTC] -= luongBu;
+                        chuanLuyKeMap[monAI] += luongBu;
+                        canBu -= luongBu;
+                    }
+                });
+            }
+            // Trường hợp 2: Số tiết AI thực tế ít hơn chuẩn lũy kế (khi Khung CT để AI = 1 nhưng có những tuần không dạy AI mà dạy TC Toán / TC TV)
+            else if (lechAI < 0) {
+                let duKhungAI = Math.abs(lechAI);
+                dsMonTC.forEach(monTC => {
+                    if (duKhungAI <= 0) return;
+                    let tangTC = (demTietTienDo[monTC] || 0) - (chuanLuyKeMap[monTC] || 0);
+                    if (tangTC > 0) {
+                        let luongBu = Math.min(duKhungAI, tangTC);
+                        chuanLuyKeMap[monTC] += luongBu;
+                        chuanLuyKeMap[monAI] -= luongBu;
+                        duKhungAI -= luongBu;
+                    }
+                });
+                // Phần định mức AI không dạy ở các tuần còn lại không tính là thiếu (vì AI chỉ dạy 12 tiết/năm không cố định tuần)
+                if (chuanLuyKeMap[monAI] > thucTeAI) {
+                    chuanLuyKeMap[monAI] = thucTeAI;
+                }
+            }
+        });
+
+        tatCaMonXet.forEach(mon => {
+            let tietThucTe = demTietTienDo[mon] || 0;
+            let tietChuanDuKien = chuanLuyKeMap[mon] || 0;
+            let tenMonIn = mon.toUpperCase() === 'AI' ? 'AI' : (mon.charAt(0).toUpperCase() + mon.slice(1));
+
+            if (laMonAI_SDB(mon)) {
+                // Đối với môn AI: Kiểm tra theo trần 12 tiết/năm học
+                if (tietThucTe > dinhMucAiNam) {
+                    canhBaoHtml += `<span class="bg-red-100 text-red-700 font-bold px-3 py-1 rounded border border-red-200 shadow-sm flex items-center gap-1 text-xs whitespace-nowrap"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>${tenMonIn}: Vượt ${tietThucTe - dinhMucAiNam} tiết năm (${tietThucTe}/${dinhMucAiNam} tiết/năm)</span>`;
+                    hasCanhBao = true;
+                }
+                return;
+            }
+
+            if ((dinhMucLopHoacKhoi[mon] || 0) === 0 && tietChuanDuKien === 0) return;
+
+            let doLech = tietThucTe - tietChuanDuKien;
             if (doLech < 0) { 
                 canhBaoHtml += `<span class="bg-red-100 text-red-700 font-bold px-3 py-1 rounded border border-red-200 shadow-sm flex items-center gap-1 text-xs whitespace-nowrap"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>${tenMonIn}: Thiếu ${Math.abs(doLech)} (tính đến hết tuần ${maxTuanChon})</span>`;
                 hasCanhBao = true;
@@ -2206,11 +2294,11 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                 canhBaoHtml += `<span class="bg-orange-100 text-orange-700 font-bold px-3 py-1 rounded border border-orange-200 shadow-sm flex items-center gap-1 text-xs whitespace-nowrap"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>${tenMonIn}: Thừa ${doLech} (tính đến hết tuần ${maxTuanChon})</span>`;
                 hasCanhBao = true;
             }
-        }
+        });
     }
 
     let thanhCanhBaoRender = hasCanhBao ? `<div class="mb-3 p-2 bg-white border-l-4 border-red-500 shadow-sm text-sm flex flex-col md:flex-row md:items-center gap-3 w-full"><div class="flex items-center gap-2 flex-none"><div class="p-1 bg-red-100 rounded-full"><svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div><span class="font-extrabold text-red-700 uppercase tracking-wide text-xs">Cảnh báo Tiến độ:</span></div><div class="flex flex-wrap gap-2 flex-1">${canhBaoHtml}</div></div>` : '';
-
+    
     const thuTuThuKetXuat = { "Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5, "Thứ 6": 6, "Thứ 7": 7, "Chủ nhật": 8 };
     const thuTuBuoiKetXuat = { "sáng": 1, "chiều": 2 };
     const chuanHoaThuKetXuat = (thuStr) => {
