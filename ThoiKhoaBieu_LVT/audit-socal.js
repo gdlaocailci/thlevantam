@@ -160,6 +160,7 @@ window.chuyenDoiCheDoDayTheTiet = function(thu, buoi, tiet, lop) {
     window.capNhatCanhBaoChiTietMonTrenLuoi(); // Cập nhật lại cảnh báo ngay lập tức trên dòng lớp
 
     // [BẮT BUỘC ĐỂ LƯU SỬA (MAP)]: Đánh dấu ô này đã bị thay đổi cờ trạng thái để luuSuaCucBoTKB thu thập vào dsThayDoi
+    let oMon = document.getElementById(`mon_${thu}_${buoi}_${tiet}_${lop}`);
     let oGv = document.getElementById(`gv_${thu}_${buoi}_${tiet}_${lop}`);
     if (oMon) {
         let tdMon = oMon.closest('td');
@@ -252,20 +253,102 @@ window.veNhanDayTheTietTrenO = function(thu, buoi, tiet, lop) {
 };
 
 // -------------------------------------------------------------------------
+// BỘ HÀM PHỤ TRỢ: NHẬN DIỆN & TỰ ĐỘNG BÙ TRỪ QUỸ TIẾT (AI <-> TC TOÁN / TC TV)
+// -------------------------------------------------------------------------
+window.DINH_MUC_TIET_AI_NAM = 12; // Định mức chuẩn 12 tiết AI / năm học
+
+window.laMonAI_KCT = function(tenMon) {
+    if (!tenMon) return false;
+    let s = String(tenMon).normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ');
+    return (s === 'ai' || s.startsWith('ai ') || s.endsWith(' ai') || s.includes('trí tuệ nhân tạo') || s.includes('tri tue nhan tao'));
+};
+
+window.laMonTangCuong_KCT = function(tenMon) {
+    if (!tenMon) return false;
+    let s = String(tenMon).normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ');
+    let sKd = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+    return (s.startsWith('tc ') || s.startsWith('tc_') || s.startsWith('tc-') || s.includes('tăng cường') || sKd.includes('tang cuong'));
+};
+
+// Tự động điều chỉnh định mức chuẩn trong tuần khi có sự hoán đổi giữa AI và TC Toán / TC TV
+window.dieuChinhKhungBuTruAiVaTC = function(dmLopGoc, thucTeLop) {
+    let dmHieuChinh = { ...dmLopGoc };
+    let ghiChuBuTru = {};
+    let tapMon = Array.from(new Set([...Object.keys(dmLopGoc), ...Object.keys(thucTeLop)]));
+    let dsMonAI = tapMon.filter(m => window.laMonAI_KCT(m));
+    let dsMonTC = tapMon.filter(m => window.laMonTangCuong_KCT(m));
+
+    dsMonAI.forEach(monAI => {
+        let chuanAI = dmHieuChinh[monAI] || 0;
+        let xepAI = thucTeLop[monAI] || 0;
+        let lechAI = xepAI - chuanAI;
+
+        // Trường hợp 1: Tuần có xếp AI nhiều hơn Khung CT (giảm tiết TC Toán hoặc TC TV để nhường cho AI)
+        if (lechAI > 0) {
+            let canBu = lechAI;
+            let dsNhuong = [];
+            dsMonTC.forEach(monTC => {
+                if (canBu <= 0) return;
+                let chuanTC = dmHieuChinh[monTC] || 0;
+                let xepTC = thucTeLop[monTC] || 0;
+                let hụtTC = chuanTC - xepTC;
+                if (hụtTC > 0) {
+                    let luongBu = Math.min(canBu, hụtTC);
+                    dmHieuChinh[monTC] = chuanTC - luongBu;
+                    dmHieuChinh[monAI] = (dmHieuChinh[monAI] || 0) + luongBu;
+                    canBu -= luongBu;
+                    dsNhuong.push(`${monTC} (${luongBu}t)`);
+                    ghiChuBuTru[monTC] = `✔ Đã nhường ${luongBu} tiết cho ${monAI}`;
+                }
+            });
+            if (dsNhuong.length > 0) {
+                ghiChuBuTru[monAI] = `✔ Nhận bù từ ${dsNhuong.join(', ')}`;
+            }
+        }
+        // Trường hợp 2: Tuần không dạy AI (hoặc ít hơn Khung CT) và tăng tiết TC Toán hoặc TC TV
+        else if (lechAI < 0) {
+            let duKhungAI = Math.abs(lechAI);
+            let dsNhan = [];
+            dsMonTC.forEach(monTC => {
+                if (duKhungAI <= 0) return;
+                let chuanTC = dmHieuChinh[monTC] || 0;
+                let xepTC = thucTeLop[monTC] || 0;
+                let tangTC = xepTC - chuanTC;
+                if (tangTC > 0) {
+                    let luongBu = Math.min(duKhungAI, tangTC);
+                    dmHieuChinh[monTC] = chuanTC + luongBu;
+                    dmHieuChinh[monAI] = Math.max(0, (dmHieuChinh[monAI] || 0) - luongBu);
+                    duKhungAI -= luongBu;
+                    dsNhan.push(`${monTC} (${luongBu}t)`);
+                    ghiChuBuTru[monTC] = `✔ Nhận ${luongBu} tiết từ ${monAI}`;
+                }
+            });
+            if (dsNhan.length > 0) {
+                ghiChuBuTru[monAI] = `✔ Đã chuyển sang ${dsNhan.join(', ')}`;
+            }
+        }
+    });
+
+    return { dmHieuChinh, ghiChuBuTru };
+};
+
+// -------------------------------------------------------------------------
 // HÀM 3: Sổ cái Lũy kế Liên tuần (Quét các tuần trước từ bộ nhớ sẵn có 0ms)
 // -------------------------------------------------------------------------
 window.tinhSoDuLuyKeCacTuanTruoc = function(tuanHienTaiXet, mangLop, khungChuanTheoLop) {
     let tTarget = parseInt(String(tuanHienTaiXet).replace(/\D/g, ''), 10) || 1;
     let soDuLuyKe = {};
     let chiTietTheoTuan = {};
+    let soTietAiDaHocTruocDo = {};
 
     mangLop.forEach(lop => {
         soDuLuyKe[lop] = {};
         chiTietTheoTuan[lop] = {};
+        soTietAiDaHocTruocDo[lop] = 0;
     });
 
     if (tTarget <= 1 || typeof window.sangLocTkbTuanDaCo !== 'function') {
-        return { soDuLuyKe, chiTietTheoTuan };
+        return { soDuLuyKe, chiTietTheoTuan, soTietAiDaHocTruocDo };
     }
 
     for (let t = 1; t < tTarget; t++) {
@@ -277,25 +360,48 @@ window.tinhSoDuLuyKeCacTuanTruoc = function(tuanHienTaiXet, mangLop, khungChuanT
 
         let demTuanT = {};
         let lopCoTietTuanT = new Set();
+        let banDoO = {};
 
+        // Khử trùng lặp theo đúng tọa độ (Lớp - Thứ - Buổi - Tiết) để lấy bản ghi mới nhất của ô đó trong tuần t
         kqTuanCu.ds.forEach(banGhi => {
+            if (!banGhi) return;
+            let lop = String(banGhi.maLop || '').trim();
+            let thu = String(banGhi.thu || '').trim().toLowerCase();
+            let buoi = String(banGhi.buoi || '').trim().toLowerCase();
+            let tiet = String(banGhi.tiet || '').trim();
+            if (!lop || !thu || !buoi || !tiet) return;
+            let khoaO = `${lop}__${thu}__${buoi}__${tiet}`;
+            if (banGhi.xoa === true || banGhi.daXoa === true) {
+                delete banDoO[khoaO];
+                return;
+            }
+            banDoO[khoaO] = banGhi;
+        });
+
+        Object.values(banDoO).forEach(banGhi => {
             let lop = String(banGhi.maLop || '').trim();
             let mon = window.chuanHoaTenMonKCT(banGhi.monHoc || banGhi.mon);
             if (lop && mon && mon !== '--' && mon !== '---') {
                 if (!demTuanT[lop]) demTuanT[lop] = {};
                 demTuanT[lop][mon] = (demTuanT[lop][mon] || 0) + 1;
                 lopCoTietTuanT.add(lop);
+                if (window.laMonAI_KCT(mon)) {
+                    soTietAiDaHocTruocDo[lop] = (soTietAiDaHocTruocDo[lop] || 0) + 1;
+                }
             }
         });
 
         mangLop.forEach(lop => {
             if (!lopCoTietTuanT.has(lop)) return;
-            let dmLop = khungChuanTheoLop[lop] || {};
+            let dmLopGoc = khungChuanTheoLop[lop] || {};
             let thucTeLop = demTuanT[lop] || {};
-            let tapMon = new Set([...Object.keys(dmLop), ...Object.keys(thucTeLop)]);
+
+            // Áp dụng bù trừ linh hoạt AI <-> TC Toán / TC TV cho từng tuần lịch sử để không báo nợ ảo
+            let { dmHieuChinh } = window.dieuChinhKhungBuTruAiVaTC(dmLopGoc, thucTeLop);
+            let tapMon = new Set([...Object.keys(dmHieuChinh), ...Object.keys(thucTeLop)]);
 
             tapMon.forEach(mon => {
-                let chuan = dmLop[mon] || 0;
+                let chuan = dmHieuChinh[mon] || 0;
                 let daDay = thucTeLop[mon] || 0;
                 let deltaT = daDay - chuan;
                 if (deltaT !== 0) {
@@ -307,7 +413,7 @@ window.tinhSoDuLuyKeCacTuanTruoc = function(tuanHienTaiXet, mangLop, khungChuanT
         });
     }
 
-    return { soDuLuyKe, chiTietTheoTuan };
+    return { soDuLuyKe, chiTietTheoTuan, soTietAiDaHocTruocDo };
 };
 
 // -------------------------------------------------------------------------
@@ -321,6 +427,7 @@ window.phanTichChiTietDinhMucTungMon = function(lopMucTieu = null) {
         ? thongSoHocVu.NAM_HOC
         : 'NH';
     const tuanXet = (typeof tuanDangXem !== 'undefined' && tuanDangXem) ? parseInt(tuanDangXem, 10) : 1;
+    const dinhMucAiNam = window.DINH_MUC_TIET_AI_NAM || 12;
 
     let mangLop = [];
     if (lopMucTieu) {
@@ -348,7 +455,7 @@ window.phanTichChiTietDinhMucTungMon = function(lopMucTieu = null) {
         });
     });
 
-    // Tính số dư lũy kế từ các tuần trước
+    // Tính số dư lũy kế và số tiết AI tích lũy từ các tuần trước
     const soCaiLichSu = window.tinhSoDuLuyKeCacTuanTruoc(tuanXet, mangLop, khungChuanTheoLop);
 
     let demThucTe = {};
@@ -390,7 +497,14 @@ window.phanTichChiTietDinhMucTungMon = function(lopMucTieu = null) {
         if (loaiCo === 'DAY_TIET') tongCoDayLop[lop]++;
         if (loaiCo === 'THE_TIET') tongCoTheLop[lop]++;
 
-        let tenMon = window.chuanHoaTenMonKCT(oMon.value);
+        // [SỬA LỖI HỤT 1 TIẾT (31/32) KHI ĐANG FOCUS HOẶC ALT+CLICK]:
+        // Lấy lại giá trị từ dataset.val nếu ô đang được focus và bị sự kiện onfocus của app.js tạm xóa trắng value
+        let rawValMon = oMon.value.trim();
+        if (rawValMon === '' && document.activeElement === oMon && oMon.dataset.val) {
+            rawValMon = String(oMon.dataset.val).trim();
+        }
+        let tenMon = window.chuanHoaTenMonKCT(rawValMon);
+
         if (tenMon !== '' && tenMon !== '--' && tenMon !== '---') {
             demThucTe[lop][tenMon] = (demThucTe[lop][tenMon] || 0) + 1;
 
@@ -408,12 +522,17 @@ window.phanTichChiTietDinhMucTungMon = function(lopMucTieu = null) {
     let ketQuaToanTruong = {};
 
     mangLop.forEach(lop => {
-        let dmChuongTrinhLop = khungChuanTheoLop[lop] || {};
+        let dmChuongTrinhGoc = khungChuanTheoLop[lop] || {};
         let tkThucTeLop = demThucTe[lop] || {};
         let duTruocLop = soCaiLichSu.soDuLuyKe[lop] || {};
         let vetTuanLop = soCaiLichSu.chiTietTheoTuan[lop] || {};
+        let aiDaHocTruoc = (soCaiLichSu.soTietAiDaHocTruocDo && soCaiLichSu.soTietAiDaHocTruocDo[lop]) ? soCaiLichSu.soTietAiDaHocTruocDo[lop] : 0;
+
+        // [TỰ ĐỘNG BÙ TRỪ LINH HOẠT AI <-> TC TOÁN / TC TV TRONG TUẦN HIỆN TẠI]:
+        const { dmHieuChinh: dmChuongTrinhLop, ghiChuBuTru } = window.dieuChinhKhungBuTruAiVaTC(dmChuongTrinhGoc, tkThucTeLop);
 
         let tapHopMon = new Set([
+            ...Object.keys(dmChuongTrinhGoc),
             ...Object.keys(dmChuongTrinhLop),
             ...Object.keys(tkThucTeLop),
             ...Object.keys(duTruocLop)
@@ -435,12 +554,15 @@ window.phanTichChiTietDinhMucTungMon = function(lopMucTieu = null) {
             let soTietXep = tkThucTeLop[mon] || 0;
             let soTietDay = demDayTiet[lop][mon] || 0;
             let soTietThe = demTheTiet[lop][mon] || 0;
+            let soCoDacBietMon = soTietDay + soTietThe;
             let chenhLech = soTietXep - soTietChuan;
             let noDuTruoc = duTruocLop[mon] || 0;
             let soDuSauTuanNay = noDuTruoc + chenhLech;
             let lichSuTuan = (vetTuanLop[mon] || []).join(', ');
+            let laAI = window.laMonAI_KCT(mon);
 
-            if (soTietChuan === 0 && soTietXep === 0 && noDuTruoc === 0) return;
+            if (soTietChuan === 0 && soTietXep === 0 && noDuTruoc === 0 && !laAI) return;
+            if (laAI && soTietChuan === 0 && soTietXep === 0 && aiDaHocTruoc === 0) return;
 
             tongTietChuan += soTietChuan;
             tongTietDaXep += soTietXep;
@@ -455,9 +577,33 @@ window.phanTichChiTietDinhMucTungMon = function(lopMucTieu = null) {
             }
 
             let trangThaiMon = 'KHOP';
-            let dienGiaiLuyKe = '';
+            let dienGiaiLuyKe = ghiChuBuTru[mon] || '';
 
-            if (chenhLech < 0) {
+            // Kiểm tra riêng nếu môn AI vượt định mức 12 tiết/năm học
+            let tongAiNam = laAI ? (aiDaHocTruoc + soTietXep) : 0;
+            if (laAI) {
+                let thongTinAiNam = `[Tích lũy năm: ${tongAiNam}/${dinhMucAiNam} tiết]`;
+                if (!viTriMonTheoLop[lop][mon]) viTriMonTheoLop[lop][mon] = [];
+                if (!viTriMonTheoLop[lop][mon].some(v => v.includes('Tích lũy năm:'))) {
+                    viTriMonTheoLop[lop][mon].push(thongTinAiNam);
+                }
+            }
+
+            if (laAI && tongAiNam > dinhMucAiNam && soTietXep > 0) {
+                let soVuotNam = tongAiNam - dinhMucAiNam;
+                trangThaiMon = 'THUA';
+                dienGiaiLuyKe = `⛔ Vượt quỹ năm học: ${tongAiNam}/${dinhMucAiNam} tiết AI (+${soVuotNam} tiết)`;
+                dsMonThua.push({
+                    mon: mon,
+                    chuan: soTietChuan,
+                    daXep: soTietXep,
+                    soThua: soVuotNam,
+                    ngoaiKhung: false,
+                    noDuTruoc: noDuTruoc,
+                    soDuSauTuanNay: soDuSauTuanNay,
+                    lichSuTuan: `Đã học ${aiDaHocTruoc}/${dinhMucAiNam}t`
+                });
+            } else if (chenhLech < 0) {
                 if (noDuTruoc > 0 && soDuSauTuanNay === 0) {
                     trangThaiMon = 'DA_TRA_BU_KHOP';
                     dienGiaiLuyKe = `✔ Giảm ${Math.abs(chenhLech)} tiết để trả/nghỉ bù khớp cho ${lichSuTuan}`;
@@ -482,15 +628,17 @@ window.phanTichChiTietDinhMucTungMon = function(lopMucTieu = null) {
                     trangThaiMon = 'DA_TRA_BU_KHOP';
                     dienGiaiLuyKe = `✔ Tăng +${chenhLech} tiết để dạy bù khớp cho ${lichSuTuan}`;
                     dsMonDaTraBuKhop.push({ mon, chuan: soTietChuan, daXep: soTietXep, chenhLech, lichSuTuan });
-                } else if (soTietDay >= chenhLech && soTietChuan > 0) {
+                } else if (soCoDacBietMon >= chenhLech) {
+                    // Chấp nhận cả cờ ĐẨY (soTietDay) và cờ THẾ (soTietThe) kể cả khi môn đó có soTietChuan === 0
                     trangThaiMon = 'DAY_TIET';
-                    dienGiaiLuyKe = `Đã gắn nhãn [ĐẨY +${chenhLech} tiết]`;
+                    let nhanCo = soTietDay > 0 ? 'ĐẨY' : 'THẾ';
+                    dienGiaiLuyKe = `Đã gắn nhãn [${nhanCo} +${chenhLech} tiết]`;
                     dsMonDayTiet.push({
                         mon: mon,
                         chuan: soTietChuan,
                         daXep: soTietXep,
                         soThua: chenhLech,
-                        soDay: soTietDay
+                        soDay: soCoDacBietMon
                     });
                 } else {
                     trangThaiMon = 'THUA';
@@ -533,8 +681,7 @@ window.phanTichChiTietDinhMucTungMon = function(lopMucTieu = null) {
             };
         });
 
-        let conLechLuyKe = Object.values(chiTietTungMon).some(m => m.soDuSauTuanNay !== 0);
-        let laTheTietNoiBo = (tongTietDaXep === tongTietChuan && dsMonThieu.length > 0 && dsMonThua.length > 0);
+        let laTheTietNoiBo = (tongTietDaXep === tongTietChuan && (dsMonThieu.length > 0 || dsMonThua.length > 0));
 
         let tongCoDay = tongCoDayLop[lop] || 0;
         let tongCoThe = tongCoTheLop[lop] || 0;
@@ -542,25 +689,30 @@ window.phanTichChiTietDinhMucTungMon = function(lopMucTieu = null) {
         let tongSoTietThieu = dsMonThieu.reduce((s, x) => s + x.soThieu, 0);
         let tongSoTietThua = dsMonThua.reduce((s, x) => s + x.soThua, 0);
 
-        // [QUAN TRỌNG]: Nếu người dùng đã chủ động gán cờ ĐẨY hoặc THẾ thì các chênh lệch này đã được giải trình hợp lệ
-        let daGiaiTrinhDayThe = (tongCoDacBietLop > 0 && (
+        // Kiểm tra xem có môn AI nào bị vượt 12 tiết/năm không (nếu vượt 12 tiết/năm thì không cho cờ Đẩy/Thế xóa cảnh báo)
+        let coLoiVuotQuyenAiNam = dsMonThua.some(x => window.laMonAI_KCT(x.mon) && (aiDaHocTruoc + x.daXep) > dinhMucAiNam);
+
+        // [QUAN TRỌNG]: Nếu người dùng đã chủ động gán cờ ĐẨY hoặc THẾ và lớp đủ tổng số tiết thì giải trình toàn bộ
+        let daGiaiTrinhDayThe = (!coLoiVuotQuyenAiNam && tongCoDacBietLop > 0 && (
             tongCoDacBietLop >= Math.max(tongSoTietThieu, tongSoTietThua) ||
-            (tongTietDaXep + tongCoDay >= tongTietChuan) ||
+            (tongTietDaXep === tongTietChuan) ||
             laTheTietNoiBo
         ));
 
-        // Nếu đã gán cờ giải trình thì chuyển trạng thái môn thiếu/thừa thành hợp lệ
+        // Nếu đã gán cờ giải trình thì chuyển trạng thái môn thiếu/thừa thành hợp lệ VÀ làm sạch mảng dsMonThieu / dsMonThua
         if (daGiaiTrinhDayThe) {
             Object.values(chiTietTungMon).forEach(m => {
-                if (m.trangThai === 'THIEU') {
+                if (m.trangThai === 'THIEU' || m.trangThai === 'THUA') {
                     m.trangThai = 'DA_GIAI_TRINH';
-                    m.dienGiaiLuyKe = `✔ Đã giải trình qua cờ Đẩy/Thế tiết của lớp`;
-                } else if (m.trangThai === 'THUA') {
-                    m.trangThai = 'DA_GIAI_TRINH';
+                    m.soDuSauTuanNay = m.noDuTruoc; // Không ghi nợ mới khi đã giải trình Đẩy/Thế
                     m.dienGiaiLuyKe = `✔ Đã giải trình qua cờ Đẩy/Thế tiết của lớp`;
                 }
             });
+            dsMonThieu = [];
+            dsMonThua = [];
         }
+
+        let conLechLuyKe = Object.values(chiTietTungMon).some(m => m.soDuSauTuanNay !== 0);
 
         ketQuaToanTruong[lop] = {
             lop: lop,
@@ -840,7 +992,7 @@ window.moPopupChiTietMonCuaLop = function(lop) {
     if (!kq) return;
 
     let dsMon = Object.values(kq.chiTietTungMon).sort((a, b) => {
-        const thuTu = { 'THIEU': 1, 'THUA': 2, 'DA_TRA_BU_KHOP': 3, 'DAY_TIET': 4, 'KHOP': 5 };
+        const thuTu = { 'THIEU': 1, 'THUA': 2, 'DA_TRA_BU_KHOP': 3, 'DAY_TIET': 4, 'DA_GIAI_TRINH': 5, 'KHOP': 6 };
         return (thuTu[a.trangThai] || 9) - (thuTu[b.trangThai] || 9);
     });
 
