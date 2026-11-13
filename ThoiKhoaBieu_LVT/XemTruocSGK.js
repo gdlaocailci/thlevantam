@@ -181,7 +181,7 @@ window.kichHoatXemTruocSGK = async function(tenKhoiGoc, tenMonGoc, tenBaiHoc, th
     let duLieuMonHoc = boNhoHocLieuSGK[khoaTimKiem] || boNhoHocLieuSGK[khoaTimKiemGoc];
 
     if (!duLieuMonHoc || (!duLieuMonHoc.linkKy1 && !duLieuMonHoc.linkKy2)) {
-        alert(`Chưa thiết lập Link SGK cho Khối ${tenKhoiGoc} - Môn ${tenMonGoc} trong bảng tính.`);
+        alert(`Chưa thiết lập tài liệu SGK cho - Môn ${tenMonGoc} trên máy chủ.`);
         return;
     }
 
