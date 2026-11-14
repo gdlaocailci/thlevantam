@@ -1402,43 +1402,8 @@ function taiTepDangXem() {
           });
       }
   });
-    
-    function khoaTruyCapMaNguon() {
-        // 1. Khóa menu chuột phải
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-        });
 
-        // 2. Khóa các tổ hợp phím tắt phổ biến
-        document.addEventListener('keydown', function(e) {
-            // Khóa F12
-            if (e.key === 'F12' || e.keyCode === 123) {
-                e.preventDefault();
-            }
-            // Khóa Ctrl + Shift + I (Mở DevTools)
-            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
-                e.preventDefault();
-            }
-            // Khóa Ctrl + Shift + J (Mở Console)
-            if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
-                e.preventDefault();
-            }
-            // Khóa Ctrl + U (Xem nguồn gốc)
-            if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
-                e.preventDefault();
-            }
-            // Khóa Ctrl + S (Lưu trang web)
-            if (e.ctrlKey && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) {
-                e.preventDefault();
-            }
-        });
-    }
-    khoaTruyCapMaNguon();
   </script>
-
-<!-- =========================================================================================
-       [NÂNG CẤP TOÀN DIỆN] KHỐI LOGIC: Ý KIẾN GIÁM SÁT (ĐỒNG BỘ D4 VÀ DATAGV QUÁ KHỨ)
-       ========================================================================================= -->
   <script>
   let duLieuYkienHienTaiD4 = [];   // Lưu trữ bản sao dữ liệu D4 thời gian thực
   let duLieuYkienDataGV = [];      // Lưu trữ dữ liệu lịch sử DATAGV
