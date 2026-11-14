@@ -16,7 +16,7 @@ const KETNOI = {
     LINK_AVATAR_NU: "https://lh3.googleusercontent.com/d/1zW6N_UQKGYl_uCOb9jMfvZCHkLVJKNVU",
     
     // Bổ sung liên kết YouTube Hướng dẫn
-    LINK_YOUTUBE: "https://www.youtube.com/channel/UCdfiTWwv78VITvzlgxnv02Q",
+    LINK_YOUTUBE: "https://www.youtube.com/playlist?list=PLMq1_OeEpM9Y",
     
     // 3. Đường dẫn máy chủ xử lý dữ liệu (Google Apps Script API)
      WEB_APP_URL: "https://script.google.com/macros/s/AKfycbxlgzfQI5YQQG6q91spFUG2n3KW5nhyW4Xka5Lp8XZD7pRVACa44F1qeb4bfuH27BhA6g/exec",
