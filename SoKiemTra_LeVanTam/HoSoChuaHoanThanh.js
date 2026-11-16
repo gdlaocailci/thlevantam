@@ -1,6 +1,6 @@
 /* ========================================================================== */
 /* MODULE: HỒ SƠ CHƯA HOÀN THÀNH (HoSoChuaHoanThanh.js)                       */
-/* Nguồn dữ liệu: Sheet NHATKY thông qua skt_layds_mhs_cn() trong code.gs     */
+/* Nguồn dữ liệu: Sheet NHATKY qua skt_layds_mhs_cn() có sẵn (không sửa code) */
 /* ========================================================================== */
 (function () {
   const HSHT_CONTAINER_ID = "TabHoSoChuaHoanThanh";
@@ -373,10 +373,9 @@
         const kyTen = String(row[14] || "").trim();
         if (kyTen !== "") return false;
 
-        // Lọc theo khoảng ngày kiểm tra (row[4])
-        if (tuMs > 0 || denMs > 0) {
-          const ngayMs = hsht_parseNgay(row[4]);
-          if (ngayMs === 0) return false;
+        // Lọc theo khoảng ngày kiểm tra (nếu dòng có ngày; dòng chưa có ngày vẫn giữ lại để không bị sót)
+        const ngayMs = hsht_parseNgay(row[4]);
+        if (ngayMs > 0 && (tuMs > 0 || denMs > 0)) {
           if (tuMs > 0 && ngayMs < tuMs) return false;
           if (denMs > 0 && ngayMs > denMs) return false;
         }
@@ -485,7 +484,7 @@
     document.body.removeChild(ta);
   }
 
-  // 6. ĐỒNG BỘ MỚI NHẤT TỪ SHEET NHATKY QUA skt_layds_mhs_cn()
+  // 6. ĐỒNG BỘ MỚI NHẤT TỪ SHEET NHATKY QUA skt_layds_mhs_cn() CÓ SẴN
   window.hsht_taiDuLieu = function () {
     if (hshtDangTai) return;
 
