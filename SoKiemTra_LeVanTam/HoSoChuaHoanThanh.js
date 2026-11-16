@@ -6,7 +6,7 @@
   const HSHT_CONTAINER_ID = "TabHoSoChuaHoanThanh";
   let hshtDaKhoiTao = false;
   let hshtDangTai = false;
-  let hshtDanhSachChuaKy = [];
+  let hshtDanhSach = [];
 
   // 0. TỰ ĐỘNG ĐẢM BẢO KHUNG TAB TỒN TẠI TRONG #so_wrapper
   function hsht_damBaoKhungTab() {
@@ -187,7 +187,7 @@
       .hsht-col-stt { width: 55px; text-align: center; font-weight: bold; }
       .hsht-col-gv  { width: 220px; font-weight: bold; color: #0f172a; text-align: left; }
       .hsht-col-nd  { text-align: left; color: #1e293b; line-height: 1.4; }
-      .hsht-col-tt  { width: 170px; text-align: center; }
+      .hsht-col-tt  { width: 175px; text-align: center; }
 
       .hsht-sub-meta {
         display: block;
@@ -205,6 +205,11 @@
         color: #b91c1c;
         background: #fef2f2;
         border: 1px solid #fecaca;
+      }
+      .hsht-status-warn {
+        color: #b45309;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
       }
       .hsht-empty {
         text-align: center;
@@ -355,7 +360,7 @@
     hshtDaKhoiTao = true;
   }
 
-  // 4. LỌC TỪ SHEET NHATKY THEO KHOẢNG NGÀY & CHƯA KÝ XÁC NHẬN
+  // 4. LỌC TỪ SHEET NHATKY & PHÂN LOẠI TRẠNG THÁI
   function hsht_renderBang(dsNhatKy) {
     const tbody = document.getElementById("hsht_tbody");
     const badge = document.getElementById("hsht_badge_count");
@@ -364,16 +369,11 @@
     const tuMs = hsht_parseNgay(hsht_layChuoiNgay("hsht_tu"));
     const denMs = hsht_parseNgay(hsht_layChuoiNgay("hsht_den"));
 
-    hshtDanhSachChuaKy = (Array.isArray(dsNhatKy) ? dsNhatKy : [])
+    hshtDanhSach = (Array.isArray(dsNhatKy) ? dsNhatKy : [])
       .filter((row) => {
         const hoTen = String(row[0] || "").trim();
         if (!hoTen) return false;
 
-        // Lọc cột Ký tên (row[14]) chưa ký
-        const kyTen = String(row[14] || "").trim();
-        if (kyTen !== "") return false;
-
-        // Lọc theo khoảng ngày kiểm tra (nếu dòng có ngày; dòng chưa có ngày vẫn giữ lại để không bị sót)
         const ngayMs = hsht_parseNgay(row[4]);
         if (ngayMs > 0 && (tuMs > 0 || denMs > 0)) {
           if (tuMs > 0 && ngayMs < tuMs) return false;
@@ -381,34 +381,43 @@
         }
         return true;
       })
-      .map((row) => ({
-        hoTen: String(row[0] || "").trim(),
-        nguoiKT: String(row[1] || "").trim(),
-        boPhan: String(row[2] || "").trim(),
-        ngayKT: String(row[4] || "").trim(),
-        noiDung: String(row[5] || "").trim() || "(Chưa ghi nội dung)",
-        maHS: String(row[16] || "").trim(),
-        tinhTrang: "Chưa ký xác nhận"
-      }))
+      .map((row) => {
+        const kyTen = String(row[14] || "").trim();
+        const daKy = kyTen !== "";
+        return {
+          hoTen: String(row[0] || "").trim(),
+          nguoiKT: String(row[1] || "").trim(),
+          boPhan: String(row[2] || "").trim(),
+          ngayKT: String(row[4] || "").trim(),
+          noiDung: String(row[5] || "").trim() || "(Chưa ghi nội dung)",
+          maHS: String(row[16] || "").trim(),
+          daKy: daKy,
+          tinhTrang: daKy ? "Chưa nộp hồ sơ" : "Chưa ký xác nhận"
+        };
+      })
       .sort((a, b) => hsht_parseNgay(b.ngayKT) - hsht_parseNgay(a.ngayKT));
 
     if (badge) {
+      const soChuaKy = hshtDanhSach.filter((i) => !i.daKy).length;
+      const soChuaNop = hshtDanhSach.length - soChuaKy;
       badge.style.display = "inline-block";
-      badge.innerText = `${hshtDanhSachChuaKy.length} hồ sơ chưa ký`;
+      badge.innerText = `${hshtDanhSach.length} hồ sơ (${soChuaKy} chưa ký, ${soChuaNop} chưa nộp)`;
     }
 
-    if (hshtDanhSachChuaKy.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" class="hsht-empty" style="color:#059669; font-weight:bold;">✅ Không có hồ sơ nào chưa ký xác nhận trong sheet NHATKY.</td></tr>`;
+    if (hshtDanhSach.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="hsht-empty" style="color:#059669; font-weight:bold;">✅ Tất cả hồ sơ trong khoảng thời gian này đã hoàn thành và nộp đầy đủ.</td></tr>`;
       return;
     }
 
-    tbody.innerHTML = hshtDanhSachChuaKy.map((item, idx) => {
+    tbody.innerHTML = hshtDanhSach.map((item, idx) => {
       const metaPhu = [
         item.ngayKT ? `Ngày KT: ${item.ngayKT}` : "",
         item.nguoiKT ? `Người KT: ${item.nguoiKT}` : "",
         item.boPhan ? `Bộ phận: ${item.boPhan}` : "",
         item.maHS ? `Mã HS: ${item.maHS}` : ""
       ].filter(Boolean).join(" • ");
+
+      const clsTrangThai = item.daKy ? "hsht-status-badge hsht-status-warn" : "hsht-status-badge";
 
       return `
         <tr>
@@ -418,7 +427,7 @@
             ${item.noiDung}
             ${metaPhu ? `<span class="hsht-sub-meta">${metaPhu}</span>` : ""}
           </td>
-          <td class="hsht-col-tt"><span class="hsht-status-badge">${item.tinhTrang}</span></td>
+          <td class="hsht-col-tt"><span class="${clsTrangThai}">${item.tinhTrang}</span></td>
         </tr>
       `;
     }).join("");
@@ -426,25 +435,26 @@
 
   // 5. COPY NỘI DUNG GỬI NHÓM ZALO
   window.hsht_copyZalo = function () {
-    if (!hshtDanhSachChuaKy || hshtDanhSachChuaKy.length === 0) {
-      alert("Hiện không có hồ sơ nào chưa ký xác nhận để sao chép.");
+    if (!hshtDanhSach || hshtDanhSach.length === 0) {
+      alert("Hiện không có hồ sơ nào chưa hoàn thành để sao chép.");
       return;
     }
 
     const tuNgay = hsht_layChuoiNgay("hsht_tu") || "...";
     const denNgay = hsht_layChuoiNgay("hsht_den") || "...";
 
-    const dongChiTiet = hshtDanhSachChuaKy.map((item, idx) => {
+    const dongChiTiet = hshtDanhSach.map((item, idx) => {
       const ngayStr = item.ngayKT ? ` (${item.ngayKT})` : "";
-      return `${idx + 1}. ${item.hoTen}${ngayStr} — Nội dung: ${item.noiDung} — Tình trạng: ${item.tinhTrang}`;
+      const nktStr = item.daKy && item.nguoiKT ? ` [Người KT: ${item.nguoiKT}]` : "";
+      return `${idx + 1}. ${item.hoTen}${ngayStr} — Nội dung: ${item.noiDung} — Tình trạng: ${item.tinhTrang}${nktStr}`;
     }).join("\n");
 
     const noiDungZalo =
       `📢 THÔNG BÁO HỒ SƠ KIỂM TRA NỘI BỘ CHƯA HOÀN THÀNH\n` +
       `(Từ ngày ${tuNgay} đến ngày ${denNgay})\n\n` +
-      `Hiện còn ${hshtDanhSachChuaKy.length} hồ sơ chưa ký xác nhận:\n` +
+      `Hiện còn ${hshtDanhSach.length} hồ sơ chưa hoàn thành:\n` +
       `${dongChiTiet}\n\n` +
-      `Kính đề nghị các đồng chí có tên trên truy cập hệ thống để kiểm tra và ký xác nhận hoàn thành hồ sơ. Trân trọng!`;
+      `Kính đề nghị các đồng chí có tên trên truy cập hệ thống để kiểm tra, ký xác nhận và nộp hoàn thành hồ sơ. Trân trọng!`;
 
     const baoThanhCong = () => {
       const btn = document.getElementById("hsht_btn_zalo");
