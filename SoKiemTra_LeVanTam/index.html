@@ -1293,7 +1293,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
   </script>
 <script>
-  document.write('<script src="KetQuaKiemTra.js?v=' + new Date().getTime() + '"><\/script>');
+  const vCache = new Date().getTime();
+  document.write('<script src="KetQuaKiemTra.js?v=' + vCache + '"><\/script>');
+  document.write('<script src="HoSoChuaHoanThanh.js?v=' + vCache + '"><\/script>');
 </script>
 </body>
 </html>
