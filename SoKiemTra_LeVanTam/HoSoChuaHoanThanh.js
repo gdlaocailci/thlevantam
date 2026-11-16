@@ -509,7 +509,7 @@
     }
     if (badge) badge.style.display = "none";
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="4" class="hsht-empty">Đang đọc danh sách hồ sơ từ sheet NHATKY...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="hsht-empty">Đang đọc danh sách hồ sơ chưa kết thúc...</td></tr>`;
     }
 
     google.script.run
