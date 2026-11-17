@@ -1,11 +1,11 @@
 let duLieuDanhMucLop = [];
-const TIEU_DE_DM_LOP = ['MaLop', 'TenLop', 'GVCN'];
+const TIEU_DE_DM_LOP = ['MaLop', 'TenLop', 'GVCN', 'SiSo'];
 
 // Giao diện đã được quản lý chuẩn mực tại kiemSoatGiaoDien() trong app.js.
 
 async function taiDuLieuDanhMucLop() {
     const tbody = document.getElementById('vungDuLieuDanhMucLop');
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-500 font-bold"><div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang tải Danh mục Lớp...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-500 font-bold"><div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>Đang tải Danh mục Lớp...</td></tr>`;
     
     try {
         const urlAPI = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDanhMucLop`;
@@ -17,16 +17,18 @@ async function taiDuLieuDanhMucLop() {
         duLieuDanhMucLop = [];
         if (duLieuS && duLieuS.length > 1) {
             for (let i = 1; i < duLieuS.length; i++) {
+                let rawSiSo = duLieuS[i][3] !== undefined && duLieuS[i][3] !== null ? String(duLieuS[i][3]).replace(/\D/g, '') : '';
                 duLieuDanhMucLop.push({
                     maLop: duLieuS[i][0] !== undefined ? String(duLieuS[i][0]).trim() : '',
                     tenLop: duLieuS[i][1] !== undefined ? String(duLieuS[i][1]).trim() : '',
-                    gvcn: duLieuS[i][2] !== undefined ? String(duLieuS[i][2]).trim() : ''
+                    gvcn: duLieuS[i][2] !== undefined ? String(duLieuS[i][2]).trim() : '',
+                    siSo: rawSiSo ? String(parseInt(rawSiSo, 10)) : ''
                 });
             }
         }
         veBangDanhMucLop();
     } catch (loi) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-600 font-bold">
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-600 font-bold">
             ⚠️ Lỗi kết nối máy chủ dữ liệu.<br>
             <span class="text-sm font-normal text-slate-500">Hệ thống đang bận hoặc gián đoạn mạng. Vui lòng chuyển qua tab khác và quay lại để tải lại.</span>
         </td></tr>`;
@@ -35,30 +37,62 @@ async function taiDuLieuDanhMucLop() {
 
 function veBangDanhMucLop() {
     const tbody = document.getElementById('vungDuLieuDanhMucLop');
-    // Bổ sung thẻ tiêu đề cột GVCN trên giao diện
+    // Mở rộng toàn bộ #khungDanhMucLop, khung cuộn và bảng ra 100% chiều ngang màn hình
+    const khungDMLop = document.getElementById('khungDanhMucLop');
+    if (khungDMLop) {
+        Array.from(khungDMLop.classList).forEach(cls => {
+            if (cls.startsWith('max-w-') || /^w-(\d+|1\/\d+|2\/\d+|3\/\d+|4\/\d+|5\/\d+)$/.test(cls)) {
+                khungDMLop.classList.remove(cls);
+            }
+        });
+        khungDMLop.classList.add('w-full');
+        khungDMLop.style.maxWidth = '100%';
+        khungDMLop.style.width = '100%';
+    }
+    const table = tbody ? tbody.closest('table') : document.querySelector('#khungDanhMucLop table');
+    if (table) {
+        table.classList.remove('table-fixed');
+        table.classList.add('w-full');
+        table.style.width = '100%';
+        let wrap = table.parentElement;
+        while (wrap && wrap !== khungDMLop && wrap !== document.body) {
+            Array.from(wrap.classList).forEach(cls => {
+                if (cls.startsWith('max-w-') || /^w-(\d+|1\/\d+|2\/\d+|3\/\d+|4\/\d+|5\/\d+)$/.test(cls)) {
+                    wrap.classList.remove(cls);
+                }
+            });
+            wrap.classList.add('w-full');
+            wrap.style.maxWidth = '100%';
+            wrap.style.width = '100%';
+            wrap = wrap.parentElement;
+        }
+    }
     const thead = document.querySelector('#khungDanhMucLop thead tr');
-    if (thead && thead.children.length === 4) {
+    if (thead) {
         thead.innerHTML = `
-            <th class="py-2 w-16">STT</th>
-            <th class="py-2 w-1/4">Mã Lớp</th>
-            <th class="py-2 w-1/4">Tên Lớp</th>
-            <th class="py-2 w-1/4">GV Chủ Nhiệm</th>
-            <th class="py-2 w-32">Điều Chỉnh</th>`;
+            <th class="py-2.5 px-2 text-center whitespace-nowrap" style="width: 7%; min-width: 55px;">STT</th>
+            <th class="py-2.5 px-2 text-center" style="width: 17%;">Mã Lớp</th>
+            <th class="py-2.5 px-2 text-center" style="width: 17%;">Tên Lớp</th>
+            <th class="py-2.5 px-2 text-center" style="width: 27%;">GV Chủ Nhiệm</th>
+            <th class="py-2.5 px-2 text-center" style="width: 16%;">Sĩ Số</th>
+            <th class="py-2.5 px-2 text-center whitespace-nowrap" style="width: 16%; min-width: 140px;">Điều Chỉnh</th>`;
     }
 
     if (duLieuDanhMucLop.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-500 font-bold italic">Danh sách đang trống. Hãy thêm lớp học mới.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-500 font-bold italic">Danh sách đang trống. Hãy thêm lớp học mới.</td></tr>`;
         return;
     }
 
     let html = '';
     duLieuDanhMucLop.forEach((lop, index) => {
+        let siSoVal = (lop.siSo !== undefined && lop.siSo !== null) ? String(lop.siSo).trim() : '';
         html += `
         <tr class="hover:bg-slate-50 transition-colors">
             <td class="py-1 px-2 border border-gray-300 font-bold text-slate-500">${index + 1}</td>
             <td class="p-0 border border-gray-300"><input type="text" value="${lop.maLop}" onchange="capNhatLop(${index}, 'maLop', this.value)" class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-center font-extrabold text-blue-900 uppercase"></td>
             <td class="p-0 border border-gray-300"><input type="text" value="${lop.tenLop}" onchange="capNhatLop(${index}, 'tenLop', this.value)" class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-center font-bold text-slate-800 uppercase"></td>
             <td class="p-0 border border-gray-300"><input type="text" list="datalistChung_GV" value="${lop.gvcn}" onchange="capNhatLop(${index}, 'gvcn', this.value)" placeholder="Chọn/Nhập mã GV..." class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-center font-bold text-slate-800"></td>
+            <td class="p-0 border border-gray-300"><input type="number" min="0" value="${siSoVal}" onchange="capNhatLop(${index}, 'siSo', this.value)" placeholder="..." class="w-full h-full min-h-[35px] px-2 outline-none bg-transparent text-center font-bold text-emerald-700"></td>
             <td class="py-1 px-2 border border-gray-300 space-x-1">
                 <button onclick="diChuyenLop(${index}, -1)" title="Lên" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold p-1.5 rounded leading-none transition">▲</button>
                 <button onclick="diChuyenLop(${index}, 1)" title="Xuống" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold p-1.5 rounded leading-none transition">▼</button>
@@ -74,11 +108,20 @@ function dongBoDomLopSangState() {
     duLieuDanhMucLop = [];
     document.querySelectorAll('#vungDuLieuDanhMucLop tr').forEach(tr => {
         let cacInput = tr.querySelectorAll('input');
-        if (cacInput && cacInput.length === 3) {
+        if (cacInput && cacInput.length >= 4) {
+            let rawSiSo = String(cacInput[3].value || '').replace(/\D/g, '');
             duLieuDanhMucLop.push({ 
                 maLop: cacInput[0].value, 
                 tenLop: cacInput[1].value,
-                gvcn: cacInput[2].value
+                gvcn: cacInput[2].value,
+                siSo: rawSiSo ? String(parseInt(rawSiSo, 10)) : ''
+            });
+        } else if (cacInput && cacInput.length === 3) {
+            duLieuDanhMucLop.push({ 
+                maLop: cacInput[0].value, 
+                tenLop: cacInput[1].value,
+                gvcn: cacInput[2].value,
+                siSo: ''
             });
         }
     });
@@ -102,6 +145,9 @@ function capNhatLop(index, truong, giaTri) {
         }
     } else if (truong === 'gvcn') {
         duLieuDanhMucLop[index][truong] = giaTri.trim(); 
+    } else if (truong === 'siSo') {
+        let rawSiSo = String(giaTri || '').replace(/\D/g, '');
+        duLieuDanhMucLop[index].siSo = rawSiSo ? String(parseInt(rawSiSo, 10)) : '';
     } else {
         duLieuDanhMucLop[index][truong] = giaTri.trim().toUpperCase(); 
     }
@@ -109,7 +155,7 @@ function capNhatLop(index, truong, giaTri) {
 
 function themDongLopMoi() { 
     dongBoDomLopSangState(); 
-    duLieuDanhMucLop.push({ maLop: '', tenLop: '', gvcn: '' }); 
+    duLieuDanhMucLop.push({ maLop: '', tenLop: '', gvcn: '', siSo: '' }); 
     veBangDanhMucLop(); 
 }
 
@@ -141,7 +187,8 @@ async function luuDuLieuDanhMucLopSangMayChu() {
         let mangGhi = [TIEU_DE_DM_LOP]; 
         duLieuDanhMucLop.forEach(lop => {
             if (lop.maLop.trim() !== '') {
-                mangGhi.push([lop.maLop.trim(), lop.tenLop.trim(), lop.gvcn.trim()]);
+                let siSoNum = lop.siSo && String(lop.siSo).trim() !== '' ? (parseInt(String(lop.siSo).replace(/\D/g, ''), 10) || '') : '';
+                mangGhi.push([lop.maLop.trim(), lop.tenLop.trim(), lop.gvcn.trim(), siSoNum]);
             }
         });
 
@@ -155,18 +202,30 @@ async function luuDuLieuDanhMucLopSangMayChu() {
         const ketQua = await phanHoi.json();
         
         if (ketQua.trangThai === 'Thành công') { 
-            alert("Đã lưu Danh mục Lớp (bao gồm phân công GVCN) lên hệ thống an toàn!"); 
+            alert("Đã lưu Danh mục Lớp (bao gồm phân công GVCN và Sĩ số) lên hệ thống an toàn!"); 
             
-            // Bơm danh sách Lớp và GVCN mới vào biến toàn cục của Frontend
-            if (typeof thongSoHocVu !== 'undefined') {
-                thongSoHocVu.DANH_SACH_LOP = duLieuDanhMucLop.map(lop => lop.maLop.trim()).filter(String);
-                if (!thongSoHocVu.GVCN_THEO_LOP) thongSoHocVu.GVCN_THEO_LOP = {};
+            // Bơm danh sách Lớp, GVCN và Sĩ số mới vào biến toàn cục của Frontend
+            let capNhatSiSo = (targetObj) => {
+                if (!targetObj) return;
+                targetObj.DANH_SACH_LOP = duLieuDanhMucLop.map(lop => lop.maLop.trim()).filter(String);
+                if (!targetObj.GVCN_THEO_LOP) targetObj.GVCN_THEO_LOP = {};
+                if (!targetObj.SI_SO_THEO_LOP) targetObj.SI_SO_THEO_LOP = {};
                 duLieuDanhMucLop.forEach(lop => {
-                    if (lop.maLop.trim() !== '') {
-                        thongSoHocVu.GVCN_THEO_LOP[lop.maLop.trim()] = lop.gvcn.trim();
+                    let mLop = lop.maLop.trim();
+                    if (mLop !== '') {
+                        targetObj.GVCN_THEO_LOP[mLop] = lop.gvcn.trim();
+                        if (lop.siSo && String(lop.siSo).trim() !== '') {
+                            targetObj.SI_SO_THEO_LOP[mLop.toUpperCase()] = parseInt(String(lop.siSo).replace(/\D/g, ''), 10) || 0;
+                        } else {
+                            delete targetObj.SI_SO_THEO_LOP[mLop.toUpperCase()];
+                        }
                     }
                 });
-            }
+            };
+            if (typeof thongSoHocVu !== 'undefined') capNhatSiSo(thongSoHocVu);
+            if (typeof window.thongSoHocVu !== 'undefined') capNhatSiSo(window.thongSoHocVu);
+            if (typeof window.dongBoSiSoTuDanhMucLopSDB === 'function') window.dongBoSiSoTuDanhMucLopSDB();
+
             // Cập nhật lại các datalist và giao diện lưới
             if (typeof window.capNhatDatalistTKB === 'function') window.capNhatDatalistTKB();
             
@@ -198,14 +257,15 @@ function xuatExcelDanhMucLop() {
     
     let mangXuat = [TIEU_DE_DM_LOP];
     duLieuDanhMucLop.forEach(lop => { 
-        mangXuat.push([lop.maLop, lop.tenLop, lop.gvcn]); 
+        let siSoNum = lop.siSo && String(lop.siSo).trim() !== '' ? (parseInt(String(lop.siSo).replace(/\D/g, ''), 10) || '') : '';
+        mangXuat.push([lop.maLop, lop.tenLop, lop.gvcn, siSoNum]); 
     });
     
     let wb = XLSX.utils.book_new();
     let ws = XLSX.utils.aoa_to_sheet(mangXuat);
     
     // Tinh chỉnh độ rộng các cột hiển thị
-    ws['!cols'] = [{wch: 15}, {wch: 25}, {wch: 25}];
+    ws['!cols'] = [{wch: 15}, {wch: 25}, {wch: 25}, {wch: 12}];
     XLSX.utils.book_append_sheet(wb, ws, "DM_LOP");
     XLSX.writeFile(wb, "DanhMucLop.xlsx");
 }
@@ -243,6 +303,8 @@ function nhapExcelDanhMucLop(event) {
                 let maLopMoi = row[0] ? String(row[0]).trim().toUpperCase() : '';
                 let tenLopMoi = row[1] ? String(row[1]).trim().toUpperCase() : '';
                 let gvcnMoi = row[2] ? String(row[2]).trim() : '';
+                let rawSiSo = (row.length > 3 && row[3] !== undefined && row[3] !== null) ? String(row[3]).replace(/\D/g, '') : '';
+                let siSoMoi = rawSiSo ? String(parseInt(rawSiSo, 10)) : '';
                 
                 if (maLopMoi !== '') {
                     // Thuật toán kiểm tra và chặn trùng lặp mã lớp nếu chọn chế độ nối tiếp
@@ -258,7 +320,8 @@ function nhapExcelDanhMucLop(event) {
                     duLieuDanhMucLop.push({
                         maLop: maLopMoi,
                         tenLop: tenLopMoi,
-                        gvcn: gvcnMoi
+                        gvcn: gvcnMoi,
+                        siSo: siSoMoi
                     });
                 }
             }
