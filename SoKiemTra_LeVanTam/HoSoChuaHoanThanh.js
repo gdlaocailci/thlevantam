@@ -1,12 +1,22 @@
 /* ========================================================================== */
 /* MODULE: HỒ SƠ CHƯA HOÀN THÀNH (HoSoChuaHoanThanh.js)                       */
-/* Nguồn dữ liệu: Sheet NHATKY qua skt_layds_mhs_cn() có sẵn (không sửa code) */
+/* Nguồn dữ liệu: Sheet NHATKY qua skt_layds_mhs_cn() có sẵn                  */
 /* ========================================================================== */
 (function () {
   const HSHT_CONTAINER_ID = "TabHoSoChuaHoanThanh";
   let hshtDaKhoiTao = false;
   let hshtDangTai = false;
   let hshtDanhSach = [];
+
+  const HSHT_SPINNER_HTML = `
+    <span class="hsht-loading-wrap">
+      <svg class="hsht-spin-red" viewBox="0 0 16 16" width="22" height="22" fill="#dc2626" aria-hidden="true">
+        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+      </svg>
+      <span>Đang đọc danh sách hồ sơ chưa hoàn thành...</span>
+    </span>
+  `;
 
   // 0. TỰ ĐỘNG ĐẢM BẢO KHUNG TAB TỒN TẠI TRONG #so_wrapper
   function hsht_damBaoKhungTab() {
@@ -29,6 +39,24 @@
     const style = document.createElement("style");
     style.id = "hsht-style";
     style.textContent = `
+      @keyframes hsht-spin-cw {
+        0%   { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .hsht-loading-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: #dc2626;
+        font-weight: bold;
+        font-style: normal;
+      }
+      .hsht-spin-red {
+        animation: hsht-spin-cw 0.85s linear infinite;
+        flex-shrink: 0;
+      }
+
       .hsht-layout {
         display: flex;
         flex-direction: column;
@@ -198,18 +226,29 @@
       }
       .hsht-status-badge {
         display: inline-block;
-        padding: 3px 10px;
+        padding: 4px 10px;
         border-radius: 12px;
         font-size: 12px;
         font-weight: bold;
         color: #b91c1c;
         background: #fef2f2;
         border: 1px solid #fecaca;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        user-select: none;
+      }
+      .hsht-status-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(185, 28, 28, 0.22);
+        text-decoration: underline;
       }
       .hsht-status-warn {
         color: #b45309;
         background: #fffbeb;
         border: 1px solid #fde68a;
+      }
+      .hsht-status-warn:hover {
+        box-shadow: 0 2px 6px rgba(180, 83, 9, 0.22);
       }
       .hsht-empty {
         text-align: center;
@@ -221,7 +260,20 @@
     document.head.appendChild(style);
   }
 
-  // 2. HÀM TIỆN ÍCH NGÀY THÁNG (SỬA TỪNG THÀNH PHẦN dd / mm / yyyy)
+  // 2. HÀM TIỆN ÍCH NGÀY THÁNG & CHUẨN HÓA CHỮ
+  function hsht_chuanHoaChu(ch) {
+    if (!ch) return "";
+    return String(ch).normalize("NFC").toLowerCase().replace(/[\s\uFEFF\xA0]+/g, "");
+  }
+
+  function hsht_thongBaoTaiCho(tieuDe, noiDung, loai) {
+    if (typeof hienThongBaoUI === "function") {
+      hienThongBaoUI(tieuDe, noiDung, loai || "warning");
+    } else {
+      alert(tieuDe + ": " + noiDung);
+    }
+  }
+
   function hsht_taoHtmlO_Ngay(prefix) {
     return `
       <div class="hsht-date-box">
@@ -346,7 +398,7 @@
                 </tr>
               </thead>
               <tbody id="hsht_tbody">
-                <tr><td colspan="4" class="hsht-empty">Đang chuẩn bị dữ liệu...</td></tr>
+                <tr><td colspan="4" class="hsht-empty">${HSHT_SPINNER_HTML}</td></tr>
               </tbody>
             </table>
           </div>
@@ -427,16 +479,74 @@
             ${item.noiDung}
             ${metaPhu ? `<span class="hsht-sub-meta">${metaPhu}</span>` : ""}
           </td>
-          <td class="hsht-col-tt"><span class="${clsTrangThai}">${item.tinhTrang}</span></td>
+          <td class="hsht-col-tt">
+            <span class="${clsTrangThai}" onclick="hsht_moHoSoGhiSo(${idx})" title="Bấm để mở hồ sơ này lên giao diện Ghi sổ kiểm tra">${item.tinhTrang}</span>
+          </td>
         </tr>
       `;
     }).join("");
   }
 
+  // 4.5 MỞ CUỘC KIỂM TRA LÊN UI GHI SỔ (CHỈ MỞ ĐÚNG NGƯỜI KIỂM TRA HOẶC NGƯỜI ĐƯỢC KIỂM TRA)
+  window.hsht_moHoSoGhiSo = function (idx) {
+    const item = hshtDanhSach[idx];
+    if (!item) return;
+
+    if (!item.maHS) {
+      hsht_thongBaoTaiCho(
+        "⚠️ THIẾU MÃ HỒ SƠ",
+        "Hồ sơ này chưa có Mã HS hợp lệ nên không thể nạp lên giao diện Ghi sổ.",
+        "warning"
+      );
+      return;
+    }
+
+    // Lấy tài khoản đang đăng nhập & đối chiếu tên GV / Người KT từ window.ruongbac
+    const emailHienTai = hsht_chuanHoaChu(
+      window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || sessionStorage.getItem("SKT_USER_TAIK") || ""
+    );
+
+    const dsGV = (window.ruongbac && Array.isArray(window.ruongbac.conmeo)) ? window.ruongbac.conmeo : [];
+    const dsNKT = (window.ruongbac && Array.isArray(window.ruongbac.chocon)) ? window.ruongbac.chocon : [];
+
+    const tenGV_User = dsGV.find((u) => hsht_chuanHoaChu(u.taik) === emailHienTai)?.tenn || "";
+    const tenNKT_User = dsNKT.find((u) => hsht_chuanHoaChu(u.taik) === emailHienTai)?.tenn || "";
+
+    const laGVcuaHoSo = tenGV_User !== "" && hsht_chuanHoaChu(item.hoTen) === hsht_chuanHoaChu(tenGV_User);
+    const laNKTcuaHoSo = tenNKT_User !== "" && hsht_chuanHoaChu(item.nguoiKT) === hsht_chuanHoaChu(tenNKT_User);
+
+    // Chặn ngay tại UI Hồ sơ chưa hoàn thành nếu không phải người kiểm tra hoặc người được kiểm tra
+    if (!laGVcuaHoSo && !laNKTcuaHoSo) {
+      hsht_thongBaoTaiCho(
+        "⛔ KHÔNG ĐÚNG ĐỐI TƯỢNG",
+        `Bạn chỉ được phép mở hồ sơ do chính mình kiểm tra hoặc được kiểm tra.\n\nHồ sơ này thuộc về:\n• Người được kiểm tra: ${item.hoTen}\n• Người kiểm tra: ${item.nguoiKT || "(Chưa rõ)"}\n\nVui lòng chọn đúng hồ sơ của bạn.`,
+        "warning"
+      );
+      return;
+    }
+
+    // Đúng đối tượng -> Chuyển sang UI Ghi sổ và gọi hồ sơ lên bảng
+    const nutMenuGhiSo = document.querySelector('.menu-btn[onclick*="TabNhapLieu"]');
+    if (typeof chuyentth === "function") {
+      chuyentth("TabNhapLieu", nutMenuGhiSo);
+    }
+
+    const cbMa = document.getElementById("cbMaHoSo");
+    if (cbMa) {
+      delete cbMa.dataset.oldValue;
+      cbMa.classList.remove("input-dim-value");
+      cbMa.value = item.maHS;
+    }
+
+    if (typeof khindthd === "function") {
+      khindthd("MAHS");
+    }
+  };
+
   // 5. COPY NỘI DUNG GỬI NHÓM ZALO
   window.hsht_copyZalo = function () {
     if (!hshtDanhSach || hshtDanhSach.length === 0) {
-      alert("Hiện không có hồ sơ nào chưa hoàn thành để sao chép.");
+      hsht_thongBaoTaiCho("THÔNG BÁO", "Hiện không có hồ sơ nào chưa hoàn thành để sao chép.", "info");
       return;
     }
 
@@ -505,11 +615,11 @@
 
     if (btn) {
       btn.disabled = true;
-      btn.innerText = "⏳ Đang tải...";
+      btn.innerText = "Đang tải...";
     }
     if (badge) badge.style.display = "none";
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="4" class="hsht-empty">Đang đọc danh sách hồ sơ chưa kết thúc...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="hsht-empty">${HSHT_SPINNER_HTML}</td></tr>`;
     }
 
     google.script.run
@@ -533,7 +643,7 @@
           btn.innerHTML = "🔍 Kiểm tra";
         }
         if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="4" class="hsht-empty" style="color:#dc2626;">Lỗi tải dữ liệu NHATKY: ${err.message}</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="4" class="hsht-empty" style="color:#dc2626;">Lỗi tải dữ liệu lưu nhật ký: ${err.message}</td></tr>`;
         }
       })
       .skt_layds_mhs_cn();
