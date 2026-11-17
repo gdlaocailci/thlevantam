@@ -711,6 +711,11 @@
                 <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px]">Sổ đầu bài (Điện tử)</span>
             </a>
 
+            <a id="menuTongHopSiSo" onclick="moTabTongHopSiSo()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+                <svg class="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity flex-none text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+                <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px]">Tổng hợp Sĩ số</span>
+            </a>
+
             <div id="nhanHeThong" style="display: none;" class="px-2 pt-6 pb-2 flex items-center gap-3">
                 <div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-blue-300/40 to-transparent"></div>
                 <span class="text-[11px] font-black text-blue-200 uppercase tracking-widest opacity-80 whitespace-nowrap">Hệ thống</span>
@@ -1326,6 +1331,18 @@
                     </div>
                 </div>
 
+                <!-- KHUNG TỔNG HỢP SĨ SỐ HỌC SINH (CÔNG KHAI) -->
+                <div id="khungTongHopSiSo" class="hidden p-4 w-full h-full flex-col font-sans">
+                    <div class="flex justify-between items-center mb-3 flex-none">
+                        <h2 class="text-xl font-extrabold text-blue-900 uppercase">TỔNG HỢP SĨ SỐ &amp; HỌC SINH NGHỈ THEO TUẦN</h2>
+                    </div>
+                    <div class="flex-1 overflow-auto border border-gray-400 shadow-sm bg-white relative p-4">
+                        <div id="vungHienThiTongHopSiSo">
+                            <p class="text-center py-10 text-slate-500 font-bold">Đang chuẩn bị dữ liệu tổng hợp sĩ số...</p>
+                        </div>
+                    </div>
+                </div>
+
             </div> <!-- KẾT THÚC #vungHienThiChinh -->
         </main>
 
@@ -1497,6 +1514,45 @@
     <script src="XemTruocSGK.js"></script>
     <script src="QuanLyDanhMucSGK.js"></script>
     <script src="SoDauBai.js"></script>
+    <script src="TongHopSiSo.js"></script>
+    <script>
+        function moTabTongHopSiSo() {
+            if (typeof kichHoatTab === 'function') {
+                kichHoatTab('menuTongHopSiSo', 'khungTongHopSiSo', false);
+            }
+            var vungChinh = document.getElementById('vungHienThiChinh');
+            if (vungChinh) {
+                Array.from(vungChinh.children).forEach(function(el) {
+                    if (el.id === 'khungTongHopSiSo') {
+                        el.classList.remove('hidden');
+                        el.classList.add('flex');
+                    } else {
+                        el.classList.add('hidden');
+                        el.classList.remove('flex', 'block');
+                    }
+                });
+            }
+            var thanhTKB = document.getElementById('thanhCongCuTKB');
+            if (thanhTKB) thanhTKB.classList.add('hidden');
+            if (typeof window.khoiTaoTongHopSiSo === 'function') {
+                window.khoiTaoTongHopSiSo('vungHienThiTongHopSiSo');
+            }
+        }
+        window.moTabTongHopSiSo = moTabTongHopSiSo;
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('nav a').forEach(function(link) {
+                if (link.id !== 'menuTongHopSiSo') {
+                    link.addEventListener('click', function() {
+                        var kTH = document.getElementById('khungTongHopSiSo');
+                        if (kTH) {
+                            kTH.classList.add('hidden');
+                            kTH.classList.remove('flex');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
     <script src="DoiChieuTkbSdb.js"></script>
     <script src="PhanQuyenAdmin.js"></script>
     <script src="KiemTraSoDauBai.js"></script>
