@@ -9,6 +9,16 @@
   let kqktDuLieuHienTai = [];
   let kqktNguoiDangChon = null;
 
+  const KQKT_SPINNER_HTML = `
+    <span class="kqkt-loading-wrap">
+      <svg class="kqkt-spin-red" viewBox="0 0 16 16" width="22" height="22" fill="#dc2626" aria-hidden="true">
+        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+      </svg>
+      <span>Đang tổng hợp kết quả kiểm tra...</span>
+    </span>
+  `;
+
   // 0. TỰ ĐỘNG ĐẢM BẢO KHUNG TAB TỒN TẠI TRONG #so_wrapper (CHỐNG LỖI NULL)
   function kqkt_damBaoKhungTab() {
     let container = document.getElementById(KQKT_CONTAINER_ID);
@@ -30,6 +40,24 @@
     const style = document.createElement("style");
     style.id = "kqkt-style";
     style.textContent = `
+      @keyframes kqkt-spin-cw {
+        0%   { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .kqkt-loading-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: #dc2626;
+        font-weight: bold;
+        font-style: normal;
+      }
+      .kqkt-spin-red {
+        animation: kqkt-spin-cw 0.85s linear infinite;
+        flex-shrink: 0;
+      }
+
       .kqkt-layout {
         display: flex;
         flex-direction: column;
@@ -406,7 +434,7 @@
                 </tr>
               </thead>
               <tbody id="kqkt_tbody">
-                <tr><td colspan="3" class="kqkt-empty">Đang chuẩn bị dữ liệu...</td></tr>
+                <tr><td colspan="3" class="kqkt-empty">${KQKT_SPINNER_HTML}</td></tr>
               </tbody>
             </table>
           </div>
@@ -562,7 +590,6 @@
       return;
     }
 
-    // Dựng tiêu đề cột ngày: Nếu đang lọc 1 người thì kèm loại hình kiểm tra (Hồ sơ / Dự giờ / Khảo sát / Khác)
     const htmlCotNgay = dsNgay.map((ngay) => {
       if (kqktNguoiDangChon !== null) {
         const items = mapKetQua.get(`${kqktNguoiDangChon}|||${ngay}`) || [];
@@ -629,7 +656,7 @@
 
     if (btn) {
       btn.disabled = true;
-      btn.innerText = "⏳ Đang tải...";
+      btn.innerText = "Đang tải...";
     }
     if (thead) {
       thead.innerHTML = `
@@ -642,7 +669,7 @@
       `;
     }
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="3" class="kqkt-empty">Đang tổng hợp kết quả kiểm tra...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3" class="kqkt-empty">${KQKT_SPINNER_HTML}</td></tr>`;
     }
 
     google.script.run
