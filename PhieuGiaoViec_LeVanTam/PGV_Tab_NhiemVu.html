@@ -476,14 +476,17 @@
         <!-- Hàng 1: Ý kiến tham mưu (Trái) & Báo cáo tóm tắt (Phải) -->
         <div class="row g-1 mb-1">
             <div class="col-md-6">
-              <textarea id="nhapYkien" class="form-control border-danger" placeholder="* Ý kiến tham mưu, đề xuất..." style="height: 45px; min-height: 45px; overflow-y: hidden; resize: none; font-size: 13px; border: 1px dashed #dc3545; padding: 3px; border-radius: 4px;" oninput="gdang(this)" onfocus="gdang(this)" onblur="cgon(this, '45px')"></textarea>
+              <div class="position-relative" style="min-height: 45px;">
+                <textarea id="nhapYkien" class="form-control border-danger" placeholder="* Ý kiến tham mưu, đề xuất..." style="width: 100%; height: 45px; min-height: 45px; max-height: 45px; line-height: 1.45; overflow-y: auto; resize: none; font-size: 13px; border: 1px dashed #dc3545; padding: 3px 6px; border-radius: 4px; background-color: #ffffff;" oninput="moRongBcaoNoi(this)" onfocus="moRongBcaoNoi(this)" onblur="thuGonBcaoNoi(this)"></textarea>
+              </div>
             </div>
             <div class="col-md-6">
-              <div class="d-flex align-items-start gap-1">
-                <textarea id="nhapBcao" class="form-control border-danger" placeholder="* Báo cáo tóm tắt quá trình thực hiện..." style="flex: 1 1 auto; height: 45px; min-height: 45px; max-height: 45px; line-height: 1.45; overflow-y: auto; resize: none; font-size: 13px; border: 1px dashed #dc3545; padding: 3px 6px; border-radius: 4px;" oninput="gdang(this)" onfocus="gdang(this)" onblur="cgon(this, '45px')"></textarea>
-                <button class="btn btn-sm text-primary flex-shrink-0" onclick="document.getElementById('tepBcao').click()" style="padding: 2px 4px; background: transparent; border: none;" title="Đính kèm báo cáo"><i class="bi bi-paperclip" style="font-size: 18px;"></i></button>
+              <div class="d-flex align-items-start gap-1 position-relative" style="min-height: 45px;">
+                <textarea id="nhapBcao" class="form-control border-danger" placeholder="* Báo cáo tóm tắt quá trình thực hiện..." style="width: calc(100% - 30px); height: 45px; min-height: 45px; max-height: 45px; line-height: 1.45; overflow-y: auto; resize: none; font-size: 13px; border: 1px dashed #dc3545; padding: 3px 6px; border-radius: 4px; background-color: #ffffff;" oninput="xuLyNhapBaoCaoBaoVe(this); moRongBcaoNoi(this);" onfocus="moRongBcaoNoi(this)" onblur="thuGonBcaoNoi(this)"></textarea>
+                <button class="btn btn-sm text-primary flex-shrink-0 ms-auto" onclick="document.getElementById('tepBcao').click()" style="padding: 2px 4px; background: transparent; border: none;" title="Đính kèm báo cáo"><i class="bi bi-paperclip" style="font-size: 18px;"></i></button>
                 <input type="file" id="tepBcao" multiple style="display:none;" onchange="xulyTaiBcao(this)">
               </div>
+              <div id="baoVeMinhChungHint" class="text-danger fw-bold mt-1" style="display: none; font-size: 11.5px;"><i class="bi bi-shield-lock-fill me-1"></i>Không thể xóa hoặc sửa trực tiếp minh chứng tiêu chí tại đây. Hãy đổi mức điểm trong bảng để cập nhật.</div>
               <div id="vungDinhkBcao" class="mt-1 d-flex gap-1 flex-wrap justify-content-end"></div>
             </div>
         </div>
@@ -2192,6 +2195,89 @@ function xoaMinhChungCuaDong(dongHienTai) {
     dongHienTai.removeAttribute('data-minh-chung-mode');
 }
 
+window._snapshotBcaoBaoVe = window._snapshotBcaoBaoVe || "";
+let _timerAnHintBcao = null;
+
+function moRongBcaoNoi(ptu) {
+    if (!ptu) return;
+    if (document.activeElement !== ptu) return;
+    let rong = (ptu.id === 'nhapBcao') ? 'calc(100% - 30px)' : '100%';
+    ptu.style.position = 'absolute';
+    ptu.style.top = '0';
+    ptu.style.left = '0';
+    ptu.style.width = rong;
+    ptu.style.zIndex = '1060';
+    ptu.style.backgroundColor = '#ffffff';
+    ptu.style.boxShadow = '0 6px 18px rgba(0,0,0,0.18)';
+    ptu.style.maxHeight = 'min(65vh, 420px)';
+    ptu.style.height = 'auto';
+    ptu.style.height = Math.max(45, ptu.scrollHeight + 4) + 'px';
+}
+
+function thuGonBcaoNoi(ptu) {
+    if (!ptu) return;
+    let rong = (ptu.id === 'nhapBcao') ? 'calc(100% - 30px)' : '100%';
+    ptu.style.position = '';
+    ptu.style.top = '';
+    ptu.style.left = '';
+    ptu.style.width = rong;
+    ptu.style.zIndex = '';
+    ptu.style.boxShadow = '';
+    ptu.style.maxHeight = '45px';
+    ptu.style.height = '45px';
+    ptu.scrollTop = 0;
+}
+
+function layCacDongMinhChungBaoVe(noiDung) {
+    if (!noiDung) return [];
+    let tapDongDaLuu = new Set();
+    document.querySelectorAll('#bangNviec tbody tr.dongNv').forEach(tr => {
+        let d = tr.getAttribute('data-minh-chung-dong');
+        if (d && d.trim() !== "") tapDongDaLuu.add(d.trim());
+    });
+
+    return noiDung.split(/\r?\n/).filter(dong => {
+        let m = dong.match(/^\s*(\d+)\.\s+(.*)$/);
+        if (!m) return false;
+        let phanSau = m[2].trim();
+        if (tapDongDaLuu.has(phanSau)) return true;
+        return /^.+\([^)]*điểm\):\s*.+$/.test(phanSau);
+    });
+}
+
+function hienCanhBaoBaoVeMinhChung() {
+    let hint = document.getElementById('baoVeMinhChungHint');
+    if (!hint) return;
+    hint.style.display = 'block';
+    if (_timerAnHintBcao) clearTimeout(_timerAnHintBcao);
+    _timerAnHintBcao = setTimeout(() => {
+        hint.style.display = 'none';
+    }, 3000);
+}
+
+function xuLyNhapBaoCaoBaoVe(ptu) {
+    if (!ptu) return;
+    let giaTriTruoc = window._snapshotBcaoBaoVe || "";
+    let giaTriMoi = ptu.value || "";
+
+    let dongBaoVeTruoc = layCacDongMinhChungBaoVe(giaTriTruoc);
+    if (dongBaoVeTruoc.length > 0) {
+        let cacDongMoi = giaTriMoi.split(/\r?\n/).map(d => d.trim());
+        let biXoaHoacSua = dongBaoVeTruoc.some(dong => !cacDongMoi.includes(dong.trim()));
+        if (biXoaHoacSua) {
+            const desc = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+            if (desc && desc.set) {
+                desc.set.call(ptu, giaTriTruoc);
+            } else {
+                ptu.value = giaTriTruoc;
+            }
+            hienCanhBaoBaoVeMinhChung();
+            return;
+        }
+    }
+    window._snapshotBcaoBaoVe = giaTriMoi;
+}
+
 function datGiaTriBaoCaoAnToan(oBcao, giaTriMoi) {
     const desc = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
     if (desc && desc.set) {
@@ -2199,7 +2285,10 @@ function datGiaTriBaoCaoAnToan(oBcao, giaTriMoi) {
     } else {
         oBcao.value = giaTriMoi;
     }
-    if (typeof gdang === 'function') gdang(oBcao);
+    window._snapshotBcaoBaoVe = giaTriMoi;
+    if (document.activeElement === oBcao) {
+        moRongBcaoNoi(oBcao);
+    }
 }
 
 function xacNhanMinhChung() {
@@ -2593,7 +2682,9 @@ window.tepdinhkBcao = window.tepdinhkBcao || [];
                         window.tepdinhkBcao.push({ tentep: match[1].trim(), duongd: match[2].trim() });
                         chuSach = chuSach.replace(match[0], "");
                     }
-                    setGoc.call(this, chuSach.trim());
+                    let chuSachTrim = chuSach.trim();
+                    window._snapshotBcaoBaoVe = chuSachTrim;
+                    setGoc.call(this, chuSachTrim);
                     if (typeof veDinhKemBcao === 'function') veDinhKemBcao();
                 },
                 get: function() {
