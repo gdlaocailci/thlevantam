@@ -479,9 +479,9 @@
               <textarea id="nhapYkien" class="form-control border-danger" placeholder="* Ý kiến tham mưu, đề xuất..." style="height: 45px; min-height: 45px; overflow-y: hidden; resize: none; font-size: 13px; border: 1px dashed #dc3545; padding: 3px; border-radius: 4px;" oninput="gdang(this)" onfocus="gdang(this)" onblur="cgon(this, '45px')"></textarea>
             </div>
             <div class="col-md-6">
-              <div style="position: relative;">
-                <textarea id="nhapBcao" class="form-control border-danger" placeholder="* Báo cáo tóm tắt quá trình thực hiện..." style="height: 45px; min-height: 45px; overflow-y: hidden; resize: none; font-size: 13px; border: 1px dashed #dc3545; padding: 3px 30px 3px 3px; border-radius: 4px;" oninput="gdang(this)" onfocus="gdang(this)" onblur="cgon(this, '45px')"></textarea>
-                <button class="btn btn-sm text-primary" onclick="document.getElementById('tepBcao').click()" style="position: absolute; top: 2px; right: 4px; padding: 0; background: transparent; border: none; z-index: 10;" title="Đính kèm báo cáo"><i class="bi bi-paperclip" style="font-size: 18px;"></i></button>
+              <div class="d-flex align-items-start gap-1">
+                <textarea id="nhapBcao" class="form-control border-danger" placeholder="* Báo cáo tóm tắt quá trình thực hiện..." style="flex: 1 1 auto; height: 45px; min-height: 45px; max-height: 45px; line-height: 1.45; overflow-y: auto; resize: none; font-size: 13px; border: 1px dashed #dc3545; padding: 3px 6px; border-radius: 4px;" oninput="gdang(this)" onfocus="gdang(this)" onblur="cgon(this, '45px')"></textarea>
+                <button class="btn btn-sm text-primary flex-shrink-0" onclick="document.getElementById('tepBcao').click()" style="padding: 2px 4px; background: transparent; border: none;" title="Đính kèm báo cáo"><i class="bi bi-paperclip" style="font-size: 18px;"></i></button>
                 <input type="file" id="tepBcao" multiple style="display:none;" onchange="xulyTaiBcao(this)">
               </div>
               <div id="vungDinhkBcao" class="mt-1 d-flex gap-1 flex-wrap justify-content-end"></div>
@@ -2163,16 +2163,24 @@ function xacNhanMinhChung() {
         return;
     }
 
+    let tenTieuChi = _dongDangNhapMinhChung.querySelector('.nhapNdung') ? _dongDangNhapMinhChung.querySelector('.nhapNdung').value.replace(/[\r\n]+/g, ' ').trim() : "";
+    let diemDat = _dongDangNhapMinhChung.querySelector('.chonKq') ? _dongDangNhapMinhChung.querySelector('.chonKq').value.trim() : "";
+    let phanTieuDe = tenTieuChi !== ""
+        ? `${tenTieuChi}${diemDat !== "" ? ` (${diemDat} điểm)` : ""}: `
+        : (diemDat !== "" ? `(${diemDat} điểm): ` : "");
+    let dongDinhDang = `${phanTieuDe}${noiDungMc}`;
+
     let mcCu = _dongDangNhapMinhChung.getAttribute('data-minh-chung') || "";
+    let mcDongCu = _dongDangNhapMinhChung.getAttribute('data-minh-chung-dong') || "";
     let noiDungHienTai = oBcao.value || "";
     let cacDong = noiDungHienTai === "" ? [] : noiDungHienTai.split(/\r?\n/);
 
     let daCapNhatTaiCho = false;
-    if (mcCu !== "") {
+    if (mcDongCu !== "" || mcCu !== "") {
         for (let i = 0; i < cacDong.length; i++) {
             let m = cacDong[i].match(/^\s*(\d+)\.\s+(.*)$/);
-            if (m && m[2].trim() === mcCu.trim()) {
-                cacDong[i] = `${m[1]}. ${noiDungMc}`;
+            if (m && ((mcDongCu !== "" && m[2].trim() === mcDongCu.trim()) || (mcCu !== "" && m[2].trim() === mcCu.trim()))) {
+                cacDong[i] = `${m[1]}. ${dongDinhDang}`;
                 daCapNhatTaiCho = true;
                 break;
             }
@@ -2192,10 +2200,11 @@ function xacNhanMinhChung() {
         while (cacDong.length > 0 && cacDong[cacDong.length - 1].trim() === "") {
             cacDong.pop();
         }
-        cacDong.push(`${sttMoi}. ${noiDungMc}`);
+        cacDong.push(`${sttMoi}. ${dongDinhDang}`);
     }
 
     _dongDangNhapMinhChung.setAttribute('data-minh-chung', noiDungMc);
+    _dongDangNhapMinhChung.setAttribute('data-minh-chung-dong', dongDinhDang);
     _dongDangNhapMinhChung.setAttribute('data-minh-chung-mode', _cheDoModalMinhChung);
     datGiaTriBaoCaoAnToan(oBcao, cacDong.join('\n'));
 
