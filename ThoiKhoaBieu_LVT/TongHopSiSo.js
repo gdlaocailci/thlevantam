@@ -19,6 +19,8 @@ let trangThaiTongHopSiSo = {
 
 let cacheNguonTongHopSiSo = null;
 let dangTaiNguonTongHopSiSo = false;
+let cacheHoTenGiaoVienTHSS = {};
+let cacheGvcnLopTHSS = {};
 
 function layNamHocMacDinhTHSS() {
     if (typeof namHocHeThongSDB !== 'undefined' && namHocHeThongSDB) return String(namHocHeThongSDB).trim();
@@ -73,10 +75,12 @@ window.khoiTaoTongHopSiSo = async function(containerId = 'vungHienThiTongHopSiSo
 
     if (!buocTaiLai) {
         if (cacheNguonTongHopSiSo && Array.isArray(cacheNguonTongHopSiSo.tkbRows) && cacheNguonTongHopSiSo.tkbRows.length > 0) {
+            await napBoSungDanhMucGvcnTHSS(false);
             veGiaoDienTongHopSiSo(containerId);
             return;
         }
         if (typeof window.mapTkbToanTap !== 'undefined' && window.mapTkbToanTap && Object.keys(window.mapTkbToanTap).length > 0) {
+            await napBoSungDanhMucGvcnTHSS(false);
             veGiaoDienTongHopSiSo(containerId);
             return;
         }
@@ -120,8 +124,21 @@ window.khoiTaoTongHopSiSo = async function(containerId = 'vungHienThiTongHopSiSo
                     window.thongSoHocVu.SI_SO_THEO_LOP = { ...(window.thongSoHocVu.SI_SO_THEO_LOP || {}), ...duLieuSever.SI_SO_THEO_LOP };
                 }
             }
+            if (duLieuSever.GVCN_THEO_LOP && typeof duLieuSever.GVCN_THEO_LOP === 'object') {
+                Object.assign(cacheGvcnLopTHSS, duLieuSever.GVCN_THEO_LOP);
+                if (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu) {
+                    window.thongSoHocVu.GVCN_THEO_LOP = { ...(window.thongSoHocVu.GVCN_THEO_LOP || {}), ...duLieuSever.GVCN_THEO_LOP };
+                }
+            }
+            if (duLieuSever.TU_DIEN_HO_TEN_GV && typeof duLieuSever.TU_DIEN_HO_TEN_GV === 'object') {
+                Object.assign(cacheHoTenGiaoVienTHSS, duLieuSever.TU_DIEN_HO_TEN_GV);
+                if (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu) {
+                    window.thongSoHocVu.TU_DIEN_HO_TEN_GV = { ...(window.thongSoHocVu.TU_DIEN_HO_TEN_GV || {}), ...duLieuSever.TU_DIEN_HO_TEN_GV };
+                }
+            }
             cacheNguonTongHopSiSo = trichXuatNguonTuServerTHSS(duLieuSever);
         }
+        await napBoSungDanhMucGvcnTHSS(buocTaiLai);
     } catch (loi) {
         container.innerHTML = `<div class="text-center py-10 text-red-600 font-bold">
             ⚠️ Lỗi tải dữ liệu sĩ số: ${loi.message}
@@ -175,7 +192,9 @@ function trichXuatNguonTuServerTHSS(duLieuSever) {
         namHocMacDinh: nhMacDinh,
         tkbRows: Object.values(mapSlot),
         diemDanhMap: duLieuSever.DIEM_DANH_SDB || {},
-        siSoMap: duLieuSever.SI_SO_THEO_LOP || {}
+        siSoMap: duLieuSever.SI_SO_THEO_LOP || {},
+        gvcnMap: duLieuSever.GVCN_THEO_LOP || {},
+        hoTenGvMap: duLieuSever.TU_DIEN_HO_TEN_GV || {}
     };
 }
 
@@ -326,6 +345,142 @@ function laySiSoChuanTongHopSS(maLop) {
     return 0;
 }
 
+function chuanHoaKhoaGvTHSS(val) {
+    if (!val) return '';
+    if (typeof window.chuanHoaDinhDanhGiaoVien === 'function') {
+        return window.chuanHoaDinhDanhGiaoVien(val);
+    }
+    let s = String(val).trim().toLowerCase().normalize('NFC');
+    const tuDienDau = {
+        'òa': 'oà', 'óa': 'oá', 'ỏa': 'oả', 'õa': 'oã', 'ọa': 'oạ',
+        'òe': 'oè', 'óe': 'oé', 'ỏe': 'oẻ', 'õe': 'oẽ', 'ọe': 'oẹ',
+        'ùy': 'uỳ', 'úy': 'uý', 'ủy': 'uỷ', 'ũy': 'uỹ', 'ụy': 'uỵ'
+    };
+    for (let [kieuCu, kieuMoi] of Object.entries(tuDienDau)) {
+        s = s.replace(new RegExp(kieuCu, 'g'), kieuMoi);
+    }
+    return s;
+}
+
+async function napBoSungDanhMucGvcnTHSS(buocTaiLai = false) {
+    if (typeof CAU_HINH_FRONTEND === 'undefined' || !CAU_HINH_FRONTEND.URL_API_MAY_CHU) return;
+    let nguonHV = (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu)
+        ? window.thongSoHocVu
+        : ((typeof thongSoHocVu !== 'undefined' && thongSoHocVu) ? thongSoHocVu : null);
+
+    let daCoGvcn = !buocTaiLai && (
+        Object.keys(cacheGvcnLopTHSS).length > 0
+        || (cacheNguonTongHopSiSo && cacheNguonTongHopSiSo.gvcnMap && Object.keys(cacheNguonTongHopSiSo.gvcnMap).length > 0)
+        || (nguonHV && nguonHV.GVCN_THEO_LOP && Object.keys(nguonHV.GVCN_THEO_LOP).length > 0)
+    );
+
+    let daCoTenGV = !buocTaiLai && (
+        Object.keys(cacheHoTenGiaoVienTHSS).length > 0
+        || (cacheNguonTongHopSiSo && cacheNguonTongHopSiSo.hoTenGvMap && Object.keys(cacheNguonTongHopSiSo.hoTenGvMap).length > 0)
+        || (nguonHV && nguonHV.TU_DIEN_HO_TEN_GV && Object.keys(nguonHV.TU_DIEN_HO_TEN_GV).length > 0)
+    );
+
+    let tasks = [];
+    if (!daCoTenGV) {
+        let urlGV = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDanhMucGV`;
+        tasks.push(
+            (typeof fetchVoiCoCheThuLai === 'function' ? fetchVoiCoCheThuLai(urlGV, {}, 2, 30000) : fetch(urlGV))
+                .then(r => r.json())
+                .then(rowsGV => {
+                    if (Array.isArray(rowsGV) && rowsGV.length > 1) {
+                        cacheHoTenGiaoVienTHSS = {};
+                        for (let i = 1; i < rowsGV.length; i++) {
+                            let maGV = String(rowsGV[i][0] || '').trim();
+                            let hoTen = String(rowsGV[i][1] || '').trim();
+                            if (maGV && hoTen) {
+                                cacheHoTenGiaoVienTHSS[chuanHoaKhoaGvTHSS(maGV)] = hoTen;
+                                cacheHoTenGiaoVienTHSS[maGV.toLowerCase().normalize('NFC')] = hoTen;
+                            }
+                        }
+                        if (nguonHV) {
+                            nguonHV.TU_DIEN_HO_TEN_GV = { ...(nguonHV.TU_DIEN_HO_TEN_GV || {}), ...cacheHoTenGiaoVienTHSS };
+                        }
+                    }
+                }).catch(() => {})
+        );
+    }
+    if (!daCoGvcn) {
+        let urlLop = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDanhMucLop`;
+        tasks.push(
+            (typeof fetchVoiCoCheThuLai === 'function' ? fetchVoiCoCheThuLai(urlLop, {}, 2, 30000) : fetch(urlLop))
+                .then(r => r.json())
+                .then(rowsLop => {
+                    if (Array.isArray(rowsLop) && rowsLop.length > 1) {
+                        cacheGvcnLopTHSS = {};
+                        for (let i = 1; i < rowsLop.length; i++) {
+                            let mLop = String(rowsLop[i][0] || '').trim().toUpperCase();
+                            let gvcn = String(rowsLop[i][2] || '').trim();
+                            if (mLop) cacheGvcnLopTHSS[mLop] = gvcn;
+                        }
+                        if (nguonHV) {
+                            nguonHV.GVCN_THEO_LOP = { ...(nguonHV.GVCN_THEO_LOP || {}), ...cacheGvcnLopTHSS };
+                        }
+                        if (cacheNguonTongHopSiSo) {
+                            cacheNguonTongHopSiSo.gvcnMap = { ...(cacheNguonTongHopSiSo.gvcnMap || {}), ...cacheGvcnLopTHSS };
+                        }
+                    }
+                }).catch(() => {})
+        );
+    }
+    if (tasks.length > 0) await Promise.all(tasks);
+}
+
+function layHoTenGvcnTongHopSS(maLop) {
+    let lopUp = String(maLop || '').trim().toUpperCase();
+    if (!lopUp) return '';
+
+    let maGvcn = '';
+    let nguonHV = (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu)
+        ? window.thongSoHocVu
+        : ((typeof thongSoHocVu !== 'undefined' && thongSoHocVu) ? thongSoHocVu : null);
+    if (nguonHV && nguonHV.GVCN_THEO_LOP) {
+        if (nguonHV.GVCN_THEO_LOP[lopUp] !== undefined) maGvcn = String(nguonHV.GVCN_THEO_LOP[lopUp] || '').trim();
+        else {
+            let kMatch = Object.keys(nguonHV.GVCN_THEO_LOP).find(k => String(k).trim().toUpperCase() === lopUp);
+            if (kMatch) maGvcn = String(nguonHV.GVCN_THEO_LOP[kMatch] || '').trim();
+        }
+    }
+    if (!maGvcn && cacheGvcnLopTHSS[lopUp]) {
+        maGvcn = String(cacheGvcnLopTHSS[lopUp]).trim();
+    }
+    if (!maGvcn && cacheNguonTongHopSiSo && cacheNguonTongHopSiSo.gvcnMap) {
+        if (cacheNguonTongHopSiSo.gvcnMap[lopUp]) maGvcn = String(cacheNguonTongHopSiSo.gvcnMap[lopUp]).trim();
+        else {
+            let kMatch = Object.keys(cacheNguonTongHopSiSo.gvcnMap).find(k => String(k).trim().toUpperCase() === lopUp);
+            if (kMatch) maGvcn = String(cacheNguonTongHopSiSo.gvcnMap[kMatch] || '').trim();
+        }
+    }
+    if (!maGvcn && typeof tuDienGvcnTheoLopToanCuc !== 'undefined' && tuDienGvcnTheoLopToanCuc && tuDienGvcnTheoLopToanCuc[lopUp]) {
+        maGvcn = String(tuDienGvcnTheoLopToanCuc[lopUp]).trim();
+    }
+    if (!maGvcn) return '';
+
+    let khoaChuan = chuanHoaKhoaGvTHSS(maGvcn);
+    let khoaNfc = maGvcn.toLowerCase().normalize('NFC');
+
+    if (cacheHoTenGiaoVienTHSS[khoaChuan]) return cacheHoTenGiaoVienTHSS[khoaChuan];
+    if (cacheHoTenGiaoVienTHSS[khoaNfc]) return cacheHoTenGiaoVienTHSS[khoaNfc];
+
+    if (cacheNguonTongHopSiSo && cacheNguonTongHopSiSo.hoTenGvMap) {
+        if (cacheNguonTongHopSiSo.hoTenGvMap[khoaChuan]) return cacheNguonTongHopSiSo.hoTenGvMap[khoaChuan];
+        if (cacheNguonTongHopSiSo.hoTenGvMap[khoaNfc]) return cacheNguonTongHopSiSo.hoTenGvMap[khoaNfc];
+    }
+    if (nguonHV && nguonHV.TU_DIEN_HO_TEN_GV) {
+        if (nguonHV.TU_DIEN_HO_TEN_GV[khoaChuan]) return nguonHV.TU_DIEN_HO_TEN_GV[khoaChuan];
+        if (nguonHV.TU_DIEN_HO_TEN_GV[khoaNfc]) return nguonHV.TU_DIEN_HO_TEN_GV[khoaNfc];
+    }
+    if (typeof window.layHoTenDayDuGiaoVienSDB === 'function') {
+        let hoTenSDB = window.layHoTenDayDuGiaoVienSDB(maGvcn);
+        if (hoTenSDB && hoTenSDB.toLowerCase() !== maGvcn.toLowerCase()) return hoTenSDB;
+    }
+    return maGvcn;
+}
+
 // 3. Thuật toán lõi: Hỗ trợ Theo Tuần & Từ ngày - Đến ngày + tính % mọi cấp độ
 window.tinhToanTongHopSiSoTuan = function(op) {
     let { nhMacDinh, rows, ddMap } = layNguonHopNhatTHSS();
@@ -460,6 +615,7 @@ window.tinhToanTongHopSiSoTuan = function(op) {
 
     dsLop.forEach(maLop => {
         let siSoChuan = laySiSoChuanTongHopSS(maLop);
+        let gvcn = layHoTenGvcnTongHopSS(maLop);
         let ngayData = {};
         let tongPLop = 0;
         let tongKPLop = 0;
@@ -654,6 +810,7 @@ window.tinhToanTongHopSiSoTuan = function(op) {
         ketQuaTheoLop.push({
             maLop: maLop,
             siSoChuan: siSoChuan,
+            gvcn: gvcn,
             ngayData: ngayData,
             tongP: tongPLop,
             tongKP: tongKPLop,
@@ -878,7 +1035,7 @@ window.veGiaoDienTongHopSiSo = function(containerId = 'vungHienThiTongHopSiSo') 
                 <thead class="bg-slate-50 text-slate-800 font-bold text-center">
                     <tr>
                         <th class="border border-slate-300 p-2 w-10">STT</th>
-                        <th class="border border-slate-300 p-2 w-24">LỚP (SĨ SỐ)</th>
+                        <th class="border border-slate-300 p-2 min-w-[140px]">LỚP (SĨ SỐ)</th>
                         ${kq.cheDoLoc === 'TUAN' ? kq.dsThu.map(thu => {
                             let ngay = kq.mapNgayTheoThu[thu] || '';
                             return `<th class="border border-slate-300 p-2 min-w-[130px]">${thu}${ngay ? `<br><span class="font-normal text-[11px] text-slate-500">${ngay}</span>` : ''}</th>`;
@@ -890,7 +1047,7 @@ window.veGiaoDienTongHopSiSo = function(containerId = 'vungHienThiTongHopSiSo') 
                     ${dsLopHienThi.length === 0 ? `<tr><td colspan="${kq.cheDoLoc === 'TUAN' ? kq.dsThu.length + 3 : 5}" class="text-center py-8 text-slate-500 italic font-semibold">Không có dữ liệu phù hợp với bộ lọc.</td></tr>` : dsLopHienThi.map((row, idx) => `
                         <tr class="hover:bg-slate-50">
                             <td class="border border-slate-300 p-2 text-center font-bold text-slate-500">${idx + 1}</td>
-                            <td class="border border-slate-300 p-2 text-center font-extrabold text-blue-900">${row.maLop}<br><span class="text-[11px] font-semibold text-slate-500">(${row.siSoChuan || '--'} HS)</span></td>
+                            <td class="border border-slate-300 p-2 text-center font-extrabold text-blue-900">${row.maLop}<br><span class="text-[11px] font-semibold text-slate-500">(${row.siSoChuan || '--'} HS)</span>${row.gvcn ? `<br><span class="text-[11px] font-semibold text-slate-700">${row.gvcn}</span>` : ''}</td>
                             ${kq.cheDoLoc === 'TUAN' ? kq.dsThu.map(thu => {
                                 let cell = row.ngayData[thu];
                                 if (!cell || !cell.daDiemDanh) return `<td class="border border-slate-300 p-2 text-center text-slate-400">--</td>`;
@@ -1028,7 +1185,8 @@ window.xuatExcelTongHopSiSo = async function() {
         });
 
         kq.ketQuaTheoLop.forEach((row, idx) => {
-            let arr = [idx + 1, row.maLop, row.siSoChuan || ''];
+            let lopExcel = row.gvcn ? `${row.maLop}\n(${row.gvcn})` : row.maLop;
+            let arr = [idx + 1, lopExcel, row.siSoChuan || ''];
             if (kq.cheDoLoc === 'TUAN') {
                 kq.dsThu.forEach(thu => {
                     let cell = row.ngayData[thu];
@@ -1072,7 +1230,7 @@ window.xuatExcelTongHopSiSo = async function() {
         });
 
         ws1.getColumn(1).width = 6;
-        ws1.getColumn(2).width = 14;
+        ws1.getColumn(2).width = 24;
         ws1.getColumn(3).width = 12;
         if (kq.cheDoLoc === 'TUAN') {
             for (let i = 4; i <= 3 + kq.dsThu.length; i++) ws1.getColumn(i).width = 22;
