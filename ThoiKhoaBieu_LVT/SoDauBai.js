@@ -4109,6 +4109,8 @@ function napDropdownSoDauBai() {
         elementTuan.innerHTML = chonTuanHtml;
         if (giaTriTuanCu && mangTuan.includes(giaTriTuanCu)) {
             elementTuan.value = giaTriTuanCu;
+        } else if (mangTuan.length > 0) {
+            elementTuan.value = mangTuan[0];
         }
     }
 
