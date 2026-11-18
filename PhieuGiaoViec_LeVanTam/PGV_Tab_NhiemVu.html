@@ -1745,11 +1745,13 @@ function xuLyBlurNhapDiem(input) {
     tinhtTdong();
 
     let dongHienTai = input.closest('tr');
-    if (input.value !== "" && input.value !== valTruoc) {
+    if (input.value !== valTruoc) {
         if (laMucDiemToiDa(dongHienTai, input.value)) {
             moModalMinhChung(dongHienTai, input.value, valTruoc, 'max');
         } else if (laMucDiemNhoNhat(dongHienTai, input.value)) {
             moModalMinhChung(dongHienTai, input.value, valTruoc, 'min');
+        } else {
+            xoaMinhChungCuaDong(dongHienTai);
         }
     }
 }
@@ -1966,6 +1968,8 @@ function chonGiaTriDiem(ptu, giaTriDiem) {
         moModalMinhChung(dongHienTai, giaTriDiem, giaTriTruocDo, 'max');
     } else if (laMucDiemNhoNhat(dongHienTai, giaTriDiem)) {
         moModalMinhChung(dongHienTai, giaTriDiem, giaTriTruocDo, 'min');
+    } else {
+        xoaMinhChungCuaDong(dongHienTai);
     }
 }
 
@@ -2134,6 +2138,58 @@ function dongModalMinhChung(daXacNhan = false) {
 
     _dongDangNhapMinhChung = null;
     _giaTriDiemTruocKhiMo = "";
+}
+
+function xoaMinhChungCuaDong(dongHienTai) {
+    if (!dongHienTai) return;
+    let oBcao = document.getElementById('nhapBcao');
+    if (!oBcao || oBcao.disabled || oBcao.readOnly) return;
+
+    let mcCu = dongHienTai.getAttribute('data-minh-chung') || "";
+    let mcDongCu = dongHienTai.getAttribute('data-minh-chung-dong') || "";
+    let tenTieuChi = dongHienTai.querySelector('.nhapNdung') ? dongHienTai.querySelector('.nhapNdung').value.replace(/[\r\n]+/g, ' ').trim() : "";
+
+    let noiDungHienTai = oBcao.value || "";
+    if (noiDungHienTai !== "") {
+        let cacDong = noiDungHienTai.split(/\r?\n/);
+        let daXoa = false;
+
+        let cacDongSauKhiXoa = cacDong.filter(dong => {
+            let m = dong.match(/^\s*(\d+)\.\s+(.*)$/);
+            if (m) {
+                let phanNoiDung = m[2].trim();
+                if (mcDongCu !== "" && phanNoiDung === mcDongCu.trim()) {
+                    daXoa = true;
+                    return false;
+                }
+                if (mcCu !== "" && phanNoiDung === mcCu.trim()) {
+                    daXoa = true;
+                    return false;
+                }
+                if (tenTieuChi !== "" && phanNoiDung.startsWith(tenTieuChi + " (") && phanNoiDung.includes(" điểm):")) {
+                    daXoa = true;
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        if (daXoa) {
+            let sttMoi = 1;
+            let cacDongDanhSoLai = cacDongSauKhiXoa.map(dong => {
+                let m = dong.match(/^\s*(\d+)\.\s+(.*)$/);
+                if (m) {
+                    return `${sttMoi++}. ${m[2]}`;
+                }
+                return dong;
+            });
+            datGiaTriBaoCaoAnToan(oBcao, cacDongDanhSoLai.join('\n'));
+        }
+    }
+
+    dongHienTai.removeAttribute('data-minh-chung');
+    dongHienTai.removeAttribute('data-minh-chung-dong');
+    dongHienTai.removeAttribute('data-minh-chung-mode');
 }
 
 function datGiaTriBaoCaoAnToan(oBcao, giaTriMoi) {
