@@ -105,18 +105,20 @@ window.khoiTaoTongHopSiSo = async function(containerId = 'vungHienThiTongHopSiSo
             if (typeof CAU_HINH_FRONTEND === 'undefined' || !CAU_HINH_FRONTEND.URL_API_MAY_CHU) {
                 throw new Error("Không tìm thấy cấu hình URL máy chủ (CAU_HINH_FRONTEND).");
             }
-            let dinhDanh = (typeof window.dinhDanhGiaoVienToanCuc !== 'undefined' && window.dinhDanhGiaoVienToanCuc)
-                ? String(window.dinhDanhGiaoVienToanCuc).trim()
-                : '';
-            let url = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuSoDauBai&emailTruyCap=${encodeURIComponent(dinhDanh)}&taiToanBo=true`;
+            let url = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layDuLieuTongHopSiSo`;
             const phanHoi = await (typeof fetchVoiCoCheThuLai === 'function' ? fetchVoiCoCheThuLai(url, {}, 3, 60000) : fetch(url));
             const duLieuSever = await phanHoi.json();
 
             if (!duLieuSever || duLieuSever.trangThai === 'loi_he_thong') {
                 throw new Error((duLieuSever && duLieuSever.thongBao) ? duLieuSever.thongBao : "Máy chủ trả về lỗi.");
             }
-            if (typeof khoiTaoDuLieuSoDauBai === 'function') {
-                try { khoiTaoDuLieuSoDauBai(duLieuSever); } catch (eInit) { console.warn(eInit); }
+            if (duLieuSever.DIEM_DANH_SDB && typeof duLieuSever.DIEM_DANH_SDB === 'object') {
+                window.duLieuDiemDanhSDB = { ...duLieuSever.DIEM_DANH_SDB };
+            }
+            if (duLieuSever.SI_SO_THEO_LOP && typeof duLieuSever.SI_SO_THEO_LOP === 'object') {
+                if (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu) {
+                    window.thongSoHocVu.SI_SO_THEO_LOP = { ...(window.thongSoHocVu.SI_SO_THEO_LOP || {}), ...duLieuSever.SI_SO_THEO_LOP };
+                }
             }
             cacheNguonTongHopSiSo = trichXuatNguonTuServerTHSS(duLieuSever);
         }
