@@ -888,10 +888,7 @@ window.veGiaoDienTongHopSiSo = function(containerId = 'vungHienThiTongHopSiSo') 
     let dsTuanInfo = layDanhSachTuanVaNgayTheoNamHocTHSS(namHocChon);
     let dsTuanSo = dsTuanInfo.map(x => x.tuan);
     if (!trangThaiTongHopSiSo.tuanChon || !dsTuanSo.includes(Number(trangThaiTongHopSiSo.tuanChon))) {
-        let tuanHeThong = (typeof window.thongSoHocVu !== 'undefined' && window.thongSoHocVu && window.thongSoHocVu.TUAN_HIEN_TAI)
-            ? parseInt(window.thongSoHocVu.TUAN_HIEN_TAI, 10)
-            : (dsTuanSo[0] || 0);
-        trangThaiTongHopSiSo.tuanChon = dsTuanSo.includes(tuanHeThong) ? tuanHeThong : (dsTuanSo[0] || 0);
+        trangThaiTongHopSiSo.tuanChon = dsTuanSo[0] || 0;
     }
 
     let tuanSo = parseInt(trangThaiTongHopSiSo.tuanChon, 10) || 0;
