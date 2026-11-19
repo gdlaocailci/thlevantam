@@ -314,9 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => {
         let nhomNut = document.getElementById('nhomNutCongCuPPCT');
         if (nhomNut) {
-            let coQuyen = (typeof quyenSuaChua !== 'undefined' && quyenSuaChua) || 
-                          (typeof quyenChiTiet !== 'undefined' && quyenChiTiet.menu && quyenChiTiet.menu.includes('menuPhanPhoiChuongTrinh'));
-            nhomNut.style.display = coQuyen ? 'flex' : 'none';
+            nhomNut.style.display = 'flex';
         }
         capNhatHienThiNutKhoaSuaPPCT();
     }, 1000);
@@ -363,7 +361,7 @@ function taoKhungGiaoDienPPCT() {
                     <h2 class="text-xl font-extrabold text-blue-900 uppercase tracking-wide">Quản lý Phân Phối Chương Trình</h2>
                 </div>
                 
-                <div id="nhomNutCongCuPPCT" class="flex flex-wrap items-center gap-2" style="display: none;">
+                <div id="nhomNutCongCuPPCT" class="flex flex-wrap items-center gap-2">
                     <input type="file" id="fileNhapPPCT" accept=".xlsx, .xls" class="hidden" onchange="xuLyNhapExcelPPCT(event)">
                     <button id="nutNhapExcelPPCT" onclick="document.getElementById('fileNhapPPCT').click()" style="display: none;" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded shadow transition duration-200 flex items-center gap-1.5 text-sm">
                         Nhập Excel
