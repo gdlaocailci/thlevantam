@@ -923,12 +923,16 @@ function capNhatHienThiNutKhoaSuaPPCT() {
     const lop = elLop ? elLop.value.trim() : '';
     const tuan = elTuan ? elTuan.value.trim() : '1';
 
+    const daDangNhap = laQuanTri || layTapDinhDanhNguoiDangNhapPPCT().size > 0;
+    const coDongDuLieu = document.querySelectorAll('#vungDuLieuLichPPCT [data-loai="tietPpc"]').length > 0;
+
     let coQuyenSua = false;
-    if (cheDoXemPPCT === 'gvbm') {
-        const coDongDuLieu = document.querySelectorAll('#vungDuLieuLichPPCT [data-loai="tietPpc"]').length > 0;
-        coQuyenSua = coDongDuLieu && (laQuanTri || Object.keys(duLieuGvbmTheoLop).length > 0);
-    } else {
-        coQuyenSua = laQuanTri || (lop !== '' && kiemTraQuyenDayLopPPCT(lop, tuan));
+    if (daDangNhap && coDongDuLieu) {
+        if (cheDoXemPPCT === 'gvbm') {
+            coQuyenSua = laQuanTri || Object.keys(duLieuGvbmTheoLop).length > 0;
+        } else {
+            coQuyenSua = laQuanTri || (lop !== '' && kiemTraQuyenDayLopPPCT(lop, tuan));
+        }
     }
     nutSua.style.display = coQuyenSua ? 'flex' : 'none';
 
@@ -948,9 +952,14 @@ function chuyenDoiTrangThaiSuaPPCT() {
     const elTuan = document.getElementById('locTuanUI');
     const lop = elLop ? elLop.value.trim() : '';
     const tuan = elTuan ? elTuan.value.trim() : '1';
-    const hopLe = (cheDoXemPPCT === 'gvbm')
-        ? (laAdminHoacBghPPCT() || Object.keys(duLieuGvbmTheoLop).length > 0)
-        : (laAdminHoacBghPPCT() || kiemTraQuyenDayLopPPCT(lop, tuan));
+    const laQuanTri = laAdminHoacBghPPCT();
+    const daDangNhap = laQuanTri || layTapDinhDanhNguoiDangNhapPPCT().size > 0;
+    const coDongDuLieu = document.querySelectorAll('#vungDuLieuLichPPCT [data-loai="tietPpc"]').length > 0;
+    const hopLe = daDangNhap && coDongDuLieu && (
+        (cheDoXemPPCT === 'gvbm')
+            ? (laQuanTri || Object.keys(duLieuGvbmTheoLop).length > 0)
+            : (laQuanTri || kiemTraQuyenDayLopPPCT(lop, tuan))
+    );
     if (!hopLe) {
         capNhatHienThiNutKhoaSuaPPCT();
         return;
