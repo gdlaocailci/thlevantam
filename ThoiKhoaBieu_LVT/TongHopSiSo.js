@@ -949,6 +949,7 @@ window.veGiaoDienTongHopSiSo = function(containerId = 'vungHienThiTongHopSiSo') 
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="khoiTaoTongHopSiSo('${containerId}', true)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 text-xs rounded border border-slate-300 cursor-pointer">🔄 Tải lại</button>
+                    <button type="button" id="btnCopyNhacNhoZaloTHSS" onclick="copyNhacNhoChuyenCanZaloTHSS()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-1.5 text-xs rounded shadow cursor-pointer" title="Copy danh sách lớp và GVCN chưa báo chuyên cần để gửi Zalo">📋 Copy nhắc Zalo</button>
                     <button type="button" onclick="xuatExcelTongHopSiSo()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-1.5 text-xs rounded shadow cursor-pointer">📥 Xuất Excel</button>
                 </div>
             </div>
@@ -1278,5 +1279,120 @@ window.xuatExcelTongHopSiSo = async function() {
         link.click();
     } catch (loi) {
         alert("Lỗi khi xuất Excel tổng hợp sĩ số: " + loi.message);
+    }
+};
+
+// 6. Copy danh sách lớp & GVCN chưa báo chuyên cần gửi Zalo
+window.copyNhacNhoChuyenCanZaloTHSS = async function() {
+    let kq = trangThaiTongHopSiSo.ketQuaHienTai;
+    if (!kq || !Array.isArray(kq.ketQuaTheoLop) || kq.ketQuaTheoLop.length === 0) {
+        return alert("⚠️ Chưa có dữ liệu tổng hợp để tạo danh sách nhắc nhở.");
+    }
+
+    let homNay = new Date();
+    let mocHomNay = new Date(homNay.getFullYear(), homNay.getMonth(), homNay.getDate());
+    let dsChuaBao = [];
+
+    if (kq.cheDoLoc === 'TUAN') {
+        let dsThuXet = (kq.dsThu || []).filter(thu => {
+            let ngayStr = (kq.mapNgayTheoThu && kq.mapNgayTheoThu[thu]) ? kq.mapNgayTheoThu[thu] : '';
+            if (!ngayStr) return true;
+            let dt = parseNgayVNToDateTHSS(ngayStr);
+            if (!dt) return true;
+            return dt.getTime() <= mocHomNay.getTime();
+        });
+
+        kq.ketQuaTheoLop.forEach(lop => {
+            let ngayThieu = [];
+            dsThuXet.forEach(thu => {
+                let cell = lop.ngayData ? lop.ngayData[thu] : null;
+                if (!cell || !cell.daDiemDanh) {
+                    let ngayStr = (kq.mapNgayTheoThu && kq.mapNgayTheoThu[thu]) ? kq.mapNgayTheoThu[thu] : '';
+                    ngayThieu.push(ngayStr ? `${thu} (${ngayStr})` : thu);
+                }
+            });
+            if (ngayThieu.length > 0) {
+                let tenGv = lop.gvcn || layHoTenGvcnTongHopSS(lop.maLop) || 'Chưa gán GVCN';
+                dsChuaBao.push({ maLop: lop.maLop, gvcn: tenGv, ngayThieu: ngayThieu });
+            }
+        });
+    } else {
+        let dTu = parseNgayVNToDateTHSS(kq.tuNgay);
+        let dDen = parseNgayVNToDateTHSS(kq.denNgay);
+        let dsNgayKhoang = [];
+        if (dTu && dDen) {
+            let cur = new Date(dTu.getFullYear(), dTu.getMonth(), dTu.getDate());
+            let end = new Date(Math.min(dDen.getTime(), mocHomNay.getTime()));
+            const tenThuArr = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+            while (cur.getTime() <= end.getTime()) {
+                let dayIdx = cur.getDay();
+                if (dayIdx >= 1 && dayIdx <= 5) {
+                    dsNgayKhoang.push({ thu: tenThuArr[dayIdx], ngay: formatDateToVNTHSS(cur) });
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+        }
+        let nguon = layNguonHopNhatTHSS();
+        let mapNgayTuan = xayDungBanDoNgayToanTuanTHSS(nguon.rows);
+        let tapCoDiemDanh = new Set();
+        Object.keys(nguon.ddMap || {}).forEach(kDD => {
+            let parts = kDD.split('_');
+            if (parts.length < 3) return;
+            let tDD = parseInt(parts[0], 10) || 0;
+            let lDD = String(parts[1] || '').trim().toUpperCase();
+            let thuDD = parts[2];
+            let ng = mapNgayTuan[`${tDD}_${thuDD}`] || '';
+            if (lDD && ng) tapCoDiemDanh.add(`${lDD}_${ng}`);
+        });
+        kq.ketQuaTheoLop.forEach(lop => {
+            let ngayThieu = dsNgayKhoang.filter(d => !tapCoDiemDanh.has(`${lop.maLop}_${d.ngay}`)).map(d => `${d.thu} (${d.ngay})`);
+            if (ngayThieu.length > 0) {
+                let tenGv = lop.gvcn || layHoTenGvcnTongHopSS(lop.maLop) || 'Chưa gán GVCN';
+                dsChuaBao.push({ maLop: lop.maLop, gvcn: tenGv, ngayThieu: ngayThieu });
+            }
+        });
+    }
+
+    if (dsChuaBao.length === 0) {
+        return alert("🎉 Tất cả các lớp trong phạm vi đang xem đã báo cáo chuyên cần đầy đủ!");
+    }
+
+    let tieuDe = kq.cheDoLoc === 'TUAN'
+        ? `📢 NHẮC NHỞ BÁO CÁO CHUYÊN CẦN — TUẦN ${kq.tuanSo} (${kq.namHoc})`
+        : `📢 NHẮC NHỞ BÁO CÁO CHUYÊN CẦN (${formatDateToVNTHSS(parseNgayVNToDateTHSS(kq.tuNgay))} - ${formatDateToVNTHSS(parseNgayVNToDateTHSS(kq.denNgay))})`;
+
+    let dongNoiDung = dsChuaBao.map((item, idx) =>
+        `${idx + 1}. Lớp ${item.maLop} (GVCN: ${item.gvcn}): ${item.ngayThieu.join(', ')}`
+    );
+    let vanBanZalo = `${tieuDe}\nCác lớp chưa cập nhật chuyên cần:\n${dongNoiDung.join('\n')}\nKính đề nghị các đồng chí bổ sung đầy đủ trên Sổ đầu bài điện tử. Xin cảm ơn!`;
+
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(vanBanZalo);
+        } else {
+            throw new Error('Clipboard API unavailable');
+        }
+    } catch (e) {
+        let ta = document.createElement('textarea');
+        ta.value = vanBanZalo;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+    }
+
+    let btn = document.getElementById('btnCopyNhacNhoZaloTHSS');
+    if (btn) {
+        let oldHtml = btn.innerHTML;
+        btn.innerHTML = `✅ Đã copy (${dsChuaBao.length} lớp)`;
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        btn.classList.add('bg-emerald-600');
+        setTimeout(() => {
+            btn.innerHTML = oldHtml;
+            btn.classList.remove('bg-emerald-600');
+            btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }, 2500);
     }
 };
