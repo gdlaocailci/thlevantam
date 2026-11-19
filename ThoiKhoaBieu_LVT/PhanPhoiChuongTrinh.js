@@ -1459,6 +1459,24 @@ window.layBoDemTichLuyChuanSoDauBai = function(lopMucTieu, tuanMucTieu, dsTkbTua
     return { boDemTichLuy, coLichSuLop };
 };
 
+function fetchVoiTimeoutPPCT(url, options, timeoutMs = 15000) {
+    const fetchFn = (typeof fetchVoiCoCheThuLai === 'function') ? fetchVoiCoCheThuLai : fetch;
+    return Promise.race([
+        fetchFn(url, options),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Quá thời gian chờ máy chủ')), timeoutMs))
+    ]);
+}
+
+async function chayTheoLoPPCT(danhSachHamTacVu, kichThuocLo = 3) {
+    const ketQua = [];
+    for (let i = 0; i < danhSachHamTacVu.length; i += kichThuocLo) {
+        const lo = danhSachHamTacVu.slice(i, i + kichThuocLo).map(fn => fn());
+        const kqLo = await Promise.all(lo);
+        ketQua.push(...kqLo);
+    }
+    return ketQua;
+}
+
 let _dangTaiPPCT = false;
 let _yeuCauTaiLaiPPCT = null;
 async function taiDuLieuTkbVaPpct(epDongBo = false) {
@@ -1472,7 +1490,10 @@ async function taiDuLieuTkbVaPpct(epDongBo = false) {
     const mon = document.getElementById('locMonPPCT').value.trim();
     const tbody = document.getElementById('vungDuLieuLichPPCT');
     const nutXacNhan = document.getElementById('nutXemPPCT') || document.querySelector('button[onclick="taiDuLieuTkbVaPpct()"]');
-    const theGocNutXacNhan = nutXacNhan ? nutXacNhan.innerHTML : 'Xem';
+    if (nutXacNhan && !nutXacNhan.dataset.labelGoc) {
+        nutXacNhan.dataset.labelGoc = nutXacNhan.innerHTML.includes('Đang đồng bộ') ? 'Xem' : nutXacNhan.innerHTML;
+    }
+    const theGocNutXacNhan = (nutXacNhan && nutXacNhan.dataset.labelGoc) ? nutXacNhan.dataset.labelGoc : 'Xem';
 
     if (!tuan || !lop || !khoi || khoi === 'KX') {
         alert("Đồng chí vui lòng điền đầy đủ: Tuần, Lớp để truy xuất dữ liệu.");
@@ -1566,15 +1587,13 @@ async function taiDuLieuTkbVaPpct(epDongBo = false) {
     try {
         const coPpctXacThuc = (!epDongBo && coSanPpct && kqPpctHienHanh.daXacThucPhien) ? '1' : '0';
         const coTkbXacThuc = (!epDongBo && coSanTkb && kqTkbHienHanh.daXacThucPhien) ? '1' : '0';
-        const fetchFn = (typeof fetchVoiCoCheThuLai === 'function') ? fetchVoiCoCheThuLai : fetch;
-
         const danhSachTacVu = [];
 
         // Tác vụ 1: Lấy TKB & PPCT nếu chưa đủ
         if (coPpctXacThuc === '0' || coTkbXacThuc === '0') {
             const urlAPI = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTkbVaPpct&tuan=${tuan}&lop=${encodeURIComponent(lop)}&khoi=${khoi}&mon=&tuanHienTai=${tuanHeThong}&daCoPpct=${coPpctXacThuc}&daCoTkb=${coTkbXacThuc}`;
             danhSachTacVu.push(
-                fetchFn(urlAPI).then(r => {
+                fetchVoiTimeoutPPCT(urlAPI).then(r => {
                     if (!r.ok) throw new Error("Mất kết nối máy chủ");
                     return r.json();
                 }).then(ketQua => ({ loai: 'TKB_PPCT', ketQua }))
@@ -1585,7 +1604,7 @@ async function taiDuLieuTkbVaPpct(epDongBo = false) {
         if (tuanMocTichLuy > 1 && (epDongBo || !coSanTichLuy)) {
             const urlTichLuy = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTienDoTichLuy&tuan=${tuanMocTichLuy}&namHoc=${encodeURIComponent(namHoc)}`;
             danhSachTacVu.push(
-                fetchFn(urlTichLuy).then(r => r.json()).then(dataTL => ({ loai: 'TICH_LUY', dataTL })).catch(() => ({ loai: 'TICH_LUY', dataTL: null }))
+                fetchVoiTimeoutPPCT(urlTichLuy).then(r => r.json()).then(dataTL => ({ loai: 'TICH_LUY', dataTL })).catch(() => ({ loai: 'TICH_LUY', dataTL: null }))
             );
         }
 
@@ -1674,7 +1693,10 @@ async function taiDuLieuGvbmPPCT(epDongBo = false) {
     const mon = document.getElementById('locMonPPCT').value.trim();
     const tbody = document.getElementById('vungDuLieuLichPPCT');
     const nutXacNhan = document.getElementById('nutXemPPCT') || document.querySelector('button[onclick="taiDuLieuTkbVaPpct()"]');
-    const theGocNutXacNhan = nutXacNhan ? nutXacNhan.innerHTML : 'Xem';
+    if (nutXacNhan && !nutXacNhan.dataset.labelGoc) {
+        nutXacNhan.dataset.labelGoc = nutXacNhan.innerHTML.includes('Đang đồng bộ') ? 'Xem' : nutXacNhan.innerHTML;
+    }
+    const theGocNutXacNhan = (nutXacNhan && nutXacNhan.dataset.labelGoc) ? nutXacNhan.dataset.labelGoc : 'Xem';
 
     capNhatTieuDeBangPPCT();
 
@@ -1730,7 +1752,8 @@ async function taiDuLieuGvbmPPCT(epDongBo = false) {
             laCheDoAdminFallback
         };
 
-        let tkbXacThuc = !epDongBo && coTkb && kqTkb.daXacThucPhien;
+        let coTkbTuanHienTaiTrongRam = (tuanSo === tuanHeThong) && (typeof duLieuTkbHienTai !== 'undefined' && Array.isArray(duLieuTkbHienTai) && duLieuTkbHienTai.length > 0);
+        let tkbXacThuc = !epDongBo && coTkb && (kqTkb.daXacThucPhien || coTkbTuanHienTaiTrongRam);
         let ppctXacThuc = !epDongBo && coPpct && kqPpct.daXacThucPhien;
         if (!tkbXacThuc || !ppctXacThuc) {
             tatCaDaXacThuc = false;
@@ -1778,13 +1801,12 @@ async function taiDuLieuGvbmPPCT(epDongBo = false) {
     }
 
     try {
-        const fetchFn = (typeof fetchVoiCoCheThuLai === 'function') ? fetchVoiCoCheThuLai : fetch;
-        const danhSachTacVu = [];
+        const danhSachHamTacVu = [];
 
         danhSachCanTai.forEach(req => {
             const urlAPI = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTkbVaPpct&tuan=${tuan}&lop=${encodeURIComponent(req.lop)}&khoi=${req.khoi}&mon=&tuanHienTai=${tuanHeThong}&daCoPpct=${req.daCoPpct}&daCoTkb=${req.daCoTkb}`;
-            danhSachTacVu.push(
-                fetchFn(urlAPI)
+            danhSachHamTacVu.push(() =>
+                fetchVoiTimeoutPPCT(urlAPI)
                     .then(r => r.json())
                     .then(ketQua => ({ loai: 'LOP_TKB_PPCT', lop: req.lop, khoi: req.khoi, ketQua }))
                     .catch(() => ({ loai: 'LOP_TKB_PPCT', lop: req.lop, khoi: req.khoi, ketQua: null }))
@@ -1793,15 +1815,15 @@ async function taiDuLieuGvbmPPCT(epDongBo = false) {
 
         if (tuanMocTichLuy > 1 && (epDongBo || !coSanTichLuy)) {
             const urlTichLuy = `${CAU_HINH_FRONTEND.URL_API_MAY_CHU}?thaoTac=layTienDoTichLuy&tuan=${tuanMocTichLuy}&namHoc=${encodeURIComponent(namHoc)}`;
-            danhSachTacVu.push(
-                fetchFn(urlTichLuy)
+            danhSachHamTacVu.push(() =>
+                fetchVoiTimeoutPPCT(urlTichLuy)
                     .then(r => r.json())
                     .then(dataTL => ({ loai: 'TICH_LUY', dataTL }))
                     .catch(() => ({ loai: 'TICH_LUY', dataTL: null }))
             );
         }
 
-        const ketQuaSongSong = await Promise.all(danhSachTacVu);
+        const ketQuaSongSong = await chayTheoLoPPCT(danhSachHamTacVu, 3);
         ketQuaSongSong.forEach(item => {
             if (item.loai === 'LOP_TKB_PPCT' && item.ketQua && item.ketQua.trangThai !== 'Lỗi' && item.ketQua.trangThai !== 'loi_he_thong') {
                 let kq = item.ketQua;
