@@ -1309,6 +1309,11 @@ async function goiThuatToanXepLich() {
         alert(`⚠️ Thời khóa biểu Tuần ${tuanDangXem} đang bị KHÓA. Đồng chí vui lòng Mở khóa trước khi chạy xếp tự động!`);
         return;
     }
+    let tuanHeThongHT = parseInt(thongSoHocVu.TUAN_HIEN_TAI, 10) || 1;
+    if (parseInt(tuanDangXem, 10) > tuanHeThongHT) {
+        alert(`⛔ Không được phép xếp tự động trên tuần tương lai (Tuần ${tuanDangXem} > Tuần hiện tại ${tuanHeThongHT}) để bảo vệ cấu trúc TKB Cố định.`);
+        return;
+    }
     if (typeof window.khoaNutThaoTacTKB === 'function') window.khoaNutThaoTacTKB(true, 'Đang xếp tự động');
     const vungHienThi = document.getElementById('vungHienThiDuLieu');
     if (vungHienThi) vungHienThi.innerHTML = `<tr><td class="text-center text-orange-600 font-bold py-10 reactbits-fade-in text-lg" style="font-family:'Times New Roman',Times,serif;"><div class="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-3"></div>Đang chạy Động cơ phân bổ cho Tuần ${tuanDangXem}...</td></tr>`;
@@ -2190,9 +2195,11 @@ function xuatMaTranBang(danhSachTiet) {
     if (!quyenSuaChua && tapLopDuocQuyen.size > 0) mangLopHienThi = mangLopGoc.filter(lop => tapLopDuocQuyen.has(lop));
 
     let tuanNayDaKhoa = (typeof window.kiemTraTuanTkbDaKhoa === 'function') ? window.kiemTraTuanTkbDaKhoa(tuanDangXem) : false;
+    let tuanHeThongKiemTra = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.TUAN_HIEN_TAI) ? (parseInt(thongSoHocVu.TUAN_HIEN_TAI, 10) || 1) : 1;
+    let laTuanTuongLai = (parseInt(tuanDangXem, 10) || 1) > tuanHeThongKiemTra;
     const mapQuyenSuaLop = new Map();
     mangLopHienThi.forEach(lop => {
-        let duocSua = !tuanNayDaKhoa && (quyenSuaChua || tapLopDuocQuyen.has(lop));
+        let duocSua = !tuanNayDaKhoa && !laTuanTuongLai && (quyenSuaChua || tapLopDuocQuyen.has(lop));
         mapQuyenSuaLop.set(lop, duocSua);
     });
 
@@ -2419,6 +2426,30 @@ function xuatMaTranBang(danhSachTiet) {
         }
     } else {
         if (bannerKhoa) bannerKhoa.style.display = 'none';
+    }
+
+    let bannerTuongLai = document.getElementById('bannerTuanTuongLaiTkb');
+    if (laTuanTuongLai && !tuanNayDaKhoa) {
+        if (!bannerTuongLai) {
+            let khungTKB = document.getElementById('khungTKB');
+            if (khungTKB) {
+                khungTKB.insertAdjacentHTML('afterbegin', `
+                    <div id="bannerTuanTuongLaiTkb" class="mb-2 p-2.5 bg-amber-50 border border-amber-300 rounded-lg flex items-center justify-between text-amber-900 font-bold text-xs shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 bg-amber-600 text-white rounded text-[11px] font-extrabold uppercase">CHỈ XEM</span>
+                            <span class="text-xs md:text-sm font-extrabold">TUẦN ${tuanDangXem} LÀ TUẦN TƯƠNG LAI (DỰ KIẾN TỪ TKB CỐ ĐỊNH) — KHÔNG CHO PHÉP SỬA TRỰC TIẾP</span>
+                        </div>
+                        <span class="italic text-[11px] text-amber-800 hidden sm:inline">Vui lòng bấm [Tuần mới] để chuyển tuần trước khi sửa, hoặc cập nhật bằng [TKB Cố Định].</span>
+                    </div>
+                `);
+            }
+        } else {
+            bannerTuongLai.style.display = 'flex';
+            let spanText = bannerTuongLai.querySelector('span.text-xs');
+            if (spanText) spanText.innerText = `TUẦN ${tuanDangXem} LÀ TUẦN TƯƠNG LAI (DỰ KIẾN TỪ TKB CỐ ĐỊNH) — KHÔNG CHO PHÉP SỬA TRỰC TIẾP`;
+        }
+    } else if (bannerTuongLai) {
+        bannerTuongLai.style.display = 'none';
     }
 
     if (typeof window.capNhatTrangThaiNutKhoaTKBUI === 'function') {
@@ -3175,9 +3206,15 @@ async function nhapExcelTKB(event) {
         return;
     }
 
-    // 2. Chặn can thiệp nếu Tuần đang bị Khóa (Niêm phong)
+    // 2. Chặn can thiệp nếu Tuần đang bị Khóa (Niêm phong) hoặc là Tuần tương lai
     if (typeof window.kiemTraTuanTkbDaKhoa === 'function' && window.kiemTraTuanTkbDaKhoa(tuanDangXem)) {
         alert(`⚠️ Thời khóa biểu Tuần ${tuanDangXem} đang bị KHÓA (Niêm phong). Đồng chí vui lòng Mở khóa trước khi nhập Excel!`);
+        event.target.value = "";
+        return;
+    }
+    let tuanHeThongExcel = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.TUAN_HIEN_TAI) ? (parseInt(thongSoHocVu.TUAN_HIEN_TAI, 10) || 1) : 1;
+    if (parseInt(tuanDangXem, 10) > tuanHeThongExcel) {
+        alert(`⛔ Không được phép nhập Excel vào tuần tương lai (Tuần ${tuanDangXem} > Tuần hiện tại ${tuanHeThongExcel}) để tránh làm hỏng cấu trúc TKB Cố định.`);
         event.target.value = "";
         return;
     }
@@ -3266,6 +3303,11 @@ async function nhapExcelTKB(event) {
 async function luuSuaCucBoTKB(event) {
     if (typeof window.kiemTraTuanTkbDaKhoa === 'function' && window.kiemTraTuanTkbDaKhoa(tuanDangXem)) {
         alert(`⚠️ Thời khóa biểu Tuần ${tuanDangXem} đang bị KHÓA. Đồng chí vui lòng Mở khóa trước khi lưu sửa!`);
+        return;
+    }
+    let tuanHeThongLuuSua = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.TUAN_HIEN_TAI) ? (parseInt(thongSoHocVu.TUAN_HIEN_TAI, 10) || 1) : 1;
+    if (parseInt(tuanDangXem, 10) > tuanHeThongLuuSua) {
+        alert(`⛔ KHÔNG ĐƯỢC PHÉP SỬA TUẦN TƯƠNG LAI (Tuần ${tuanDangXem}):\n\nTuần ${tuanDangXem} đang hiển thị dữ liệu dự kiến từ TKB Cố định (tuần hiện tại của hệ thống là Tuần ${tuanHeThongLuuSua}).\nĐể tránh làm hỏng cấu trúc định dạng sheet TKB_CoDinh, hệ thống không cho phép Lưu Sửa trên tuần tương lai.\n\n👉 Vui lòng bấm [Tuần mới] để chuyển sang Tuần ${tuanDangXem} trước khi sửa, hoặc dùng nút [TKB Cố Định].`);
         return;
     }
     const btn = event.currentTarget; 
