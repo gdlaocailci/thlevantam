@@ -409,7 +409,7 @@
   })();
 
   // --- LOGIC HOẠT ĐỘNG ---
-  let tknd = window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || ""; 
+  let tknd = window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || sessionStorage.getItem("SKT_USER_TAIK") || ""; 
   let dlgvi = [], dlnktra = [], dlbpha = {}, dlmhso = [];
   let donghtta = null; 
   let dongcxoa = null; 
@@ -418,15 +418,15 @@
   window.SKT_AI_CACHE = window.SKT_AI_CACHE || {};
 
   function chuanhchu(ch) {
-    if (!ch) return "";
-    return String(ch)
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/đ/g, "d")
-        .replace(/Đ/g, "D")
-        .toLowerCase()
-        .replace(/[\s\uFEFF\xA0]+/g, '');
-}
+      if (!ch) return "";
+      return String(ch)
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/đ/g, "d")
+          .replace(/Đ/g, "D")
+          .toLowerCase()
+          .replace(/[\s\uFEFF\xA0]+/g, '');
+  }
 
   // --- BẮT ĐẦU NÂNG CẤP: XỔ DANH SÁCH KHI ĐANG CÓ GIÁ TRỊ, LÀM MỜ GIÁ TRỊ CŨ & TỰ THOÁT CHUỘT KHI CHỌN ---
   function moDanhSachChon(el) {
@@ -699,7 +699,7 @@ function kiemtlqsu(dg) {
     const sysQ = window.SYS_QUYEN || {};
     const selectedNKT = document.getElementById('cbNguoiKiemTra').value;
     
-    const isSelectedInspector = (sysQ.tenNKT_Cua_User && chuanhchu(sysQ.tenNKT_Cua_User) === chuanhchu(selectedNKT) && selectedNKT !== "");
+    const isSelectedInspector = (selectedNKT !== "" && (Array.isArray(sysQ.dsTenNKT) ? sysQ.dsTenNKT.includes(chuanhchu(selectedNKT)) : (sysQ.tenNKT_Cua_User && chuanhchu(sysQ.tenNKT_Cua_User) === chuanhchu(selectedNKT))));
     const quyenQuanTri = sysQ.isSuperAdmin;
     
     const cacn = dg.querySelectorAll('.cell-input');
@@ -748,18 +748,23 @@ function taidli() {
         isQuyenX: (q_h_t === 'x'),
         tenGV_Cua_User: "",
         tenNKT_Cua_User: "",
+        dsTenGV: [],
+        dsTenNKT: [],
         isNKT_System: false
     };
 
-    // Quét mảng tìm tên định danh (Chỉ quét 1 lần)
+    // Quét mảng tìm tất cả tên định danh gắn với email (hỗ trợ trường hợp 1 email xuất hiện ở nhiều dòng)
     for (let i = 0; i < dlgvi.length; i++) {
-        if (chuanhchu(dlgvi[i].taik) === emcan) { window.SYS_QUYEN.tenGV_Cua_User = dlgvi[i].tenn; break; }
+        if (chuanhchu(dlgvi[i].taik) === emcan) {
+            if (!window.SYS_QUYEN.tenGV_Cua_User) window.SYS_QUYEN.tenGV_Cua_User = dlgvi[i].tenn;
+            window.SYS_QUYEN.dsTenGV.push(chuanhchu(dlgvi[i].tenn));
+        }
     }
     for (let i = 0; i < dlnktra.length; i++) {
         if (chuanhchu(dlnktra[i].taik) === emcan) { 
             window.SYS_QUYEN.isNKT_System = true; 
-            window.SYS_QUYEN.tenNKT_Cua_User = dlnktra[i].tenn;
-            break; 
+            if (!window.SYS_QUYEN.tenNKT_Cua_User) window.SYS_QUYEN.tenNKT_Cua_User = dlnktra[i].tenn;
+            window.SYS_QUYEN.dsTenNKT.push(chuanhchu(dlnktra[i].tenn));
         }
     }
 
@@ -818,9 +823,9 @@ function apdquye() {
     
     const duThongTin = (selectedGV !== "" && selectedNKT !== "" && selectedBP !== "");
 
-    // So sánh quyền bằng cache, không gọi vòng lặp
-    const isOwner = (sysQ.tenGV_Cua_User && chuanhchu(sysQ.tenGV_Cua_User) === chuanhchu(selectedGV) && selectedGV !== "");
-    const isSelectedInspector = (sysQ.tenNKT_Cua_User && chuanhchu(sysQ.tenNKT_Cua_User) === chuanhchu(selectedNKT) && selectedNKT !== "");
+    // So sánh quyền bằng cache, hỗ trợ trường hợp 1 email có nhiều tên
+    const isOwner = (selectedGV !== "" && (Array.isArray(sysQ.dsTenGV) ? sysQ.dsTenGV.includes(chuanhchu(selectedGV)) : (sysQ.tenGV_Cua_User && chuanhchu(sysQ.tenGV_Cua_User) === chuanhchu(selectedGV))));
+    const isSelectedInspector = (selectedNKT !== "" && (Array.isArray(sysQ.dsTenNKT) ? sysQ.dsTenNKT.includes(chuanhchu(selectedNKT)) : (sysQ.tenNKT_Cua_User && chuanhchu(sysQ.tenNKT_Cua_User) === chuanhchu(selectedNKT))));
     
     const isInspectorRole = (sysQ.isSuperAdmin || sysQ.isQuyenX || sysQ.isNKT_System);
     const isHistoryLoaded = (document.getElementById('cbMaHoSo').value !== "");
@@ -926,9 +931,9 @@ function khindthd(lo) {
         if (kq && kq.length > 0) {
             const bg = kq;
 
-            let emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
-            let tgvc = dlgvi.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
-            let tnktc = dlnktra.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
+            let emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+            const dsTenGV = dlgvi.filter(x1 => chuanhchu(x1.taik) === emcan).map(x1 => chuanhchu(x1.tenn));
+            const dsTenNKT = dlnktra.filter(x1 => chuanhchu(x1.taik) === emcan).map(x1 => chuanhchu(x1.tenn));
             
             const bggv = String(bg[0][0] || ""); 
             const bgnkt = String(bg[0][1] || ""); 
@@ -937,8 +942,8 @@ function khindthd(lo) {
             const quyenQuanTri = (q_h_t === 'xx' || q_h_t === 'xxx');
 
             // 👉 NÂNG CẤP: Chặn load nếu không phải Admin, không phải NKT của hồ sơ này, và không phải GV của hồ sơ này
-            const laGVcuaHoSo = (tgvc && chuanhchu(bggv) === chuanhchu(tgvc));
-            const laNKTcuaHoSo = (tnktc && chuanhchu(bgnkt) === chuanhchu(tnktc));
+            const laGVcuaHoSo = dsTenGV.includes(chuanhchu(bggv));
+            const laNKTcuaHoSo = dsTenNKT.includes(chuanhchu(bgnkt));
 
             if (!quyenQuanTri && !laGVcuaHoSo && !laNKTcuaHoSo) {
                 hienhth("⛔ BẠN KHÔNG CÓ QUYỀN TẢI HỒ SƠ NÀY VÌ KHÔNG PHẢI LÀ NGƯỜI KIỂM TRA HOẶC NGƯỜI ĐƯỢC KIỂM TRA TRONG BIÊN BẢN!");
@@ -1050,7 +1055,7 @@ function themdongmo(dld = null) {
 // 5. Cập nhật nhỏ trong hàm thuchms (Khắc phục lỗi đọc .options của Select cũ)
 /* ========================================================================== */
 function thuchms(ha, nt, ch) {
-    const con_trau_nuoc = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+    const con_trau_nuoc = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
     const hop_dien_thoai = document.getElementById('cbGiaoVien');
     const hop_may_tinh = document.getElementById('cbNguoiKiemTra');
     
@@ -1282,7 +1287,7 @@ function datlbie() {
       const p1 = document.getElementById(idd); if(p1) { p1.value = ""; p1.disabled = false; }
     });
     
-    let emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
+    let emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
     let tgvc = dlgvi.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
     let tnktc = dlnktra.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
     const q_h_t = String(window.sktquyenht).trim().toLowerCase();
@@ -1386,10 +1391,9 @@ function lammdsm() {
   }
 
   function xoado(nt) {
-      const emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
-      const tnktc = dlnktra.find(x1 => chuanhchu(x1.taik) === emcan)?.tenn;
+      const emcan = chuanhchu(window.skttktoanc || sessionStorage.getItem("SKT_DINHDANH_TAIK") || sessionStorage.getItem("SKT_USER_TAIK") || tknd);
       const nkt = document.getElementById('cbNguoiKiemTra').value;
-      const lnk = (tnktc && chuanhchu(tnktc) === chuanhchu(nkt));
+      const lnk = (nkt !== "" && dlnktra.some(x1 => chuanhchu(x1.taik) === emcan && chuanhchu(x1.tenn) === chuanhchu(nkt)));
       
       const quyenQuanTri = (String(window.sktquyenht).trim().toLowerCase() === 'xx');
       
