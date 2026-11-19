@@ -5908,11 +5908,11 @@ window.moModalChuyenCanSDB = function(btnEl) {
                 <div class="grid grid-cols-2 gap-3">
                     <div class="flex items-center justify-between bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
                         <label for="ccSoVangP" class="text-xs font-bold text-amber-900">Vắng có phép (P):</label>
-                        <input type="number" id="ccSoVangP" min="0" value="${pInit}" oninput="capNhatHienThiModalChuyenCan()" class="w-16 px-1.5 py-0.5 border border-amber-300 bg-white rounded text-center font-bold text-amber-900 outline-none">
+                        <input type="number" id="ccSoVangP" min="0" value="${pInit}" readonly tabindex="-1" title="Tự động đếm theo danh sách học sinh vắng bên dưới" class="w-16 px-1.5 py-0.5 border border-amber-300 bg-amber-100/60 rounded text-center font-bold text-amber-900 outline-none cursor-not-allowed select-none">
                     </div>
                     <div class="flex items-center justify-between bg-rose-50 border border-rose-200 rounded px-3 py-1.5">
                         <label for="ccSoVangKP" class="text-xs font-bold text-rose-900">Vắng không phép (KP):</label>
-                        <input type="number" id="ccSoVangKP" min="0" value="${kpInit}" oninput="capNhatHienThiModalChuyenCan()" class="w-16 px-1.5 py-0.5 border border-rose-300 bg-white rounded text-center font-bold text-rose-800 outline-none">
+                        <input type="number" id="ccSoVangKP" min="0" value="${kpInit}" readonly tabindex="-1" title="Tự động đếm theo danh sách học sinh vắng bên dưới" class="w-16 px-1.5 py-0.5 border border-rose-300 bg-rose-100/60 rounded text-center font-bold text-rose-800 outline-none cursor-not-allowed select-none">
                     </div>
                 </div>
 
