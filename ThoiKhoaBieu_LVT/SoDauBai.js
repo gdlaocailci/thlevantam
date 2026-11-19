@@ -3418,6 +3418,7 @@ function dongBoTenBaiHoc() {
 function chonMucPPCT(soTiet, tenBai, event) {
     if (event) event.stopPropagation(); 
     let daThayDoi = false;
+    let trHienTai = trangThaiKhungPPCT.inputTiet ? trangThaiKhungPPCT.inputTiet.closest('tr') : null;
     if (trangThaiKhungPPCT.inputTiet) {
         trangThaiKhungPPCT.inputTiet.value = soTiet;
         coThayDoiChuaLuu_SDB = true; 
@@ -3432,8 +3433,81 @@ function chonMucPPCT(soTiet, tenBai, event) {
     }
     
     // [NÂNG CẤP]: Gắn cờ và biểu tượng khi chọn từ menu thả
-    if (daThayDoi && trangThaiKhungPPCT.inputTiet) {
-        danhDauDongThayDoi(trangThaiKhungPPCT.inputTiet.closest('tr'));
+    if (daThayDoi && trHienTai) {
+        danhDauDongThayDoi(trHienTai);
+
+        // [NÂNG CẤP]: Tự động tịnh tiến số tiết PPCT và tên bài dạy cho các tiết liền sau cùng môn trong tuần
+        let tietBatDauTinhTien = parseInt(soTiet, 10);
+        if (!isNaN(tietBatDauTinhTien)) {
+            let tbody = trHienTai.closest('tbody');
+            let monGocHienTai = trangThaiKhungPPCT.mon || '';
+            if (!monGocHienTai) {
+                let tdMonHT = trHienTai.querySelector('td[data-loai="mon"]');
+                if (tdMonHT) {
+                    for (let node of tdMonHT.childNodes) {
+                        if (node.nodeType === 3) monGocHienTai += node.textContent;
+                    }
+                    monGocHienTai = monGocHienTai.trim();
+                }
+            }
+            let monHienTaiPPCT = monGocHienTai.replace(/[0-9\(\)]/g, '').trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+            let khoiChon = trangThaiKhungPPCT.khoi || '';
+            if (!khoiChon) {
+                let lopVal = document.getElementById('chonLopSo')?.value || '';
+                let mKhoi = lopVal.match(/\d+/);
+                khoiChon = mKhoi ? mKhoi[0] : '';
+            }
+
+            if (tbody && monHienTaiPPCT !== '') {
+                let tatCaDong = Array.from(tbody.querySelectorAll('tr'));
+                let viTriHienTai = tatCaDong.indexOf(trHienTai);
+                if (viTriHienTai !== -1) {
+                    let tietTiepTheo = tietBatDauTinhTien;
+                    for (let i = viTriHienTai + 1; i < tatCaDong.length; i++) {
+                        let trSau = tatCaDong[i];
+                        let tdMonSau = trSau.querySelector('td[data-loai="mon"]');
+                        if (!tdMonSau) continue;
+                        let monSau = '';
+                        for (let node of tdMonSau.childNodes) {
+                            if (node.nodeType === 3) monSau += node.textContent;
+                        }
+                        monSau = monSau.trim();
+                        if (!monSau) continue;
+
+                        let monSauPPCT = monSau.replace(/[0-9\(\)]/g, '').trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+                        if (monSauPPCT === monHienTaiPPCT) {
+                            let inpTietSau = trSau.querySelector('td[data-loai="tiet"] input');
+                            if (inpTietSau && !inpTietSau.disabled) {
+                                tietTiepTheo++;
+                                let daDoiDongSau = false;
+                                if (String(inpTietSau.value).trim() !== String(tietTiepTheo)) {
+                                    inpTietSau.value = tietTiepTheo;
+                                    daDoiDongSau = true;
+                                }
+                                let taTenBaiSau = trSau.querySelector('td[data-loai="tenBai"] textarea');
+                                if (taTenBaiSau && !taTenBaiSau.disabled) {
+                                    let baiDayMoi = timTenBaiChuanSDB(khoiChon, monSau, tietTiepTheo);
+                                    if (baiDayMoi !== '' && taTenBaiSau.value !== baiDayMoi) {
+                                        taTenBaiSau.value = baiDayMoi;
+                                        taTenBaiSau.style.height = 'auto';
+                                        taTenBaiSau.style.height = (taTenBaiSau.scrollHeight) + 'px';
+                                        daDoiDongSau = true;
+                                    }
+                                }
+                                if (daDoiDongSau) {
+                                    coThayDoiChuaLuu_SDB = true;
+                                    danhDauDongThayDoi(trSau);
+                                    if (typeof window.capNhatMauChuDongDaKy === 'function') {
+                                        window.capNhatMauChuDongDaKy(trSau);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         if (typeof capNhatThongKeSDBTrenLuoi === 'function') {
             capNhatThongKeSDBTrenLuoi();
         }
@@ -4310,12 +4384,14 @@ window.dongBoHienThiTuSelect = function(selectId) {
 // =========================================================================
 // THUẬT TOÁN CỬA SỔ TRƯỢT HIỂN THỊ TIẾT PPCT
 // =========================================================================
-let trangThaiKhungPPCT = { dangMo: false, inputTiet: null, inputTenBai: null };
+let trangThaiKhungPPCT = { dangMo: false, inputTiet: null, inputTenBai: null, khoi: "", mon: "" };
 
 function moKhungTruotPPCT(event, theInputTiet, khoi, mon, tietHienTai) {
     if (event) event.stopPropagation(); 
     dongKhungTruotPPCT(); 
     trangThaiKhungPPCT.inputTiet = theInputTiet;
+    trangThaiKhungPPCT.khoi = String(khoi || '').trim();
+    trangThaiKhungPPCT.mon = String(mon || '').trim();
     let tr = theInputTiet.closest('tr');
     trangThaiKhungPPCT.inputTenBai = tr ? tr.querySelector('td[data-loai="tenBai"] textarea') : null;
     
