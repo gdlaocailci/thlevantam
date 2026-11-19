@@ -418,9 +418,15 @@
   window.SKT_AI_CACHE = window.SKT_AI_CACHE || {};
 
   function chuanhchu(ch) {
-      if (!ch) return "";
-      return String(ch).normalize("NFC").toLowerCase().replace(/[\s\uFEFF\xA0]+/g, '');
-  }
+    if (!ch) return "";
+    return String(ch)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .replace(/[\s\uFEFF\xA0]+/g, '');
+}
 
   // --- BẮT ĐẦU NÂNG CẤP: XỔ DANH SÁCH KHI ĐANG CÓ GIÁ TRỊ, LÀM MỜ GIÁ TRỊ CŨ & TỰ THOÁT CHUỘT KHI CHỌN ---
   function moDanhSachChon(el) {
