@@ -941,6 +941,14 @@ function kiemTraQuyenDayLopPPCT(lopMucTieu, tuanMucTieu) {
         }
     }
 
+    // 6. Đồng bộ với bộ lọc lớp được phân công (bao gồm kế thừa tuần tương lai cho chế độ Theo Lớp - GVCN)
+    if (typeof layDanhSachLopPhanCongGvbmPPCT === 'function') {
+        let { dsLop: dsLopPc } = layDanhSachLopPhanCongGvbmPPCT(tuanSo, '');
+        if (Array.isArray(dsLopPc) && dsLopPc.some(l => String(l || '').trim().toUpperCase() === lopUpper)) {
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -990,7 +998,6 @@ function capNhatHienThiNutKhoaSuaPPCT() {
     if (nutNhapExcel) nutNhapExcel.style.display = (laQuanTri && cheDoXemPPCT === 'lop') ? 'flex' : 'none';
 
     const nutLuu = document.getElementById('nutLuuPPCT');
-    if (nutLuu) nutLuu.style.display = laQuanTri ? 'flex' : 'none';
 
     const nutSua = document.getElementById('nutSuaDuLieuPPCT');
     if (!nutSua) return;
@@ -1011,7 +1018,11 @@ function capNhatHienThiNutKhoaSuaPPCT() {
             coQuyenSua = laQuanTri || (lop !== '' && kiemTraQuyenDayLopPPCT(lop, tuan));
         }
     }
+    const dangXemTruocExcel = laQuanTri && cheDoXemPPCT === 'lop' && document.querySelectorAll('#vungDuLieuLichPPCT .dong-xem-truoc-excel').length > 0;
     nutSua.style.display = coQuyenSua ? 'flex' : 'none';
+    if (nutLuu) {
+        nutLuu.style.display = dangXemTruocExcel ? 'flex' : nutSua.style.display;
+    }
 
     if (!coQuyenSua && trangThaiChoPhepSua) {
         trangThaiChoPhepSua = false;
@@ -1058,6 +1069,8 @@ function chuyenDoiTrangThaiSuaPPCT() {
             Khóa Sửa
         `;
     }
+    const nutLuu = document.getElementById('nutLuuPPCT');
+    if (nutLuu && nutSua) nutLuu.style.display = nutSua.style.display;
     capNhatTrangThaiCacO();
 }
 
@@ -2317,7 +2330,7 @@ function veBangGvbmPPCT(monDangChon) {
                 <div class="text-xs font-semibold text-blue-800 mt-0.5">${row.buoi} - Tiết ${row.tiet}</div>
                 ${badgeMon}
             </td>
-            <td class="border-r border-gray-300 align-middle text-center p-3 font-extrabold text-red-600 whitespace-normal" data-ppct-id="${idKhoa}" data-loai="tietPpc">${row.valTietPPC}</td>
+            <td class="border-r border-gray-300 align-middle text-center p-3 font-extrabold text-red-600 whitespace-normal" data-ppct-id="${idKhoa}" data-loai="tietPpc" data-tiet-ppc-goc="${row.valTietPPC}">${row.valTietPPC}</td>
             <td class="border-r border-gray-300 align-middle text-left p-3 leading-relaxed vung-badge-sua" style="white-space: normal !important; min-width: 220px; max-width: 360px; word-wrap: break-word; word-break: break-word;">
                 <div class="flex items-start justify-between gap-2">
                     <span class="font-semibold text-slate-900 flex-1 whitespace-normal break-words" style="word-break: break-word;" data-ppct-id="${idKhoa}" data-loai="tenBai">${row.valTenBai}</span>
@@ -2570,7 +2583,7 @@ function veBangKhungLichPPCT(monDangChon) {
                         html += `
                             <td class="border-r border-gray-400 align-middle font-extrabold text-slate-800 text-center">${tiet}</td>
                             <td class="border-r border-gray-300 align-middle text-center font-bold text-blue-800 whitespace-normal" data-loai="mon">${tenMonTkb}</td>
-                            <td class="border-r border-gray-300 align-middle text-center p-3 font-extrabold text-red-600 whitespace-normal" data-ppct-id="${idKhoa}" data-loai="tietPpc">${valTietPPC}</td>
+                            <td class="border-r border-gray-300 align-middle text-center p-3 font-extrabold text-red-600 whitespace-normal" data-ppct-id="${idKhoa}" data-loai="tietPpc" data-tiet-ppc-goc="${valTietPPC}">${valTietPPC}</td>
 
                           <td class="border-r border-gray-300 align-middle text-left p-3 leading-relaxed" style="white-space: normal !important; min-width: 200px; max-width: 300px; word-wrap: break-word; word-break: break-word;">
                                 <div class="flex items-start justify-between gap-2">
@@ -2822,66 +2835,95 @@ async function luuDuLieuPPCTLenMayChu(event) {
     
     const mon = document.getElementById('locMonPPCT').value.trim();
     const tuan = document.getElementById('locTuanUI').value.trim();
+    const laCapNhatMoiTuExcel = document.querySelectorAll('#vungDuLieuLichPPCT .dong-xem-truoc-excel').length > 0;
 
-    if (cheDoXemPPCT === 'gvbm') {
+    // =====================================================================
+    // TRƯỜNG HỢP 1: SỬA TRỰC TIẾP TRÊN BẢNG -> CHỈ GỬI CÁC DÒNG CÓ GÁN CỜ
+    // VÀ MAP ĐÚNG TIẾT PPCT CỦA MÔN ĐÓ, LỚP/KHỐI ĐÓ ĐỂ GHI ĐÈ
+    // =====================================================================
+    if (!laCapNhatMoiTuExcel) {
         if (!tuan) {
             alert("Lỗi: Phải xác định rõ Tuần học trước khi Lưu.");
             return;
         }
-        let mangGhiGvbm = [];
-        const cacOInputTietGvbm = document.querySelectorAll('#vungDuLieuLichPPCT [data-loai="tietPpc"]');
-        const tapKhoiCapNhat = new Set();
 
-        cacOInputTietGvbm.forEach(inp => {
-            let tr = inp.closest('tr');
-            if (!tr) return;
-            let laDongDaSua = tr.getAttribute('data-da-sua') === 'true';
+        const cacDongDaSua = document.querySelectorAll('#vungDuLieuLichPPCT tr[data-da-sua="true"]');
+        if (cacDongDaSua.length === 0) {
+            alert("Chưa có dòng nào được chỉnh sửa (chưa gắn cờ ĐÃ SỬA) để lưu.");
+            return;
+        }
+
+        const lopMacDinh = document.getElementById('locLopPPCT') ? document.getElementById('locLopPPCT').value.trim() : '';
+        const khoiMacDinh = document.getElementById('locKhoiPPCT') ? document.getElementById('locKhoiPPCT').getAttribute('data-khoi-so') : '';
+        if (cheDoXemPPCT !== 'gvbm' && (!khoiMacDinh || khoiMacDinh === 'KX' || !lopMacDinh)) {
+            alert("Lỗi: Phải xác định rõ Tuần, Lớp trên bộ lọc trước khi Lưu.");
+            return;
+        }
+
+        let mangGhiDaSua = [];
+        const tapKhoiCapNhat = new Set();
+        const capNhatKhoaSauKhiLuu = [];
+
+        cacDongDaSua.forEach(tr => {
+            let inp = tr.querySelector('[data-loai="tietPpc"]');
+            if (!inp) return;
             let valTiet = inp.innerText.trim();
             if (valTiet === '') return;
 
+            let valTietGoc = (inp.getAttribute('data-tiet-ppc-goc') || valTiet).trim();
             let idKhoa = inp.getAttribute('data-ppct-id');
-            let lopRow = tr.getAttribute('data-lop') || '';
-            let khoiRow = tr.getAttribute('data-khoi') || '';
-            let monRow = tr.getAttribute('data-mon') || mon;
+
+            let lopRow = tr.getAttribute('data-lop') || lopMacDinh;
+            let khoiRow = tr.getAttribute('data-khoi') || khoiMacDinh;
+            if (!khoiRow && lopRow) {
+                let mK = String(lopRow).match(/\d+/);
+                if (mK) khoiRow = mK[0];
+            }
+
+            let theMonTrenLuoi = tr.querySelector('[data-loai="mon"]');
+            let monRow = tr.getAttribute('data-mon') || (theMonTrenLuoi ? theMonTrenLuoi.innerText.trim() : '') || (mon !== 'Tất cả' ? mon : '');
+            if (!khoiRow || !monRow) return;
+
             let thuRow = tr.getAttribute('data-thu') || '';
             let buoiRow = tr.getAttribute('data-buoi') || '';
             let tietRow = tr.getAttribute('data-tiet') || '';
+            if ((!thuRow || !buoiRow || !tietRow) && idKhoa) {
+                let parts = idKhoa.split('_');
+                if (cheDoXemPPCT === 'gvbm' && parts.length >= 4) {
+                    thuRow = thuRow || parts[1];
+                    buoiRow = buoiRow || parts[2];
+                    tietRow = tietRow || parts[3];
+                } else if (parts.length >= 3) {
+                    thuRow = thuRow || parts[0];
+                    buoiRow = buoiRow || parts[1];
+                    tietRow = tietRow || parts[2];
+                }
+            }
 
-            let valTenBai = document.querySelector(`[data-ppct-id="${idKhoa}"][data-loai="tenBai"]`).innerText.trim();
-            let valDieuChinh = document.querySelector(`[data-ppct-id="${idKhoa}"][data-loai="dieuChinh"]`).innerText.trim();
+            let elTenBai = tr.querySelector('[data-loai="tenBai"]') || document.querySelector(`[data-ppct-id="${idKhoa}"][data-loai="tenBai"]`);
+            let elDieuChinh = tr.querySelector('[data-loai="dieuChinh"]') || document.querySelector(`[data-ppct-id="${idKhoa}"][data-loai="dieuChinh"]`);
+            let valTenBai = elTenBai ? elTenBai.innerText.trim() : '';
+            let valDieuChinh = elDieuChinh ? elDieuChinh.innerText.trim() : '';
 
-            mangGhiGvbm.push({
+            mangGhiDaSua.push({
                 khoi: khoiRow,
+                lop: lopRow,
                 tietPpc: valTiet,
+                tietPpcGoc: valTietGoc,
                 mon: monRow,
                 tenBai: valTenBai,
                 dieuChinh: valDieuChinh,
                 thongTinTkb: { tuan: tuan, lop: lopRow, thu: thuRow, buoi: buoiRow, tietTkb: tietRow },
-                daSua: laDongDaSua
+                daSua: true
             });
 
-            if (duLieuGvbmTheoLop[lopRow]) {
-                let tietTkbItem = duLieuGvbmTheoLop[lopRow].dsTkb.find(t => String(t.thu) === thuRow && String(t.buoi) === buoiRow && String(t.tiet) === String(tietRow));
-                if (tietTkbItem) tietTkbItem.tietPpc = valTiet;
-                window.khoTkbTuanLopPPCT[`${tuan}_${lopRow}`] = duLieuGvbmTheoLop[lopRow].dsTkb;
-            }
-
-            if (khoiRow && window.khoPpctToanTruong[khoiRow]) {
-                let dsKhoi = window.khoPpctToanTruong[khoiRow];
-                let idx = dsKhoi.findIndex(b => String(b.tietPpc || b.tiet || '').trim() === valTiet && monHocKhopPPCT(b.mon || b.monHoc || '', monRow));
-                if (idx !== -1) {
-                    dsKhoi[idx].tenBai = valTenBai;
-                    dsKhoi[idx].tenBaiHoc = valTenBai;
-                    dsKhoi[idx].dieuChinh = valDieuChinh;
-                } else {
-                    dsKhoi.push({ tietPpc: valTiet, tiet: valTiet, mon: monRow, monHoc: monRow, tenBai: valTenBai, tenBaiHoc: valTenBai, dieuChinh: valDieuChinh });
-                }
-                tapKhoiCapNhat.add(khoiRow);
-            }
+            capNhatKhoaSauKhiLuu.push({
+                tr, inp, khoiRow, lopRow, monRow, thuRow, buoiRow, tietRow, valTiet, valTietGoc, valTenBai, valDieuChinh
+            });
         });
 
-        if (mangGhiGvbm.length === 0) {
-            alert("Không có dữ liệu hợp lệ để lưu.");
+        if (mangGhiDaSua.length === 0) {
+            alert("Không có dòng đã sửa nào có Tiết PPCT và Môn học hợp lệ để lưu.");
             return;
         }
 
@@ -2891,20 +2933,70 @@ async function luuDuLieuPPCTLenMayChu(event) {
         try {
             const phanHoi = await (typeof fetchVoiCoCheThuLai === 'function' ? fetchVoiCoCheThuLai : fetch)(CAU_HINH_FRONTEND.URL_API_MAY_CHU, {
                 method: 'POST',
-                body: JSON.stringify({ thaoTac: 'luuPPCT', duLieu: mangGhiGvbm })
+                body: JSON.stringify({
+                    thaoTac: 'luuPPCT',
+                    cheDo: 'capNhatDongDaSua',
+                    duLieu: mangGhiDaSua
+                })
             });
             const ketQua = await phanHoi.json();
+
             if (ketQua.trangThai === 'Thành công') {
-                alert(`Đã lưu Phân phối chương trình (GVBM) lên hệ thống thành công!`);
-                tapKhoiCapNhat.forEach(k => luuKhoPpctVaoStorage(k, window.khoPpctToanTruong[k], true));
-                if (typeof window.lamSachBoNhoSoDauBai === 'function') window.lamSachBoNhoSoDauBai();
-                document.querySelectorAll('tr[data-da-sua="true"]').forEach(tr => {
-                    tr.removeAttribute('data-da-sua');
-                    tr.classList.remove('bg-amber-100', 'hover:bg-amber-200');
-                    tr.classList.add('bg-white', 'hover:bg-slate-50');
-                    let badge = tr.querySelector('.badge-sua');
+                capNhatKhoaSauKhiLuu.forEach(u => {
+                    u.inp.setAttribute('data-tiet-ppc-goc', u.valTiet);
+
+                    if (cheDoXemPPCT === 'gvbm' && duLieuGvbmTheoLop[u.lopRow]) {
+                        let tietTkbItem = duLieuGvbmTheoLop[u.lopRow].dsTkb.find(t => String(t.thu) === u.thuRow && String(t.buoi) === u.buoiRow && String(t.tiet) === String(u.tietRow));
+                        if (tietTkbItem) tietTkbItem.tietPpc = u.valTiet;
+                        window.khoTkbTuanLopPPCT[`${tuan}_${u.lopRow}`] = duLieuGvbmTheoLop[u.lopRow].dsTkb;
+                    } else if (Array.isArray(duLieuTkbTuan)) {
+                        let tietTkbItem = duLieuTkbTuan.find(t => String(t.thu) === u.thuRow && String(t.buoi) === u.buoiRow && String(t.tiet) === String(u.tietRow));
+                        if (tietTkbItem) tietTkbItem.tietPpc = u.valTiet;
+                        window.khoTkbTuanLopPPCT[`${tuan}_${u.lopRow}`] = duLieuTkbTuan;
+                    }
+
+                    const capNhatMangPpct = (ds) => {
+                        if (!Array.isArray(ds)) return;
+                        let idx = ds.findIndex(b => {
+                            let tB = String(b.tietPpc || b.tiet || '').trim();
+                            let mB = b.mon || b.monHoc || '';
+                            return (tB === u.valTietGoc || tB === u.valTiet) && monHocKhopPPCT(mB, u.monRow);
+                        });
+                        if (idx !== -1) {
+                            ds[idx].tietPpc = u.valTiet;
+                            ds[idx].tiet = u.valTiet;
+                            ds[idx].tenBai = u.valTenBai;
+                            ds[idx].tenBaiHoc = u.valTenBai;
+                            ds[idx].dieuChinh = u.valDieuChinh;
+                        } else {
+                            ds.push({
+                                tietPpc: u.valTiet, tiet: u.valTiet,
+                                mon: u.monRow, monHoc: u.monRow,
+                                tenBai: u.valTenBai, tenBaiHoc: u.valTenBai,
+                                dieuChinh: u.valDieuChinh
+                            });
+                        }
+                    };
+
+                    if (u.khoiRow && window.khoPpctToanTruong[u.khoiRow]) {
+                        capNhatMangPpct(window.khoPpctToanTruong[u.khoiRow]);
+                        tapKhoiCapNhat.add(u.khoiRow);
+                    }
+                    if (cheDoXemPPCT !== 'gvbm') {
+                        capNhatMangPpct(duLieuPpctGoc);
+                    }
+
+                    u.tr.removeAttribute('data-da-sua');
+                    u.tr.classList.remove('bg-amber-100', 'hover:bg-amber-200');
+                    u.tr.classList.add('bg-white', 'hover:bg-slate-50');
+                    let badge = u.tr.querySelector('.badge-sua');
                     if (badge) badge.remove();
                 });
+
+                tapKhoiCapNhat.forEach(k => luuKhoPpctVaoStorage(k, window.khoPpctToanTruong[k], true));
+                if (typeof window.lamSachBoNhoSoDauBai === 'function') window.lamSachBoNhoSoDauBai();
+
+                alert(`Đã lưu đè thành công ${mangGhiDaSua.length} dòng PPCT đã sửa lên hệ thống!`);
             } else {
                 alert(`Sự cố lưu trữ: ${ketQua.thongBao}`);
             }
@@ -2917,6 +3009,9 @@ async function luuDuLieuPPCTLenMayChu(event) {
         return;
     }
 
+    // =====================================================================
+    // TRƯỜNG HỢP 2: CẬP NHẬT MỚI TỪ FILE EXCEL -> GIỮ NGUYÊN NHƯ TỆP GỐC
+    // =====================================================================
     const khoi = document.getElementById('locKhoiPPCT').getAttribute('data-khoi-so');
     const lop = document.getElementById('locLopPPCT').value.trim();
     
@@ -2948,11 +3043,9 @@ async function luuDuLieuPPCTLenMayChu(event) {
             // [LOGIC CHUẨN]: Quyết định tên môn gán lên máy chủ
             let monLuuTru = "";
             if (mon === 'Tất cả' || mon === '') {
-                // Lấy tên môn hiển thị trực tiếp trên lưới (Tên file Excel)
                 let theMonTrenLuoi = tr.querySelector('[data-loai="mon"]'); 
                 monLuuTru = theMonTrenLuoi ? theMonTrenLuoi.innerText.trim() : "";
             } else {
-                // Bắt buộc ép theo tên môn tại ô lọc
                 monLuuTru = mon;
             }
 
@@ -2969,7 +3062,6 @@ async function luuDuLieuPPCTLenMayChu(event) {
                 daSua: laDongDaSua 
             });
 
-            // Cập nhật trực tiếp tietPpc vào bộ nhớ TKB của tuần/lớp hiện hành
             let tietTkbItem = duLieuTkbTuan.find(t => String(t.thu) === parts[0] && String(t.buoi) === parts[1] && String(t.tiet) === String(parts[2]));
             if (tietTkbItem) tietTkbItem.tietPpc = valTiet;
             
@@ -2999,10 +3091,8 @@ async function luuDuLieuPPCTLenMayChu(event) {
         
         let mGoc = "";
         if (mon === 'Tất cả' || mon === '') {
-            // Lấy tên môn từ file Excel đang lưu trong bộ nhớ
             mGoc = goc.mon || goc.monHoc || ''; 
         } else {
-            // Bắt buộc ép theo tên môn tại ô lọc
             mGoc = mon;
         }
 
@@ -3022,7 +3112,6 @@ async function luuDuLieuPPCTLenMayChu(event) {
     try {
         const payload = { thaoTac: 'luuPPCT', duLieu: mangGhi };
         
-        // Sử dụng fetchVoiCoCheThuLai để chống lỗi kết nối
         const phanHoi = await (typeof fetchVoiCoCheThuLai === 'function' ? fetchVoiCoCheThuLai : fetch)(CAU_HINH_FRONTEND.URL_API_MAY_CHU, {
             method: 'POST',
             body: JSON.stringify(payload)
@@ -3034,7 +3123,6 @@ async function luuDuLieuPPCTLenMayChu(event) {
             const cacheKeyToClear = `PPCT_CACHE_${tuan}_${lop}_${mon}`;
             localStorage.removeItem(cacheKeyToClear);
 
-            // Đồng bộ tức thì dữ liệu vừa lưu vào kho PPCT của Khối và TKB của (Tuần, Lớp) để không phải tải lại
             luuKhoPpctVaoStorage(khoi, duLieuPpctGoc, true);
             window.khoTkbTuanLopPPCT[`${tuan}_${lop}`] = duLieuTkbTuan;
             window.tapTkbTuanLopDaXacThucPhien.add(`${tuan}_${lop}`);
