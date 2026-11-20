@@ -845,11 +845,17 @@ function kiemTraQuyenDayLopPPCT(lopMucTieu, tuanMucTieu) {
     if (!lopStr) return false;
     let lopUpper = lopStr.toUpperCase();
     let tuanSo = parseInt(String(tuanMucTieu || 1).replace(/\D/g, ''), 10) || 1;
+    let tuanHT = (typeof thongSoHocVu !== 'undefined' && thongSoHocVu.TUAN_HIEN_TAI)
+        ? (parseInt(thongSoHocVu.TUAN_HIEN_TAI, 10) || 1)
+        : ((typeof tuanDangXem !== 'undefined') ? (parseInt(tuanDangXem, 10) || 1) : 1);
 
-    // 0. Ưu tiên dùng hàm sàng lọc lớp được dạy chuẩn của Sổ đầu bài (nếu đã nạp)
+    // 0. Ưu tiên dùng hàm sàng lọc lớp được dạy chuẩn của Sổ đầu bài (tuần tương lai kế thừa từ tuần hiện tại giống GVBM)
     if (typeof window.layDanhSachLopDuocDayTheoTuanSDB === 'function') {
         try {
             let dsLopDuocDay = window.layDanhSachLopDuocDayTheoTuanSDB(tuanSo);
+            if ((!Array.isArray(dsLopDuocDay) || dsLopDuocDay.length === 0) && tuanSo > tuanHT) {
+                dsLopDuocDay = window.layDanhSachLopDuocDayTheoTuanSDB(tuanHT);
+            }
             if (Array.isArray(dsLopDuocDay) && dsLopDuocDay.some(l => String(l || '').trim().toUpperCase() === lopUpper)) {
                 return true;
             }
@@ -941,12 +947,36 @@ function kiemTraQuyenDayLopPPCT(lopMucTieu, tuanMucTieu) {
         }
     }
 
-    // 6. Đồng bộ với bộ lọc lớp được phân công (bao gồm kế thừa tuần tương lai cho chế độ Theo Lớp - GVCN)
+    // 6. Đồng bộ với bộ lọc lớp được phân công (bao gồm kế thừa tuần tương lai từ tuần hiện tại giống GVBM)
     if (typeof layDanhSachLopPhanCongGvbmPPCT === 'function') {
         let { dsLop: dsLopPc } = layDanhSachLopPhanCongGvbmPPCT(tuanSo, '');
         if (Array.isArray(dsLopPc) && dsLopPc.some(l => String(l || '').trim().toUpperCase() === lopUpper)) {
             return true;
         }
+        if (tuanSo > tuanHT) {
+            let { dsLop: dsLopPcHT } = layDanhSachLopPhanCongGvbmPPCT(tuanHT, '');
+            if (Array.isArray(dsLopPcHT) && dsLopPcHT.some(l => String(l || '').trim().toUpperCase() === lopUpper)) {
+                return true;
+            }
+        }
+    }
+
+    // 7. Kế thừa trực tiếp quyền dạy lớp ở tuần hiện tại cho các tuần tương lai (> tuanHT)
+    if (tuanSo > tuanHT) {
+        if (typeof window.sangLocTkbTuanDaCo === 'function') {
+            let kqTuanHT = window.sangLocTkbTuanDaCo(tuanHT, 'TKB_HIEN_TAI');
+            if (kqTuanHT && Array.isArray(kqTuanHT.ds)) {
+                for (let i = 0; i < kqTuanHT.ds.length; i++) {
+                    let t = kqTuanHT.ds[i];
+                    if (String(t.maLop || '').trim().toUpperCase() === lopUpper &&
+                        String(t.monHoc || '').trim() !== '' &&
+                        banGhiTkbKhopNguoiDayPPCT(t, tapNguoiDung)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return kiemTraQuyenDayLopPPCT(lopStr, tuanHT);
     }
 
     return false;
