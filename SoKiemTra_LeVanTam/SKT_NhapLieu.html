@@ -1684,16 +1684,20 @@ function xulyxo() {
           card.onclick = () => chonCuocKTTuDanhSach(c.maHS);
 
           const vaiTroHtml = (c.laNKT && c.laGV)
-              ? `<span class="cuoc-kt-badge cuoc-kt-badge-nkt">NKT & NĐKT: ${escHtmlSKT(c.gv || '—')}</span>`
+              ? `<span class="cuoc-kt-badge cuoc-kt-badge-nkt">NKT: ${escHtmlSKT(c.nkt || '—')}</span>`
               : (c.laNKT
-                  ? '<span class="cuoc-kt-badge cuoc-kt-badge-nkt">Người kiểm tra</span>'
+                  ? `<span class="cuoc-kt-badge cuoc-kt-badge-nkt">NKT: ${escHtmlSKT(c.nkt || '—')}</span>`
                   : `<span class="cuoc-kt-badge cuoc-kt-badge-gv">NĐKT: ${escHtmlSKT(c.gv || '—')}</span>`);
 
-          const trangThaiHtml = c.daKyHet
-              ? '<span class="cuoc-kt-badge cuoc-kt-badge-ky">✓ Đã ký</span>'
-              : '<span class="cuoc-kt-badge cuoc-kt-badge-chua">Chờ ký</span>';
+          const trangThaiHtml = c.laNKT
+              ? (c.daKyHet
+                  ? '<span class="cuoc-kt-badge cuoc-kt-badge-ky">Chờ nộp</span>'
+                  : '<span class="cuoc-kt-badge cuoc-kt-badge-chua">Chờ ký</span>')
+              : (c.daKyHet
+                  ? '<span class="cuoc-kt-badge cuoc-kt-badge-ky">✓ Đã ký</span>'
+                  : '<span class="cuoc-kt-badge cuoc-kt-badge-chua">Chưa ký</span>');
 
-          const doiTac = c.laNKT ? `GV: ${c.gv || '—'}` : `NKT: ${c.nkt || '—'}`;
+          const doiTac = c.laNKT ? `NĐKT: ${c.gv || '—'}` : `NKT: ${c.nkt || '—'}`;
           const ndNgan = c.noiDung ? (c.noiDung.length > 35 ? c.noiDung.slice(0, 35) + '…' : c.noiDung) : 'Chưa có nội dung';
 
           card.innerHTML = `
