@@ -602,12 +602,17 @@ function thuGonHienThiDiem(sel) {
     }
 }
 
+function pgvTabCoQuyen(ma, fallback) {
+    if (typeof window.pgvCoQuyen === 'function') return window.pgvCoQuyen(ma, fallback);
+    if (typeof window.PGV_PERMS === 'object' && window.PGV_PERMS && typeof window.PGV_PERMS[ma] === 'boolean') return window.PGV_PERMS[ma];
+    return !!fallback;
+}
 function kiemTraLaBGH() {
     if (typeof window.PGV_QUYEN !== 'undefined' && (window.PGV_QUYEN === 'xxx' || window.PGV_QUYEN === 'xx')) return true;
     if (typeof canbHientai !== 'undefined' && (canbHientai.quyen === 'xxx' || canbHientai.quyen === 'xx')) return true;
     return false;
 }
-  function kiemTraLaXXX() {
+function kiemTraLaXXX() {
     if (typeof window.PGV_QUYEN !== 'undefined' && window.PGV_QUYEN === 'xxx') return true;
     if (typeof canbHientai !== 'undefined' && canbHientai && canbHientai.quyen === 'xxx') return true;
     return false;
@@ -654,7 +659,7 @@ function kiemTraQuyenTruyCap() {
     // --- QUY ĐỊNH RIÊNG CHO Ô ĐIỂM CỘNG/TRỪ ---
     // Chỉ duy nhất người có quyền "xxx" mới được mở khóa (khi hồ sơ chưa bị Khóa)
     if (diemThuong) {
-        if (isXXX && trangThaiKhoa !== "Khóa") {
+        if (pgvTabCoQuyen('nv_sua_diem_ct', isXXX) && trangThaiKhoa !== "Khóa") {
             diemThuong.disabled = false;
         } else {
             diemThuong.disabled = true;
@@ -734,12 +739,14 @@ function thietLapNutKhoa(trangThai, ngayKhoa = "") {
     trangThaiKhoa = ttKhoa;
     
     let isXXX = kiemTraLaXXX();
+    let coQuyenKhoa1 = pgvTabCoQuyen('nv_khoa_mo_1', isXXX);
+    let coQuyenKhoaAll = pgvTabCoQuyen('nv_khoa_mo_all', isXXX);
     let btnAll = document.getElementById("nutKhoaTatCa");
     let btn = document.getElementById("nutMoKhoa");
     let spanNgay = document.getElementById("hienThiNgayKhoa"); 
     
     if(btnAll) {
-        if(isXXX) {
+        if(coQuyenKhoaAll) {
             btnAll.style.setProperty('display', 'inline-block', 'important');
             if (ttKhoa === "Khóa") {
                 btnAll.setAttribute("data-tt", "Mở");
@@ -756,7 +763,7 @@ function thietLapNutKhoa(trangThai, ngayKhoa = "") {
     }
 
     if (btn) {
-        if (isXXX) {
+        if (coQuyenKhoa1) {
             btn.style.setProperty('display', 'inline-flex', 'important');
         } else {
             btn.style.setProperty('display', 'none', 'important');
@@ -783,7 +790,7 @@ function thietLapNutKhoa(trangThai, ngayKhoa = "") {
 }
 
 function doiTrangThaiKhoa() {
-    if (!kiemTraLaXXX()) {
+    if (!pgvTabCoQuyen('nv_khoa_mo_1', kiemTraLaXXX())) {
         if (typeof hienThongb === 'function') hienThongb('loi', "⚠️ Đồng chí không có thẩm quyền thao tác nút chức năng này.");
         return;
     }
@@ -839,7 +846,7 @@ function doiTrangThaiKhoa() {
 }
 
   function doiTrangThaiKhoaTatCa() {
-    if (!kiemTraLaXXX()) {
+    if (!pgvTabCoQuyen('nv_khoa_mo_all', kiemTraLaXXX())) {
         if (typeof hienThongb === 'function') hienThongb('loi', "⚠️ Đồng chí không có thẩm quyền!");
         return;
     }
@@ -889,7 +896,7 @@ function apDungKhoaGiaoDien() {
     
     var selectGv = document.getElementById("hopChonGv");
     var daChonGvKhac = selectGv && selectGv.style.display !== "none" && selectGv.value && selectGv.value !== "";
-    let isBGH = kiemTraLaBGH();
+    let isBGH = kiemTraLaBGH() || pgvTabCoQuyen('nv_ghi_ykien_ld', false);
     let isGS = kiemTraLaGS();
 
     $('#nhapSngayNghi, #nhapLdoNghi, #nhapYkien, #oNoiDungYkienLanhDao, #nhapBcao').prop('disabled', isLocked);
@@ -945,7 +952,7 @@ function apDungKhoaGiaoDien() {
 }
   
 function xulyLuuTam(ath = false, xltc = null) {
-    var isBGH = kiemTraLaBGH();
+    var isBGH = kiemTraLaBGH() || pgvTabCoQuyen('nv_ghi_ykien_ld', false);
     var isGS = kiemTraLaGS();
     let maTrangDich = (typeof canbHientai !== 'undefined' && canbHientai && canbHientai.canb) ? canbHientai.canb.ttrg : "";
 
@@ -1341,6 +1348,7 @@ function veBangNviec(db) {
     let isXXX = false;
     if (typeof window.PGV_QUYEN !== 'undefined') isXXX = (window.PGV_QUYEN === 'xxx');
     else if (typeof canbHientai !== 'undefined' && canbHientai) isXXX = (canbHientai.quyen === 'xxx');
+    isXXX = pgvTabCoQuyen('nv_xoa_dong', isXXX);
 
     const thXoa = $('#bangNviec thead th:last-child');
     if (isXXX) {
@@ -2648,7 +2656,8 @@ const tinhtTdong = debounce(function() {
 function capnhTdong() { tinhtTdong(); }
 
 function khoiTaoTheoQuyen() {
-    if (typeof canbHientai !== 'undefined' && canbHientai && (canbHientai.quyen === 'xx' || canbHientai.quyen === 'xxx' || canbHientai.quyen === 'gs')) {
+    var qHienTai = (typeof canbHientai !== 'undefined' && canbHientai) ? canbHientai.quyen : '';
+    if (pgvTabCoQuyen('nv_chon_gv_khac', qHienTai === 'xx' || qHienTai === 'xxx' || qHienTai === 'gs')) {
         if (typeof khachApi !== 'undefined' && typeof khachApi.gvLaydsCanb === 'function') { 
             khachApi.gvLaydsCanb(function(dl) { xuLyCotE(canbHientai.quyen, dl); }, function(err) { xuLyCotE(canbHientai.quyen, []); }); 
         } else { xuLyCotE(canbHientai.quyen, []); }
@@ -2662,7 +2671,7 @@ function khoiTaoTheoQuyen() {
     let isXXX = kiemTraLaXXX();
     let btn = document.getElementById("nutMoKhoa");
     if(btn) {
-        if(isXXX) {
+        if(pgvTabCoQuyen('nv_khoa_mo_1', isXXX)) {
             btn.style.setProperty('display', 'inline-flex', 'important');
         } else {
             btn.style.setProperty('display', 'none', 'important');
@@ -2671,7 +2680,7 @@ function khoiTaoTheoQuyen() {
     
     let btnAll = document.getElementById("nutKhoaTatCa");
     if(btnAll) {
-        if(isXXX) {
+        if(pgvTabCoQuyen('nv_khoa_mo_all', isXXX)) {
             btnAll.style.setProperty('display', 'inline-block', 'important');
         } else {
             btnAll.style.setProperty('display', 'none', 'important');
@@ -3385,9 +3394,18 @@ function kiemTraHienThiNutQuyChe() {
     if (typeof window.PGV_QUYEN !== 'undefined') isXXX = (window.PGV_QUYEN === 'xxx');
     else if (typeof canbHientai !== 'undefined' && canbHientai) isXXX = (canbHientai.quyen === 'xxx');
 
+    const btnXem = document.getElementById("btnXemQuyChe");
+    if (btnXem) {
+        if (pgvTabCoQuyen('btn_xem_quy_che', true)) {
+            btnXem.style.setProperty('display', 'inline-flex', 'important');
+        } else {
+            btnXem.style.setProperty('display', 'none', 'important');
+        }
+    }
+
     const btnUpload = document.getElementById("btnTaiQuyChe");
     if (btnUpload) {
-        if (isXXX) {
+        if (pgvTabCoQuyen('btn_tai_quy_che', isXXX)) {
             btnUpload.style.setProperty('display', 'inline-flex', 'important');
         } else {
             btnUpload.style.setProperty('display', 'none', 'important');
