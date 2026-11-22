@@ -555,7 +555,7 @@
       <button type="button" class="btn-close btn-close-white" style="font-size: 11px;" onclick="dongModalMinhChung()" aria-label="Đóng"></button>
     </div>
     <div class="card-body p-3">
-      <div id="mcThongTinNhiemVu" class="p-2 mb-2 bg-light border rounded small text-dark" style="max-height: 90px; overflow-y: auto; line-height: 1.4;"></div>
+      <div id="mcThongTinNhiemVu" class="p-2 mb-2 bg-light border rounded text-dark" style="max-height: 140px; overflow-y: auto; line-height: 1.45; font-size: 14px;"></div>
       <label id="mcNhanNoiDung" for="txtMinhChungModal" class="form-label fw-bold small text-primary mb-1">Nội dung minh chứng <span class="text-danger">*</span></label>
       <textarea id="txtMinhChungModal" class="form-control" rows="4" placeholder="Hãy viết nội dung đã làm được theo yêu cầu tiêu chí Hoặc nếu có báo cáo chi tiết đính kèm đã thể hiện thì hãy nhập (Đã có báo cáo đính kèm)" style="font-size: 13px; resize: vertical;" oninput="anCanhBaoModalMinhChung()"></textarea>
       <div id="mcCanhBaoLoi" class="alert alert-danger py-1 px-2 mt-2 mb-0 small fw-bold" style="display: none; font-size: 12px;"><i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="mcCanhBaoText">Vui lòng nhập nội dung minh chứng trước khi xác nhận.</span></div>
@@ -899,7 +899,8 @@ function apDungKhoaGiaoDien() {
     let isBGH = kiemTraLaBGH() || pgvTabCoQuyen('nv_ghi_ykien_ld', false);
     let isGS = kiemTraLaGS();
 
-    $('#nhapSngayNghi, #nhapLdoNghi, #nhapYkien, #oNoiDungYkienLanhDao, #nhapBcao').prop('disabled', isLocked);
+    $('#nhapSngayNghi, #nhapLdoNghi, #oNoiDungYkienLanhDao').prop('disabled', isLocked);
+    $('#nhapYkien, #nhapBcao').prop('disabled', false);
     if (isLocked) {
         $('#nhapSngayNghi, #nhapLdoNghi, #nhapYkien, #oNoiDungYkienLanhDao, #nhapBcao').prop('readonly', true);
     } else {
@@ -926,14 +927,16 @@ function apDungKhoaGiaoDien() {
 
     if (daChonGvKhac) {
         // Góc nhìn của người đánh giá: Luôn hiển thị để nhập ý kiến
+        // Dùng readonly thay vì disabled cho #nhapYkien, #nhapBcao để người giám sát vẫn click giãn rộng đọc toàn bộ nội dung mà không sửa được
         $('#vungYkienLanhDaoToanBo').show();
         if (isBGH || isGS) {
-            $('#nhapYkien, #nhapBcao').prop('disabled', true);
+            $('#nhapYkien, #nhapBcao').prop('disabled', false).prop('readonly', true);
             $('#oNoiDungYkienLanhDao').prop('disabled', false).prop('readonly', false);
             $('#nhapSngayNghi, #nhapLdoNghi').prop('disabled', true);
             $('.bi-paperclip').closest('button').prop('disabled', false); 
         } else {
-            $('#nhapYkien, #nhapBcao, #oNoiDungYkienLanhDao').prop('disabled', true);
+            $('#nhapYkien, #nhapBcao').prop('disabled', false).prop('readonly', true);
+            $('#oNoiDungYkienLanhDao').prop('disabled', true);
         }
     } else {
         // Góc nhìn của chính chủ: Chỉ hiển thị vùng phản hồi khi ĐÃ CÓ ý kiến của người đánh giá
@@ -2066,6 +2069,36 @@ function laMucDiemNhoNhat(dongHienTai, giaTriDiem) {
     return false;
 }
 
+function layMucTieuMucDiemCuaDong(dongHienTai, giaTriDiem, cheDo = "") {
+    if (!dongHienTai) return "";
+    let valFloat = parseFloat(String(giaTriDiem || "").replace(/,/g, '.'));
+    let cacMuc = dongHienTai.querySelectorAll('.khung-danh-sach .muc-chon');
+    let dsMuc = [];
+    cacMuc.forEach((muc, idx) => {
+        if (idx === 0) return;
+        let txt = (muc.innerText || muc.textContent || "").replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+        let oncl = muc.getAttribute('onclick') || "";
+        let m = oncl.match(/'([^']*)'/);
+        let valStr = m ? m[1].trim() : "";
+        let num = parseFloat(valStr.replace(/,/g, '.'));
+        if (txt !== "") {
+            dsMuc.push({ txt: txt.replace(/^[-•*]\s*/, '').trim(), valStr: valStr, num: isNaN(num) ? null : num });
+        }
+    });
+    if (dsMuc.length === 0) return "";
+    if (!isNaN(valFloat)) {
+        let khop = dsMuc.find(item => item.num !== null && Math.abs(item.num - valFloat) < 1e-6);
+        if (khop) return khop.txt;
+    }
+    let coSo = dsMuc.filter(item => item.num !== null);
+    if (coSo.length > 0) {
+        coSo.sort((a, b) => a.num - b.num);
+        if (cheDo === 'min') return coSo[0].txt;
+        if (cheDo === 'max') return coSo[coSo.length - 1].txt;
+    }
+    return "";
+}
+
 function moModalMinhChung(dongHienTai, giaTriDiem, giaTriTruocDo = "", cheDo = "max") {
     let oBcao = document.getElementById('nhapBcao');
     if (!oBcao || oBcao.disabled || oBcao.readOnly) return;
@@ -2101,9 +2134,11 @@ function moModalMinhChung(dongHienTai, giaTriDiem, giaTriTruocDo = "", cheDo = "
     let nd = dongHienTai.querySelector('.nhapNdung') ? dongHienTai.querySelector('.nhapNdung').value.trim() : "";
     let dMax = dongHienTai.querySelector('.nhapDiemMax') ? dongHienTai.querySelector('.nhapDiemMax').value.trim() : giaTriDiem;
 
+    let mucTieuModal = layMucTieuMucDiemCuaDong(dongHienTai, giaTriDiem, cheDo);
     if (infoEl) {
         let nhanStt = stt ? `<span class="badge bg-primary me-1">TT ${stt}</span>` : "";
-        infoEl.innerHTML = `${nhanStt}<strong>Điểm đạt: ${giaTriDiem}${dMax ? '/' + dMax : ''}</strong><div class="mt-1">${nd.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
+        let htmlMucTieu = mucTieuModal ? `<div class="mt-2 text-danger fw-bold" style="font-size: 14.5px; line-height: 1.45;"><strong>Mục tiêu yêu cầu:</strong> ${mucTieuModal.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : "";
+        infoEl.innerHTML = `${nhanStt}<strong>Điểm đạt: ${giaTriDiem}${dMax ? '/' + dMax : ''}</strong><div class="mt-1">${nd.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>${htmlMucTieu}`;
     }
 
     let modeCu = dongHienTai.getAttribute('data-minh-chung-mode') || "";
@@ -2194,7 +2229,7 @@ function xoaMinhChungCuaDong(dongHienTai) {
                     daXoa = true;
                     return false;
                 }
-                if (tenTieuChi !== "" && phanNoiDung.startsWith(tenTieuChi + " (") && phanNoiDung.includes(" điểm):")) {
+                if (tenTieuChi !== "" && (phanNoiDung.startsWith(tenTieuChi + " (") || phanNoiDung.startsWith(tenTieuChi + " [")) && phanNoiDung.includes(" điểm")) {
                     daXoa = true;
                     return false;
                 }
@@ -2266,7 +2301,7 @@ function layCacDongMinhChungBaoVe(noiDung) {
         if (!m) return false;
         let phanSau = m[2].trim();
         if (tapDongDaLuu.has(phanSau)) return true;
-        return /^.+\([^)]*điểm\):\s*.+$/.test(phanSau);
+        return /^.+\([^)]*điểm.*\).+$/.test(phanSau);
     });
 }
 
@@ -2335,10 +2370,15 @@ function xacNhanMinhChung() {
 
     let tenTieuChi = _dongDangNhapMinhChung.querySelector('.nhapNdung') ? _dongDangNhapMinhChung.querySelector('.nhapNdung').value.replace(/[\r\n]+/g, ' ').trim() : "";
     let diemDat = _dongDangNhapMinhChung.querySelector('.chonKq') ? _dongDangNhapMinhChung.querySelector('.chonKq').value.trim() : "";
+    let mucTieuYc = layMucTieuMucDiemCuaDong(_dongDangNhapMinhChung, diemDat, _cheDoModalMinhChung);
+    let moTaMucTieu = mucTieuYc !== "" ? ` - Mục tiêu: ${mucTieuYc}` : "";
+    let nhanNoiBat = (_cheDoModalMinhChung === 'min') ? 'LÝ DO' : 'MINH CHỨNG';
     let phanTieuDe = tenTieuChi !== ""
-        ? `${tenTieuChi}${diemDat !== "" ? ` (${diemDat} điểm)` : ""}: `
-        : (diemDat !== "" ? `(${diemDat} điểm): ` : "");
-    let dongDinhDang = `${phanTieuDe}${noiDungMc}`;
+        ? `${tenTieuChi}${diemDat !== "" ? ` (${diemDat} điểm${moTaMucTieu})` : (mucTieuYc !== "" ? ` (${mucTieuYc})` : "")}`
+        : (diemDat !== "" ? `(${diemDat} điểm${moTaMucTieu})` : (mucTieuYc !== "" ? `(${mucTieuYc})` : ""));
+    let dongDinhDang = phanTieuDe !== ""
+        ? `${phanTieuDe} => 【${nhanNoiBat}: ${noiDungMc}】`
+        : `【${nhanNoiBat}: ${noiDungMc}】`;
 
     let mcCu = _dongDangNhapMinhChung.getAttribute('data-minh-chung') || "";
     let mcDongCu = _dongDangNhapMinhChung.getAttribute('data-minh-chung-dong') || "";
