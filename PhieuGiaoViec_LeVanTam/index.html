@@ -4,7 +4,44 @@
   <link rel="icon" id="page_favicon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
   <base target="_top">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script>
+    (function() {
+      var vpContent = "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no";
+      function khoaViewportDoc(doc) {
+        try {
+          if (!doc || !doc.head) return;
+          var vp = doc.querySelector('meta[name="viewport"]');
+          if (vp) {
+            vp.setAttribute("content", vpContent);
+          } else {
+            vp = doc.createElement("meta");
+            vp.name = "viewport";
+            vp.content = vpContent;
+            doc.head.appendChild(vp);
+          }
+        } catch (e) {}
+      }
+      function datLaiTyLe() {
+        khoaViewportDoc(document);
+        try {
+          if (window.top && window.top !== window.self) {
+            khoaViewportDoc(window.top.document);
+          }
+        } catch (e) {}
+      }
+      datLaiTyLe();
+      document.addEventListener("DOMContentLoaded", datLaiTyLe);
+      window.addEventListener("load", datLaiTyLe);
+      document.addEventListener("focusin", function(e) {
+        if (e.target && /^(INPUT|SELECT|TEXTAREA)$/i.test(e.target.tagName)) {
+          datLaiTyLe();
+          setTimeout(datLaiTyLe, 50);
+          setTimeout(datLaiTyLe, 250);
+        }
+      }, true);
+    })();
+  </script>
   <title>Đánh giá hiệu quả công việc</title>
 
   <!-- CẤU HÌNH WEB APP / PWA STANDALONE TOÀN MÀN HÌNH -->
@@ -79,16 +116,49 @@
         scriptConfig.src = 'ketnoi.js?v=' + new Date().getTime();
         scriptConfig.onload = function() {
             applyPGVConfig();
-            
-            var scriptGSI = document.createElement('script');
-            scriptGSI.src = "https://accounts.google.com/gsi/client";
-            scriptGSI.onload = function() {
-                kiemTraPhienLamViec();
+
+            var trangChuBase = (typeof PGV_LINK_TRANG_CHU !== 'undefined' && PGV_LINK_TRANG_CHU.trim() !== '')
+                ? PGV_LINK_TRANG_CHU.replace(/\/+$/, '')
+                : 'https://gdlaocailci.github.io/thlevantam';
+
+            var chayKhiSanSangDOM = function(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn, { once: true });
+                } else {
+                    fn();
+                }
             };
-            scriptGSI.onerror = function() {
-                document.getElementById('khu_vuc_nut_dang_nhap').innerHTML = "<span class='text-danger'>Lỗi kết nối tới máy chủ Google.</span>";
+
+            var tiepTucKhoiTaoDangNhap = function() {
+                if (sessionStorage.getItem("MA_PBAN_HT") && sessionStorage.getItem("PGV_TOKEN")) {
+                    chayKhiSanSangDOM(kiemTraPhienLamViec);
+                    return;
+                }
+                if (layNguoiDungSSO()) {
+                    chayKhiSanSangDOM(kiemTraPhienLamViec);
+                    return;
+                }
+                var scriptGSI = document.createElement('script');
+                scriptGSI.src = "https://accounts.google.com/gsi/client";
+                scriptGSI.onload = function() {
+                    chayKhiSanSangDOM(kiemTraPhienLamViec);
+                };
+                scriptGSI.onerror = function() {
+                    chayKhiSanSangDOM(function() {
+                        var el = document.getElementById('khu_vuc_nut_dang_nhap');
+                        if (el) el.innerHTML = "<span class='text-danger'>Lỗi kết nối tới máy chủ Google.</span>";
+                    });
+                };
+                chayKhiSanSangDOM(function() {
+                    document.body.appendChild(scriptGSI);
+                });
             };
-            document.body.appendChild(scriptGSI);
+
+            var scriptSSO = document.createElement('script');
+            scriptSSO.src = trangChuBase + '/sso-client.js?v=' + new Date().getTime();
+            scriptSSO.onload = tiepTucKhoiTaoDangNhap;
+            scriptSSO.onerror = tiepTucKhoiTaoDangNhap;
+            document.head.appendChild(scriptSSO);
         };
         scriptConfig.onerror = function() {
             document.getElementById('hopLoi').style.display = 'block';
@@ -129,10 +199,48 @@
         document.head.appendChild(metaDesc);
     }
 
+function layNguoiDungSSO() {
+    var skipEmail = (sessionStorage.getItem("PGV_BO_QUA_SSO_EMAIL") || "").trim().toLowerCase();
+    var user = null;
+    if (window.HT_SSO && typeof window.HT_SSO.getUser === 'function') {
+        user = window.HT_SSO.getUser();
+    }
+    if (!user) {
+        try {
+            var token = localStorage.getItem('HT_SSO_TOKEN');
+            if (token) {
+                var payload = giaimaJwt(token);
+                if (payload && payload.email) {
+                    user = {
+                        email: payload.email,
+                        name: payload.name || payload.email,
+                        picture: payload.picture || '',
+                        token: token
+                    };
+                }
+            }
+        } catch (e) {}
+    }
+    if (user && user.email && skipEmail && user.email.trim().toLowerCase() === skipEmail) {
+        return null;
+    }
+    return user;
+}
+
 function kiemTraPhienLamViec() {
-    const tkluuhd = sessionStorage.getItem("MA_PBAN_HT");
-    const tokenluu = sessionStorage.getItem("PGV_TOKEN"); 
+    let tkluuhd = sessionStorage.getItem("MA_PBAN_HT");
+    let tokenluu = sessionStorage.getItem("PGV_TOKEN"); 
     const daGhiLs = sessionStorage.getItem("DA_GHI_LS"); 
+
+    if (!tkluuhd || !tokenluu) {
+        const ssoUser = layNguoiDungSSO();
+        if (ssoUser && ssoUser.email && ssoUser.token) {
+            tkluuhd = ssoUser.email;
+            tokenluu = ssoUser.token;
+            sessionStorage.setItem("MA_PBAN_HT", tkluuhd);
+            sessionStorage.setItem("PGV_TOKEN", tokenluu);
+        }
+    }
 
     if (tkluuhd && tokenluu) { 
         window.PGV_ID_TC = tkluuhd; 
@@ -184,6 +292,7 @@ function xulyPhienDn(phanho) {
             return;
         }
         
+        sessionStorage.removeItem("PGV_BO_QUA_SSO_EMAIL");
         sessionStorage.setItem("MA_PBAN_HT", idht);
         sessionStorage.setItem("PGV_TOKEN", phanho.credential);
         
@@ -209,6 +318,7 @@ function xulyPhienDn(phanho) {
     }
 
     function thoatTaik() { 
+        if (window.PGV_ID_TC) sessionStorage.setItem("PGV_BO_QUA_SSO_EMAIL", String(window.PGV_ID_TC).trim().toLowerCase());
         sessionStorage.removeItem("MA_PBAN_HT"); 
         sessionStorage.removeItem("PGV_TOKEN"); 
         sessionStorage.removeItem("DA_GHI_LS"); 
@@ -372,6 +482,13 @@ th.cot-thang-hien-tai-th { background-color: #ffc107 !important; color: #000 !im
 
     /* Kích hoạt khi xem trên điện thoại hoặc máy tính bảng nhỏ */
     @media screen and (max-width: 768px) {
+        html, body {
+            touch-action: manipulation;
+        }
+        input, select, textarea {
+            font-size: 16px !important;
+            touch-action: manipulation;
+        }
         /* Ẩn hoàn toàn cụm điều khiển cửa sổ trên điện thoại để trả lại 100% giao diện gốc */
         #cumDieuKhienCuaSo {
             display: none !important;
@@ -1404,6 +1521,10 @@ function taiTepDangXem() {
   });
 
   </script>
+
+<!-- =========================================================================================
+       [NÂNG CẤP TOÀN DIỆN] KHỐI LOGIC: Ý KIẾN GIÁM SÁT (ĐỒNG BỘ D4 VÀ DATAGV QUÁ KHỨ)
+       ========================================================================================= -->
   <script>
   let duLieuYkienHienTaiD4 = [];   // Lưu trữ bản sao dữ liệu D4 thời gian thực
   let duLieuYkienDataGV = [];      // Lưu trữ dữ liệu lịch sử DATAGV
