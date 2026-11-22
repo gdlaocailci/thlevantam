@@ -339,6 +339,9 @@
       padding: 1px 6px;
       border-radius: 10px;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
   }
   .cuoc-kt-badge-nkt { background: #dbeafe; color: #1e40af; }
   .cuoc-kt-badge-gv { background: #fef3c7; color: #92400e; }
@@ -1681,10 +1684,10 @@ function xulyxo() {
           card.onclick = () => chonCuocKTTuDanhSach(c.maHS);
 
           const vaiTroHtml = (c.laNKT && c.laGV)
-              ? '<span class="cuoc-kt-badge cuoc-kt-badge-nkt">Kiểm tra & Được KT</span>'
+              ? `<span class="cuoc-kt-badge cuoc-kt-badge-nkt">NKT & NĐKT: ${escHtmlSKT(c.gv || '—')}</span>`
               : (c.laNKT
                   ? '<span class="cuoc-kt-badge cuoc-kt-badge-nkt">Người kiểm tra</span>'
-                  : '<span class="cuoc-kt-badge cuoc-kt-badge-gv">Được kiểm tra</span>');
+                  : `<span class="cuoc-kt-badge cuoc-kt-badge-gv">NĐKT: ${escHtmlSKT(c.gv || '—')}</span>`);
 
           const trangThaiHtml = c.daKyHet
               ? '<span class="cuoc-kt-badge cuoc-kt-badge-ky">✓ Đã ký</span>'
