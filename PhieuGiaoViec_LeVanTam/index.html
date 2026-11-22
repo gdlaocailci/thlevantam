@@ -778,28 +778,31 @@ async function taiGiaoDienUuTien(daCoSanCache = false) {
     }
 }
 
-    // Tải HTML ngầm dựa trên phân quyền, trả về Promise để đồng bộ
-    async function taiGiaoDienNen(quyen) {
+    // Tải HTML ngầm dựa trên Ma trận phân quyền (tương thích ngược với quyen cũ)
+    async function taiGiaoDienNen(quyen, perms) {
         const mb = "?v=" + new Date().getTime();
-        let mangTai = [
-            { id: 'khuTongHop', url: './PGV_Tab_TongHop.html' },
-            { id: 'khuNghi', url: './PGV_Tab_Nghi.html' },
-            { id: 'khuYkien', url: './PGV_Tab_YKien.html' },
-            { id: 'khuBaoCao', url: './PGV_Tab_BaoCao.html' }
-        ];
+        const co = (ma, fb) => (perms && typeof perms[ma] === 'boolean') ? perms[ma] : fb;
+        let mangTai = [];
+        if (co('tab_tong_hop', true)) mangTai.push({ id: 'khuTongHop', url: './PGV_Tab_TongHop.html' });
+        if (co('tab_nghi', true)) mangTai.push({ id: 'khuNghi', url: './PGV_Tab_Nghi.html' });
+        if (co('tab_ykien', true)) mangTai.push({ id: 'khuYkien', url: './PGV_Tab_YKien.html' });
+        if (co('tab_bao_cao', true)) mangTai.push({ id: 'khuBaoCao', url: './PGV_Tab_BaoCao.html' });
 
-        if (quyen === 'x' || quyen === 'xx' || quyen === 'xxx') {
+        if (co('tab_giao_viec', quyen === 'x' || quyen === 'xx' || quyen === 'xxx')) {
             mangTai.unshift({ id: 'khuGiaoViecChinh', url: './PGV_Tab_GiaoViec.html' });
         }
         
-        if (quyen === 'xxx') {
+        if (co('tab_cap_quyen', quyen === 'xxx')) {
             mangTai.push({ id: 'khuCapQuyen', url: './PGV_PhanQuyen.html' });
+        }
+
+        if (co('tab_tieu_chi', quyen === 'xxx')) {
             mangTai.push({ id: 'khuTieuChi', url: './TieuChiDanhGia.html' });
             mangTai.push({ id: 'khuTieuChiNV', url: './Tieuchinhanvien.html' });
             mangTai.push({ id: 'khuTieuChiQL', url: './TieuChiQuanLy.html' });
         }
 
-        if (quyen === 'gs' || quyen === 'xx' || quyen === 'xxx') {
+        if (co('tab_lich_su', quyen === 'gs' || quyen === 'xx' || quyen === 'xxx')) {
             mangTai.push({ id: 'khuLichSu', url: './LichSuDangNhap.html' });
         }
 
@@ -895,40 +898,44 @@ async function taiGiaoDienUuTien(daCoSanCache = false) {
       
       var isSelf = (kq.canb && kq.canb.taik === window.PGV_ID_TC);
       var quyen = kq.quyen || '';
+      var perms = kq.perms || {};
+      window.PGV_PERMS = perms;
+      window.pgvCoQuyen = function(ma, fallback) {
+          return (window.PGV_PERMS && typeof window.PGV_PERMS[ma] === 'boolean') ? window.PGV_PERMS[ma] : !!fallback;
+      };
+      var coQuyen = window.pgvCoQuyen;
       
-      if (quyen === 'xx' || quyen === 'xxx' || quyen === 'gs') {
+      if (coQuyen('nv_chon_gv_khac', quyen === 'xx' || quyen === 'xxx' || quyen === 'gs')) {
           hs.show().prop('disabled', false).removeClass('bg-secondary text-white');
           if (hs.find('option:first').text().includes('Đang tải')) hs.find('option:first').text('-- GV --');
       } else {
           hs.hide();
       }
       
-      if (quyen === 'x' || quyen === 'xx' || quyen === 'xxx') {
+      window.PGV_SHOW_GIAOVIEC = coQuyen('tab_giao_viec', quyen === 'x' || quyen === 'xx' || quyen === 'xxx');
+      if (window.PGV_SHOW_GIAOVIEC) {
           $('#khuGiaoViec').show();
       } else {
           $('#khuGiaoViec').hide();
       }
       
-      window.PGV_SHOW_CAPQUYEN = (quyen === 'xxx');
-      window.PGV_SHOW_TIEUCHI = (quyen === 'xxx'); 
+      window.PGV_SHOW_CAPQUYEN = coQuyen('tab_cap_quyen', quyen === 'xxx');
+      window.PGV_SHOW_TIEUCHI = coQuyen('tab_tieu_chi', quyen === 'xxx'); 
       
       if (typeof kiemTraHienThiTabCapQuyen === 'function') kiemTraHienThiTabCapQuyen();
       if (typeof kiemTraHienThiTabTieuChi === 'function') kiemTraHienThiTabTieuChi();
-     if (typeof kiemTraHienThiNutQuyChe === 'function') kiemTraHienThiNutQuyChe();
+      if (typeof kiemTraHienThiNutQuyChe === 'function') kiemTraHienThiNutQuyChe();
       
-      var canEditScore = false;
-      if (quyen === 'xx' && !isSelf) canEditScore = true;
-      if (quyen === 'xxx') canEditScore = true;
-      
-      var canSaveForOther = (quyen === 'xxx');
-      var canSaveForSelf = true;
-      var canShowDeleteButton = (quyen === 'xxx');
+      var canEditScore = coQuyen('nv_sua_diem_ct', (quyen === 'xx' && !isSelf) || quyen === 'xxx');
+      var canSaveForOther = coQuyen('nv_ghi_ykien_ld', quyen === 'xxx' || quyen === 'xx' || quyen === 'gs');
+      var canSaveForSelf = coQuyen('btn_luu_tam', true);
+      var canShowDeleteButton = coQuyen('nv_xoa_dong', quyen === 'xxx');
       var canAddRow = true;
       
-      var giaoViecReadonly = (quyen !== 'xxx');
-      var showChuyenThang = (quyen === 'xxx');
-      var showBatchUpdate = (quyen === 'xxx');
-      var yearMonthReadonly = (quyen === 'x');
+      var giaoViecReadonly = !coQuyen('gv_sua_nguoi_khac', quyen === 'xxx');
+      var showChuyenThang = coQuyen('gv_chuyen_thang', quyen === 'xxx');
+      var showBatchUpdate = coQuyen('gv_cap_nhat_chung', quyen === 'xxx' || quyen === 'xx');
+      var yearMonthReadonly = !coQuyen('gv_cap_nhat_chung', quyen !== 'x');
       
       window.PGV_QUYEN = quyen;
       window.PGV_IS_SELF = isSelf;
@@ -941,15 +948,14 @@ async function taiGiaoDienUuTien(daCoSanCache = false) {
       window.PGV_SHOW_CHUYEN_THANG = showChuyenThang;
       window.PGV_SHOW_BATCH_UPDATE = showBatchUpdate;
       window.PGV_YEAR_MONTH_READONLY = yearMonthReadonly;
-      window.PGV_SHOW_LICHSU = (quyen === 'gs' || quyen === 'xx' || quyen === 'xxx');
-     // window.PGV_SHOW_YKIENGIAMSAT = (quyen === 'xx' || quyen === 'xxx');
-     window.PGV_SHOW_YKIENGIAMSAT = (quyen === 'xxx');
-
-     window.PGV_SHOW_NHACBAOCAO = (quyen === 'xx' || quyen === 'xxx');
+      window.PGV_SHOW_LICHSU = coQuyen('tab_lich_su', quyen === 'gs' || quyen === 'xx' || quyen === 'xxx');
+      window.PGV_SHOW_YKIENGIAMSAT = coQuyen('tab_ykien_gs', quyen === 'xxx');
+      window.PGV_SHOW_NHACBAOCAO = coQuyen('tab_nhac_bcao', quyen === 'xx' || quyen === 'xxx');
       
       if (typeof kiemTraHienThiTabLichSu === 'function') kiemTraHienThiTabLichSu();
       if (typeof kiemTraHienThiTabYkienGiamSat === 'function') kiemTraHienThiTabYkienGiamSat();
       if (typeof kiemTraHienThiTabNhacBaoCao === 'function') kiemTraHienThiTabNhacBaoCao();
+      if (typeof kiemTraHienThiTatCaTabTheoMaTran === 'function') kiemTraHienThiTatCaTabTheoMaTran();
       
       try {
         $('#chuTenGv').text(kq.tde?.tenn || ''); 
@@ -1000,10 +1006,12 @@ async function taiGiaoDienUuTien(daCoSanCache = false) {
         }
         
         if (isSelf) {
-            $('button[onclick="xulyLuuTam()"], #nutNopBcao').show().prop('disabled', false);
+            if (coQuyen('btn_luu_tam', true)) $('button[onclick="xulyLuuTam()"]').show().prop('disabled', false); else $('button[onclick="xulyLuuTam()"]').hide();
+            if (coQuyen('btn_nop_bcao', true)) $('#nutNopBcao').show().prop('disabled', false); else $('#nutNopBcao').hide();
         } else {
             if (canSaveForOther) {
-                $('button[onclick="xulyLuuTam()"], #nutNopBcao').show().prop('disabled', false);
+                $('button[onclick="xulyLuuTam()"]').show().prop('disabled', false);
+                $('#nutNopBcao').hide();
             } else {
                 $('button[onclick="xulyLuuTam()"], #nutNopBcao').hide();
             }
@@ -1033,7 +1041,7 @@ async function taiGiaoDienUuTien(daCoSanCache = false) {
             const khoiChayNgam = window.requestIdleCallback || function(cb) { setTimeout(cb, 1000); };
             
             khoiChayNgam(() => {
-                taiGiaoDienNen(quyen).then(() => {
+                taiGiaoDienNen(quyen, perms).then(() => {
                     // Tải danh sách giáo viên
                     taiDsTrang();
                     
