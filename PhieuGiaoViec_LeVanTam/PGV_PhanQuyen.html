@@ -350,6 +350,155 @@
       width: 100% !important;
     }
   }
+
+        .badge-tuy-chinh {
+            font-size: 10px;
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffe69c;
+            padding: 1px 5px;
+            border-radius: 10px;
+            margin-left: 4px;
+            white-space: nowrap;
+        }
+        .btn-matran-row {
+            background: #eef2ff;
+            color: #1e3c72;
+            border: 1px solid #c7d2fe;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .btn-matran-row:hover {
+            background: #1e3c72;
+            color: #ffffff;
+        }
+        .modal-matran-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 10050;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+        .modal-matran-box {
+            background: #ffffff;
+            width: 100%;
+            max-width: 920px;
+            max-height: 90vh;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+        .modal-matran-box.rong-toan-truong {
+            max-width: 96vw;
+        }
+        .modal-matran-header {
+            background: #1e3c72;
+            color: #ffffff;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        .modal-matran-body {
+            padding: 15px;
+            overflow-y: auto;
+            flex: 1 1 auto;
+        }
+        .modal-matran-footer {
+            padding: 10px 16px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .nhom-quyen-card {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .nhom-quyen-title {
+            background: #f1f5f9;
+            padding: 7px 12px;
+            font-weight: bold;
+            color: #1e3c72;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13.5px;
+        }
+        .luoi-quyen-item {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 8px;
+            padding: 10px 12px;
+        }
+        .item-quyen-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 8px;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin: 0;
+            transition: background 0.15s;
+        }
+        .item-quyen-label:hover {
+            background: #f8f9fa;
+        }
+        .bang-matran-tong {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
+        }
+        .bang-matran-tong th, .bang-matran-tong td {
+            border: 1px solid #dee2e6;
+            padding: 5px 6px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .bang-matran-tong thead th {
+            position: sticky;
+            top: 0;
+            background: #e9ecef;
+            z-index: 6;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            max-height: 150px;
+            padding: 8px 4px;
+            font-weight: bold;
+        }
+        .bang-matran-tong th.cot-ten-sticky, .bang-matran-tong td.cot-ten-sticky {
+            position: sticky;
+            left: 0;
+            background: #ffffff;
+            z-index: 5;
+            text-align: left;
+            min-width: 180px;
+            writing-mode: horizontal-tb;
+            transform: none;
+        }
+        .bang-matran-tong thead th.cot-ten-sticky {
+            z-index: 8;
+            background: #e9ecef;
+        }
     </style>
 </head>
 <body>
@@ -372,7 +521,10 @@
                     <label><i class="bi bi-calendar"></i> Năm học:</label>
                     <input type="text" id="namHocInput" placeholder="VD: 2024-2025">
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-chucnang" id="btnMaTranTongPQ" style="background: #6f42c1; color: #fff;">
+                        <i class="bi bi-grid-3x3-gap"></i> Ma trận quyền
+                    </button>
                     <button class="btn btn-success btn-chucnang" id="btnThemMoiPQ">
                         <i class="bi bi-person-plus"></i> Thêm Cán bộ
                     </button>
@@ -394,11 +546,12 @@
                         <th style="min-width: 130px">Tên hiển thị</th>
                         <th style="width: 150px">Quyền</th>
                         <th style="width: 120px">Chức vụ</th>
+                        <th style="width: 105px">Ma trận</th>
                     </tr>
                 </thead>
                 <tbody id="quyenTableBodyPQ">
                     <tr>
-                        <td colspan="7" class="text-center">
+                        <td colspan="8" class="text-center">
                             Đang tải dữ liệu...
                             <div class="spinner-sm ms-2"></div>
                         </td>
@@ -455,6 +608,58 @@
             <i class="bi bi-exclamation-triangle"></i> 
             ⚠️ Khi xóa cán bộ, dữ liệu riêng của người đó (nếu có) sẽ bị xóa vĩnh viễn!
         </strong>
+    </div>
+
+
+    <!-- MODAL MA TRẬN QUYỀN CHO TỪNG TÀI KHOẢN -->
+    <div id="modalMaTranCaNhan" class="modal-matran-overlay">
+        <div class="modal-matran-box">
+            <div class="modal-matran-header">
+                <span><i class="bi bi-shield-check me-2"></i>MA TRẬN PHÂN QUYỀN: <span id="mtTenCanBo" class="text-warning"></span></span>
+                <button type="button" id="btnDongModalMT" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">✕</button>
+            </div>
+            <div class="modal-matran-body" id="mtBodyCaNhan"></div>
+            <div class="modal-matran-footer">
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnMtChonAll">✓ Tích tất cả</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnMtBoAll">✕ Bỏ tất cả</button>
+                    <button type="button" class="btn btn-sm btn-outline-warning text-dark" id="btnMtMacDinh">↺ Theo vai trò mặc định</button>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-sm btn-secondary" id="btnMtHuy">Đóng</button>
+                    <button type="button" class="btn btn-sm btn-primary fw-bold" id="btnMtLuu">💾 Lưu Ma trận tài khoản này</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL MA TRẬN QUYỀN TOÀN TRƯỜNG -->
+    <div id="modalMaTranTong" class="modal-matran-overlay">
+        <div class="modal-matran-box rong-toan-truong">
+            <div class="modal-matran-header">
+                <span><i class="bi bi-grid-3x3-gap me-2"></i>MA TRẬN PHÂN QUYỀN TOÀN HỆ THỐNG</span>
+                <button type="button" id="btnDongModalMTTong" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">✕</button>
+            </div>
+            <div class="modal-matran-body">
+                <div class="mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <input type="text" id="mtTimKiemTong" class="form-control form-control-sm" placeholder="🔍 Lọc nhanh theo tên, ID hoặc tài khoản..." style="max-width: 320px;">
+                    <span class="text-muted small">Tích/bỏ tích trực tiếp trên bảng, sau đó bấm <strong>Lưu toàn bộ Ma trận</strong>.</span>
+                </div>
+                <div style="max-height: 62vh; overflow: auto; border: 1px solid #dee2e6; border-radius: 4px;">
+                    <table class="bang-matran-tong" id="bangMaTranTong">
+                        <thead id="mtTongHead"></thead>
+                        <tbody id="mtTongBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-matran-footer">
+                <span class="text-muted small">Mẹo: Di chuột lên tiêu đề cột để xem tên nhóm quyền.</span>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-sm btn-secondary" id="btnMtTongHuy">Đóng</button>
+                    <button type="button" class="btn btn-sm btn-primary fw-bold" id="btnMtTongLuu">💾 Lưu toàn bộ Ma trận</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -534,7 +739,8 @@
                     });
                     
                     var idThuMuc = data.idThuMuc || '';
-                    resolve({ listCanBo: listCanBo, listCauHinh: listCauHinh, idThuMuc: idThuMuc });
+                    var maTranQuyen = (data.maTranQuyen && typeof data.maTranQuyen === 'object') ? data.maTranQuyen : {};
+                    resolve({ listCanBo: listCanBo, listCauHinh: listCauHinh, idThuMuc: idThuMuc, maTranQuyen: maTranQuyen });
                 }, reject);
             });
         }
@@ -543,8 +749,13 @@
             return new Promise(function(resolve, reject) {
                 var dataCanBo = listCanBo.map(function(item) { return [item.idSheet, item.taiKhoan, item.tenHienThi, item.quyen, item.chucVu]; });
                 var dataCauHinh = listCauHinh.map(function(item) { return [item.maThamSo, item.tenThamSo, item.giaTri]; });
-                
-                var payload = { canBo: dataCanBo, cauHinh: dataCauHinh, idThuMuc: idThuMuc };
+                var maTranMap = {};
+                listCanBo.forEach(function(item) {
+                    if (item.idSheet && currentMaTran[item.idSheet]) {
+                        maTranMap[item.idSheet] = currentMaTran[item.idSheet];
+                    }
+                });
+                var payload = { canBo: dataCanBo, cauHinh: dataCauHinh, idThuMuc: idThuMuc, maTranQuyen: maTranMap };
                 callApi('capnhatkhai bao', { dliu: payload }, resolve, reject);
             });
         }
@@ -579,8 +790,91 @@
         
         var currentList = [];    
         var currentCauHinh = []; 
+        var currentMaTran = {};
         var currentThang = '';
-        var isDeleting = false; 
+        var isDeleting = false;
+
+        var NHOM_QUYEN_MA_TRAN = [
+            {
+                nhom: "1. Quyền truy cập Tab / Menu",
+                items: [
+                    { key: "tab_nhiem_vu", label: "Tab Nhiệm vụ của tôi" },
+                    { key: "tab_giao_viec", label: "Tab Giao việc" },
+                    { key: "tab_tong_hop", label: "Tab Tổng hợp kết quả" },
+                    { key: "tab_bao_cao", label: "Tab Tổng hợp Báo cáo" },
+                    { key: "tab_nghi", label: "Tab Tổng hợp nghỉ" },
+                    { key: "tab_ykien", label: "Tab Tổng hợp ý kiến" },
+                    { key: "tab_ykien_gs", label: "Tab Ý kiến giám sát" },
+                    { key: "tab_nhac_bcao", label: "Tab Nhắc báo cáo" },
+                    { key: "tab_tieu_chi", label: "Menu Tiêu chí đánh giá (QL/GV/NV)" },
+                    { key: "tab_danh_gia_cn", label: "Link Đánh giá cuối năm" },
+                    { key: "tab_cap_quyen", label: "Tab Cấp quyền" },
+                    { key: "tab_lich_su", label: "Tab Lịch sử đăng nhập" }
+                ]
+            },
+            {
+                nhom: "2. Quyền trên nút bấm Tab Nhiệm vụ",
+                items: [
+                    { key: "btn_luu_tam", label: "Nút Lưu nhật ký (cá nhân)" },
+                    { key: "btn_nop_bcao", label: "Nút Nộp báo cáo (cá nhân)" },
+                    { key: "btn_xem_quy_che", label: "Nút QUY CHẾ (xem tài liệu)" },
+                    { key: "btn_tai_quy_che", label: "Nút Tải quy chế (upload)" },
+                    { key: "nv_chon_gv_khac", label: "Hộp chọn LĐ, BGS đánh giá (xem người khác)" },
+                    { key: "nv_ghi_ykien_ld", label: "Nhập & lưu Ý kiến của đồng chí cho người khác" },
+                    { key: "nv_sua_diem_ct", label: "Sửa ô Điểm cộng/trừ" },
+                    { key: "nv_khoa_mo_1", label: "Nút Khóa / Mở từng hồ sơ" },
+                    { key: "nv_khoa_mo_all", label: "Nút Khóa / Mở tất cả" },
+                    { key: "nv_xoa_dong", label: "Nút Xóa dòng (✕) trong bảng" }
+                ]
+            },
+            {
+                nhom: "3. Quyền Giao việc & Quản trị hệ thống",
+                items: [
+                    { key: "gv_sua_nguoi_khac", label: "Sửa/Xóa việc do người khác giao" },
+                    { key: "gv_chuyen_thang", label: "Nút Chốt sổ & Chuyển tháng" },
+                    { key: "gv_cap_nhat_chung", label: "Cập nhật nhiệm vụ chung & sửa Năm/Tháng" },
+                    { key: "tc_luu_tieu_chi", label: "Lưu / Sửa bộ Tiêu chí QL, GV, NV" },
+                    { key: "pq_luu_he_thong", label: "Lưu Cấp quyền, Cấu hình & Xóa hồ sơ" }
+                ]
+            }
+        ];
+
+        function taoQuyenMacDinhTheoVaiTro(quyenCoBan) {
+            var q = String(quyenCoBan || '').trim().toLowerCase();
+            var laGS = (q === 'gs'), laX = (q === 'x'), laXX = (q === 'xx'), laXXX = (q === 'xxx');
+            var laQL = (laX || laXX || laXXX);
+            var laXemKhac = (laGS || laXX || laXXX);
+            return {
+                tab_nhiem_vu: true, tab_giao_viec: laQL, tab_tong_hop: true, tab_bao_cao: true,
+                tab_nghi: true, tab_ykien: true, tab_ykien_gs: laXXX, tab_nhac_bcao: (laXX || laXXX),
+                tab_tieu_chi: laXXX, tab_cap_quyen: laXXX, tab_lich_su: laXemKhac, tab_danh_gia_cn: true,
+                btn_luu_tam: true, btn_nop_bcao: true, btn_xem_quy_che: true, btn_tai_quy_che: laXXX,
+                nv_chon_gv_khac: laXemKhac, nv_ghi_ykien_ld: laXemKhac, nv_sua_diem_ct: laXXX,
+                nv_khoa_mo_1: laXXX, nv_khoa_mo_all: laXXX, nv_xoa_dong: laXXX,
+                gv_sua_nguoi_khac: laXXX, gv_chuyen_thang: laXXX, gv_cap_nhat_chung: (laXX || laXXX),
+                tc_luu_tieu_chi: laXXX, pq_luu_he_thong: laXXX
+            };
+        }
+
+        function layBoQuyenThucTe(item) {
+            var base = taoQuyenMacDinhTheoVaiTro(item.quyen);
+            var custom = (item.idSheet && currentMaTran[item.idSheet]) ? currentMaTran[item.idSheet] : null;
+            if (custom && typeof custom === 'object') {
+                Object.keys(base).forEach(function(k) {
+                    if (typeof custom[k] === 'boolean') base[k] = custom[k];
+                });
+            }
+            return base;
+        }
+
+        function coTuyChinhKhacMacDinh(item) {
+            var custom = (item.idSheet && currentMaTran[item.idSheet]) ? currentMaTran[item.idSheet] : null;
+            if (!custom || typeof custom !== 'object') return false;
+            var base = taoQuyenMacDinhTheoVaiTro(item.quyen);
+            return Object.keys(base).some(function(k) {
+                return typeof custom[k] === 'boolean' && custom[k] !== base[k];
+            });
+        } 
         
         var $ = function(sel) { return document.querySelector(sel); };
         var $$ = function(sel) { return document.querySelectorAll(sel); };
@@ -657,7 +951,7 @@
             tbody.innerHTML = '';
             
             if (currentList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center">📭 Chưa có dữ liệu. Nhấn "Thêm Cán bộ" để tạo.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center">📭 Chưa có dữ liệu. Nhấn "Thêm Cán bộ" để tạo.</td></tr>';
                 return;
             }
             
@@ -741,7 +1035,20 @@
                 tr.appendChild(tdTaiKhoan);
                 tr.appendChild(tdName);
                 tr.appendChild(tdQuyen);
+                var tdMaTran = document.createElement('td');
+                tdMaTran.className = 'text-center';
+                var btnMT = document.createElement('button');
+                btnMT.type = 'button';
+                btnMT.className = 'btn-matran-row';
+                var daTuyChinh = coTuyChinhKhacMacDinh(item);
+                btnMT.innerHTML = '<i class="bi bi-sliders"></i> Chi tiết' + (daTuyChinh ? '<span class="badge-tuy-chinh">Tùy chỉnh</span>' : '');
+                btnMT.onclick = (function(idx) {
+                    return function() { moModalMaTranCaNhan(idx); };
+                })(i);
+                tdMaTran.appendChild(btnMT);
+
                 tr.appendChild(tdChucVu);
+                tr.appendChild(tdMaTran);
                 tbody.appendChild(tr);
             }
             
@@ -930,6 +1237,7 @@
                 var payload = await layDanhSach();
                 currentList = payload.listCanBo;
                 currentCauHinh = payload.listCauHinh;
+                currentMaTran = payload.maTranQuyen || {};
                 
                 var inpIdThuMuc = document.getElementById('idThuMucBcaoInput');
                 if (inpIdThuMuc) inpIdThuMuc.value = payload.idThuMuc;
@@ -999,7 +1307,7 @@
         }
         
         if (!API_URL) {
-            $('#quyenTableBodyPQ').innerHTML = '<tr><td colspan="7" class="text-danger text-center">⚠️ Không tìm thấy API. Vui lòng tải lại trang chính.</td></tr>';
+            $('#quyenTableBodyPQ').innerHTML = '<tr><td colspan="8" class="text-danger text-center">⚠️ Không tìm thấy API. Vui lòng tải lại trang chính.</td></tr>';
             showNotification('Lỗi cấu hình: Không tìm thấy API', 'error');
             return;
         }
@@ -1013,6 +1321,180 @@
         if (btnThemCanBo) btnThemCanBo.onclick = themDongMoiCanBo;
         if (btnThemCauHinh) btnThemCauHinh.onclick = themDongMoiCauHinh;
         if (btnCapNhat) btnCapNhat.onclick = luuDuLieu;
+
+        var idxDangMoMT = -1;
+
+        function moModalMaTranCaNhan(idx) {
+            var item = currentList[idx];
+            if (!item || !item.idSheet) {
+                showNotification('Vui lòng nhập ID sheet cho cán bộ trước khi phân quyền chi tiết.', 'error');
+                return;
+            }
+            idxDangMoMT = idx;
+            $('#mtTenCanBo').innerText = (item.tenHienThi || item.idSheet) + ' (' + item.idSheet + ')';
+            var perms = layBoQuyenThucTe(item);
+            var body = $('#mtBodyCaNhan');
+            body.innerHTML = '';
+
+            NHOM_QUYEN_MA_TRAN.forEach(function(nhomObj) {
+                var card = document.createElement('div');
+                card.className = 'nhom-quyen-card';
+                var title = document.createElement('div');
+                title.className = 'nhom-quyen-title';
+                title.innerText = nhomObj.nhom;
+                card.appendChild(title);
+
+                var grid = document.createElement('div');
+                grid.className = 'luoi-quyen-item';
+                nhomObj.items.forEach(function(qItem) {
+                    var lbl = document.createElement('label');
+                    lbl.className = 'item-quyen-label';
+                    var chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.className = 'chk-mt-canhan';
+                    chk.setAttribute('data-key', qItem.key);
+                    chk.checked = !!perms[qItem.key];
+                    var sp = document.createElement('span');
+                    sp.innerText = qItem.label;
+                    lbl.appendChild(chk);
+                    lbl.appendChild(sp);
+                    grid.appendChild(lbl);
+                });
+                card.appendChild(grid);
+                body.appendChild(card);
+            });
+
+            $('#modalMaTranCaNhan').style.display = 'flex';
+        }
+
+        function dongModalMaTranCaNhan() {
+            $('#modalMaTranCaNhan').style.display = 'none';
+            idxDangMoMT = -1;
+        }
+
+        function luuMaTranCaNhan() {
+            if (idxDangMoMT < 0 || !currentList[idxDangMoMT]) return;
+            var item = currentList[idxDangMoMT];
+            var obj = {};
+            $$('.chk-mt-canhan').forEach(function(chk) {
+                obj[chk.getAttribute('data-key')] = !!chk.checked;
+            });
+            currentMaTran[item.idSheet] = obj;
+            var btn = $('#btnMtLuu');
+            var oldTxt = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Đang lưu...';
+            var mapSend = {};
+            mapSend[item.idSheet] = obj;
+            callApi('capnhatmatranquyen', { maTranMap: mapSend }, function() {
+                btn.disabled = false;
+                btn.innerHTML = oldTxt;
+                dongModalMaTranCaNhan();
+                renderTable();
+                showNotification('✅ Đã lưu ma trận quyền cho "' + (item.tenHienThi || item.idSheet) + '"!', 'success');
+            }, function(err) {
+                btn.disabled = false;
+                btn.innerHTML = oldTxt;
+                showNotification('❌ Lỗi lưu ma trận: ' + (err.message || err), 'error');
+            });
+        }
+
+        function moModalMaTranTong() {
+            var allItems = [];
+            NHOM_QUYEN_MA_TRAN.forEach(function(n) {
+                n.items.forEach(function(it) { allItems.push({ nhom: n.nhom, key: it.key, label: it.label }); });
+            });
+            var thead = $('#mtTongHead');
+            var tbody = $('#mtTongBody');
+            var hHtml = '<tr><th class="cot-ten-sticky">Cán bộ / ID</th>';
+            allItems.forEach(function(it) {
+                hHtml += '<th title="' + it.nhom + ' - ' + it.label + '">' + it.label + '</th>';
+            });
+            hHtml += '</tr>';
+            thead.innerHTML = hHtml;
+
+            tbody.innerHTML = '';
+            currentList.forEach(function(item, idx) {
+                if (!item.idSheet) return;
+                var perms = layBoQuyenThucTe(item);
+                var tr = document.createElement('tr');
+                tr.setAttribute('data-search', (item.tenHienThi + ' ' + item.idSheet + ' ' + item.taiKhoan).toLowerCase());
+                var tdName = document.createElement('td');
+                tdName.className = 'cot-ten-sticky';
+                tdName.innerHTML = '<div class="fw-bold text-primary">' + (item.tenHienThi || item.idSheet) + '</div><small class="text-muted">' + item.idSheet + '</small>';
+                tr.appendChild(tdName);
+
+                allItems.forEach(function(it) {
+                    var td = document.createElement('td');
+                    var chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.className = 'chk-mt-tong';
+                    chk.setAttribute('data-id', item.idSheet);
+                    chk.setAttribute('data-key', it.key);
+                    chk.checked = !!perms[it.key];
+                    td.appendChild(chk);
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            $('#mtTimKiemTong').value = '';
+            $('#modalMaTranTong').style.display = 'flex';
+        }
+
+        function luuMaTranTong() {
+            var mapSend = {};
+            $$('.chk-mt-tong').forEach(function(chk) {
+                var id = chk.getAttribute('data-id');
+                var key = chk.getAttribute('data-key');
+                if (!mapSend[id]) mapSend[id] = {};
+                mapSend[id][key] = !!chk.checked;
+            });
+            Object.keys(mapSend).forEach(function(id) {
+                currentMaTran[id] = mapSend[id];
+            });
+            var btn = $('#btnMtTongLuu');
+            var oldTxt = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Đang lưu...';
+            callApi('capnhatmatranquyen', { maTranMap: mapSend }, function() {
+                btn.disabled = false;
+                btn.innerHTML = oldTxt;
+                $('#modalMaTranTong').style.display = 'none';
+                renderTable();
+                showNotification('✅ Đã lưu ma trận phân quyền toàn hệ thống!', 'success');
+            }, function(err) {
+                btn.disabled = false;
+                btn.innerHTML = oldTxt;
+                showNotification('❌ Lỗi lưu ma trận: ' + (err.message || err), 'error');
+            });
+        }
+
+        if ($('#btnDongModalMT')) $('#btnDongModalMT').onclick = dongModalMaTranCaNhan;
+        if ($('#btnMtHuy')) $('#btnMtHuy').onclick = dongModalMaTranCaNhan;
+        if ($('#btnMtLuu')) $('#btnMtLuu').onclick = luuMaTranCaNhan;
+        if ($('#btnMtChonAll')) $('#btnMtChonAll').onclick = function() {
+            $$('.chk-mt-canhan').forEach(function(c) { c.checked = true; });
+        };
+        if ($('#btnMtBoAll')) $('#btnMtBoAll').onclick = function() {
+            $$('.chk-mt-canhan').forEach(function(c) { c.checked = false; });
+        };
+        if ($('#btnMtMacDinh')) $('#btnMtMacDinh').onclick = function() {
+            if (idxDangMoMT < 0 || !currentList[idxDangMoMT]) return;
+            var def = taoQuyenMacDinhTheoVaiTro(currentList[idxDangMoMT].quyen);
+            $$('.chk-mt-canhan').forEach(function(c) { c.checked = !!def[c.getAttribute('data-key')]; });
+        };
+        if ($('#btnMaTranTongPQ')) $('#btnMaTranTongPQ').onclick = moModalMaTranTong;
+        if ($('#btnDongModalMTTong')) $('#btnDongModalMTTong').onclick = function() { $('#modalMaTranTong').style.display = 'none'; };
+        if ($('#btnMtTongHuy')) $('#btnMtTongHuy').onclick = function() { $('#modalMaTranTong').style.display = 'none'; };
+        if ($('#btnMtTongLuu')) $('#btnMtTongLuu').onclick = luuMaTranTong;
+        if ($('#mtTimKiemTong')) $('#mtTimKiemTong').oninput = function() {
+            var q = this.value.trim().toLowerCase();
+            $$('#mtTongBody tr').forEach(function(tr) {
+                var s = tr.getAttribute('data-search') || '';
+                tr.style.display = (q === '' || s.indexOf(q) !== -1) ? '' : 'none';
+            });
+        };
+
     })();
     </script>
 </body>
