@@ -298,7 +298,7 @@
                 </div>
 
                 <form id="formGuiCauHoiAI" class="p-2.5 bg-white border-t border-slate-200 flex items-center gap-1.5">
-                    <input id="inputFileAI" type="file" accept=".pdf,.xlsx,.xls,.csv,.txt,.png,.jpg,.jpeg,.webp" class="hidden">
+                    <input id="inputFileAI" type="file" accept=".pdf,.xlsx,.docx,.xls,.csv,.txt,.png,.jpg,.jpeg,.webp" class="hidden">
                     <button id="btnChonFileAI" type="button" title="Đính kèm tệp (Excel, PDF, Ảnh, TXT)"
                         class="p-2 text-slate-600 hover:text-[#0b5394] hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
