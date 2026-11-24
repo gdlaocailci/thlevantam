@@ -2540,7 +2540,22 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     });
 
     let chuoiMonDay = tapHopMonDay.size > 0 ? Array.from(tapHopMonDay).join(', ') : '<span class="text-red-500 font-normal">Không có tiết dạy tại lớp này</span>';
-    let theHienThiQuyen = `<div class="mb-4 p-2.5 bg-blue-50 border border-blue-300 shadow-sm text-sm rounded flex flex-col sm:flex-row sm:items-center justify-between gap-2 animate-pulse-once"><div><span class="font-bold text-blue-800">Giáo viên:</span> <span class="text-blue-700 font-extrabold">${madinhdanhGV || 'Chưa nhận diện'}</span></div><div class="text-left sm:text-right sm:max-w-[70%]"><span class="font-bold text-blue-800">Được phân công dạy:</span> <span class="text-blue-700 font-semibold italic">${chuoiMonDay}</span></div></div>`;
+    let htmlNutGiaoAnTuan = '';
+    if (madinhdanhGV && !String(madinhdanhGV).includes('@') && typeof window.timGiaoAnTheoGvVaTuan === 'function') {
+        let gaCuaToi = window.timGiaoAnTheoGvVaTuan(madinhdanhGV, maxTuanChon);
+        if (gaCuaToi) {
+            let uiGa = window.layThongTinHienThiTrangThaiGA(gaCuaToi.trangThaiChung);
+            let monCanSuaStr = (gaCuaToi.trangThaiChung === 'CAN_SUA' && typeof window.layChuoiMonCanSuaGA === 'function')
+                ? window.layChuoiMonCanSuaGA(gaCuaToi, madinhdanhGV, maxTuanChon) : '';
+            let nhanHienThiGA = monCanSuaStr
+                ? `Giáo án Tuần ${maxTuanChon}: ${uiGa.nhan} — ${monCanSuaStr}`
+                : `Giáo án Tuần ${maxTuanChon}: ${uiGa.nhan}`;
+            htmlNutGiaoAnTuan = `<button type="button" onclick="moModalXemGiaoAnSDB('${String(gaCuaToi.id).replace(/'/g, "\\'")}', '')" class="hide-on-print px-2.5 py-1 rounded border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer shadow-xs ${uiGa.mauBadge}"><span class="w-2 h-2 rounded-full ${uiGa.mauCham}"></span><span>${nhanHienThiGA}</span></button>`;
+        } else if (tapHopMonDay.size > 0) {
+            htmlNutGiaoAnTuan = `<button type="button" onclick="kichHoatTaiGiaoAn1Cham(${maxTuanChon}, '${String(madinhdanhGV).replace(/'/g, "\\'")}', '')" class="hide-on-print px-2.5 py-1 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer shadow-xs">+ Tải giáo án Tuần ${maxTuanChon}</button>`;
+        }
+    }
+    let theHienThiQuyen = `<div class="mb-4 p-2.5 bg-blue-50 border border-blue-300 shadow-sm text-sm rounded flex flex-col sm:flex-row sm:items-center justify-between gap-2 animate-pulse-once"><div class="flex flex-wrap items-center gap-2"><span class="font-bold text-blue-800">Giáo viên:</span> <span class="text-blue-700 font-extrabold">${madinhdanhGV || 'Chưa nhận diện'}</span>${htmlNutGiaoAnTuan}</div><div class="text-left sm:text-right sm:max-w-[60%]"><span class="font-bold text-blue-800">Được phân công dạy:</span> <span class="text-blue-700 font-semibold italic">${chuoiMonDay}</span></div></div>`;
 
     let danhSachThu = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6"];
     if (coDayBuThu7) danhSachThu.push("Thứ 7");
@@ -2707,10 +2722,17 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                     daInCotThu = true;
                 }
 
+                let maGvCuaTiet = dongDuLieu ? (dongDuLieu['Mã GV'] || '') : '';
+                let htmlNutGiaoAnO = (monHoc && typeof window.taoHtmlNutGiaoAnChoO === 'function')
+                    ? window.taoHtmlNutGiaoAnChoO(maxTuanChon, monHoc, maGvCuaTiet, quyenNhapThuCong && !quyenQuanTri && !soBiKhoa)
+                    : '';
+                let khoiNutGA = htmlNutGiaoAnO ? `<div class="hide-on-print leading-none">${htmlNutGiaoAnO}</div>` : '';
+
                 htmlBang += `
                     <td class="text-center p-1 bg-white group-hover:bg-slate-50" style="${styleVien}" title="Buổi ${buoiObj.dataBuoi}" data-loai="tietSDB">${tiet}</td>
                     <td class="text-center p-1 bg-white group-hover:bg-slate-50 align-middle" style="${styleVien}" data-loai="chuyenCan" data-chitiet-cc="${encodeURIComponent(JSON.stringify(chiTietCC || null))}" title="${(typeof tomTatCC !== 'undefined' && tomTatCC.tooltip) ? tomTatCC.tooltip.replace(/"/g, '&quot;') : ''}">${theChuyenCan}</td>
-                    <td class="p-1 font-bold text-center text-slate-900 bg-white group-hover:bg-slate-50" style="${styleVien}" data-loai="mon">${monHoc}${iconSuaChua}</td>
+                    <td class="p-1 font-bold text-center text-slate-900 bg-white group-hover:bg-slate-50" style="${styleVien}" data-loai="mon">${monHoc}${iconSuaChua}${khoiNutGA}</td>
+                    
                     <td class="p-1 bg-white group-hover:bg-slate-50 align-middle" style="${styleVien}" data-loai="tiet">${theTietPPCT}</td>
                     <td class="p-1 ${cssTenBai} bg-white group-hover:bg-slate-50 align-middle" style="white-space: normal; word-wrap: break-word; ${styleVien}" data-loai="tenBai" data-islocked="${isLocked}" data-coquyensua="${quyenNhapThuCong}">${theTenBai}</td>
                     <td class="p-1 bg-white group-hover:bg-slate-50 align-middle" style="white-space: normal; word-wrap: break-word; ${styleVien}" data-loai="nhanXet">${theNhanXet}</td>
@@ -3373,7 +3395,12 @@ function dongBoTenBaiHoc() {
             let oTenBai = dong.querySelector('td[data-loai="tenBai"]');
             
             if (oMon && oTiet && oTenBai) {
-                let mon = oMon.innerText.trim();
+                let mon = '';
+                for (let node of oMon.childNodes) {
+                    if (node.nodeType === 3) mon += node.textContent;
+                }
+                mon = mon.trim();
+                
                 let theNhapTiet = oTiet.querySelector('input, select, textarea');
                 let tiet = theNhapTiet ? theNhapTiet.value.trim() : oTiet.innerText.trim();
                 
@@ -3778,8 +3805,11 @@ async function xuatExcelSoDauBai() {
                         }
                     } else {
                         let theNhap = cell.querySelector('input, select, textarea');
-                        // Ưu tiên đọc dữ liệu người dùng gõ
-                        if (theNhap) {
+                        if (cell.getAttribute('data-loai') === 'mon') {
+                            let monClean = '';
+                            for (let nd of cell.childNodes) { if (nd.nodeType === 3) monClean += nd.textContent; }
+                            giaTriCell = monClean.trim();
+                        } else if (theNhap) {
                             giaTriCell = theNhap.value;
                         } else {
                             giaTriCell = cell.innerText;
@@ -4715,8 +4745,15 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
                     }
 
                     let tdMon = dong.querySelector('td[data-loai="mon"]');
-                    if (tdMon && tdMon.innerText.trim() !== monHocMoi) {
-                        tdMon.innerText = monHocMoi;
+                    if (tdMon) {
+                        let monHienTai = '';
+                        for (let nd of tdMon.childNodes) { if (nd.nodeType === 3) monHienTai += nd.textContent; }
+                        if (monHienTai.trim() !== monHocMoi) {
+                            let nutGA = (monHocMoi && typeof window.taoHtmlNutGiaoAnChoO === 'function')
+                                ? window.taoHtmlNutGiaoAnChoO(tuanChon, monHocMoi, dongDuLieuMoi['Mã GV'] || '', quyenNhapThuCong && !quyenQuanTri && !isLockedMoi)
+                                : '';
+                            tdMon.innerHTML = monHocMoi + (nutGA ? `<div class="hide-on-print leading-none">${nutGA}</div>` : '');
+                        }
                     }
 
                     let tdTenBai = dong.querySelector('td[data-loai="tenBai"]');
