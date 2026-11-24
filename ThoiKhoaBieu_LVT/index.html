@@ -816,6 +816,15 @@
         </svg>
         <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">9. Kiểm tra sổ đầu bài</span>
     </a>
+
+       <a id="menuDuyetGiaoAn" onclick="moTabDuyetGiaoAn()" style="display: none;" class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent hover:bg-white/10 transition-all duration-150 cursor-pointer group">
+        <svg class="w-5 h-5 flex-none opacity-70 group-hover:opacity-100 transition-opacity text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <path d="M9 15l2 2 4-4"></path>
+        </svg>
+        <span class="font-bold text-white/80 group-hover:text-white transition-colors text-[14px] whitespace-nowrap">10. Duyệt Giáo án</span>
+    </a>     
         </nav>
 
       <!-- PHẦN CUỐI: NÚT ĐĂNG NHẬP VÀ BẢN QUYỀN (Thêm flex-none để ghim chặt dưới đáy màn hình) -->
@@ -1555,6 +1564,7 @@
     <script src="XemTruocSGK.js?v=20261118"></script>
     <script src="QuanLyDanhMucSGK.js?v=20261118"></script>
     <script src="SoDauBai.js?v=20261118"></script>
+    <script src="DuyetGiaoAn.js?v=20261123"></script>
     <script src="TongHopSiSo.js?v=20261118"></script>
     <script>
         function moTabTongHopSiSo() {
@@ -1794,6 +1804,7 @@
     const vSsoCache = new Date().getTime();
       document.write('<script src="https://gdlaocailci.github.io/thlevantam/sso-client.js?v=' + vSsoCache + '"><\/script>');
       document.write('<script src="sso-bridge.js?v=' + vSsoCache + '"><\/script>');
+      document.write('<script src="TroLyAI.js?v=' + vSsoCache + '"><\/script>');
     </script>
 </body>
 </html>
