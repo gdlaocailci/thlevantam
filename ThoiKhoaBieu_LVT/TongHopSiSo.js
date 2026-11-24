@@ -68,6 +68,11 @@ function tinhPhanTramTHSS(tuSo, mauSo) {
     return ((tuSo / mauSo) * 100).toFixed(1);
 }
 
+function fmtSoTHSS(n) {
+    let val = Math.round((Number(n) || 0) * 10) / 10;
+    return (val % 1 === 0) ? String(Math.round(val)) : val.toFixed(1);
+}
+
 // 1. Khởi tạo & tự động nạp dữ liệu
 window.khoiTaoTongHopSiSo = async function(containerId = 'vungHienThiTongHopSiSo', buocTaiLai = false) {
     let container = document.getElementById(containerId);
@@ -656,77 +661,93 @@ window.tinhToanTongHopSiSoTuan = function(op) {
                     return;
                 }
 
-                let maxTongNgay = siSoChuan;
-                let minCoMatNgay = null;
-                let mapTenP = new Map();
-                let mapTenKP = new Map();
-                let maxSoKhongTenP = 0;
-                let maxSoKhongTenKP = 0;
-                let buoiTietKhongTenP = [];
-                let buoiTietKhongTenKP = [];
-                let chuoiFallback = '';
+                const tongHopMotBuoi = (dsBanGhiBuoi, tenBuoiNhan) => {
+                    let maxTongB = siSoChuan;
+                    let minCoMatB = null;
+                    let mapTenPB = new Map();
+                    let mapTenKPB = new Map();
+                    let maxSoKhongTenPB = 0;
+                    let maxSoKhongTenKPB = 0;
+                    let btKhongTenPB = [];
+                    let btKhongTenKPB = [];
+                    let chuoiFallbackB = '';
 
-                cacBanGhiTrongNgay.forEach(item => {
-                    let nhanBuoiTiet = `${item.buoi === 'sáng' ? 'S' : 'C'}-T${item.tiet}`;
-                    if (item.ct) {
-                        let tong = parseInt(item.ct.tongSiSo, 10) || 0;
-                        if (tong > maxTongNgay) maxTongNgay = tong;
-                        let coMat = parseInt(item.ct.coMat, 10);
-                        if (!isNaN(coMat)) minCoMatNgay = (minCoMatNgay === null) ? coMat : Math.min(minCoMatNgay, coMat);
+                    dsBanGhiBuoi.forEach(item => {
+                        let nhanBT = `${item.buoi === 'sáng' ? 'S' : 'C'}-T${item.tiet}`;
+                        if (item.ct) {
+                            let tong = parseInt(item.ct.tongSiSo, 10) || 0;
+                            if (tong > maxTongB) maxTongB = tong;
+                            let coMat = parseInt(item.ct.coMat, 10);
+                            if (!isNaN(coMat)) minCoMatB = (minCoMatB === null) ? coMat : Math.min(minCoMatB, coMat);
 
-                        let dsP = Array.isArray(item.ct.dsVangCoPhep) ? item.ct.dsVangCoPhep.filter(Boolean) : [];
-                        let dsKP = Array.isArray(item.ct.dsVangKhongPhep) ? item.ct.dsVangKhongPhep.filter(Boolean) : [];
-                        let soP = parseInt(item.ct.vangCoPhep, 10) || 0;
-                        let soKP = parseInt(item.ct.vangKhongPhep, 10) || 0;
+                            let dsP = Array.isArray(item.ct.dsVangCoPhep) ? item.ct.dsVangCoPhep.filter(Boolean) : [];
+                            let dsKP = Array.isArray(item.ct.dsVangKhongPhep) ? item.ct.dsVangKhongPhep.filter(Boolean) : [];
+                            let soP = parseInt(item.ct.vangCoPhep, 10) || 0;
+                            let soKP = parseInt(item.ct.vangKhongPhep, 10) || 0;
 
-                        if (dsP.length > 0) {
-                            dsP.forEach(ten => {
-                                let k = ten.trim().toLowerCase().normalize('NFC');
-                                if (!mapTenP.has(k)) mapTenP.set(k, { ten: ten.trim(), buoiTiet: [] });
-                                mapTenP.get(k).buoiTiet.push(nhanBuoiTiet);
-                            });
-                        } else if (soP > 0) {
-                            if (soP > maxSoKhongTenP) maxSoKhongTenP = soP;
-                            buoiTietKhongTenP.push(nhanBuoiTiet);
+                            if (dsP.length > 0) {
+                                dsP.forEach(ten => {
+                                    let k = ten.trim().toLowerCase().normalize('NFC');
+                                    if (!mapTenPB.has(k)) mapTenPB.set(k, { ten: ten.trim(), buoiTiet: [] });
+                                    mapTenPB.get(k).buoiTiet.push(nhanBT);
+                                });
+                            } else if (soP > 0) {
+                                if (soP > maxSoKhongTenPB) maxSoKhongTenPB = soP;
+                                btKhongTenPB.push(nhanBT);
+                            }
+
+                            if (dsKP.length > 0) {
+                                dsKP.forEach(ten => {
+                                    let k = ten.trim().toLowerCase().normalize('NFC');
+                                    if (!mapTenKPB.has(k)) mapTenKPB.set(k, { ten: ten.trim(), buoiTiet: [] });
+                                    mapTenKPB.get(k).buoiTiet.push(nhanBT);
+                                });
+                            } else if (soKP > 0) {
+                                if (soKP > maxSoKhongTenKPB) maxSoKhongTenKPB = soKP;
+                                btKhongTenKPB.push(nhanBT);
+                            }
+                        } else if (item.chuoiCC) {
+                            chuoiFallbackB = item.chuoiCC;
                         }
+                    });
 
-                        if (dsKP.length > 0) {
-                            dsKP.forEach(ten => {
-                                let k = ten.trim().toLowerCase().normalize('NFC');
-                                if (!mapTenKP.has(k)) mapTenKP.set(k, { ten: ten.trim(), buoiTiet: [] });
-                                mapTenKP.get(k).buoiTiet.push(nhanBuoiTiet);
-                            });
-                        } else if (soKP > 0) {
-                            if (soKP > maxSoKhongTenKP) maxSoKhongTenKP = soKP;
-                            buoiTietKhongTenKP.push(nhanBuoiTiet);
+                    if (mapTenPB.size === 0 && maxSoKhongTenPB > 0) {
+                        for (let idxP = 1; idxP <= maxSoKhongTenPB; idxP++) {
+                            let tenTamP = maxSoKhongTenPB === 1 ? 'Chưa ghi tên HS' : `Chưa ghi tên HS #${idxP}`;
+                            let kTamP = `${tenTamP.toLowerCase()}_p_${tXet}_${thu}_${tenBuoiNhan}`;
+                            mapTenPB.set(kTamP, { ten: tenTamP, buoiTiet: [...btKhongTenPB] });
                         }
-                    } else if (item.chuoiCC) {
-                        chuoiFallback = item.chuoiCC;
                     }
-                });
+                    if (mapTenKPB.size === 0 && maxSoKhongTenKPB > 0) {
+                        for (let idxKP = 1; idxKP <= maxSoKhongTenKPB; idxKP++) {
+                            let tenTamKP = maxSoKhongTenKPB === 1 ? 'Chưa ghi tên HS (KP)' : `Chưa ghi tên HS (KP) #${idxKP}`;
+                            let kTamKP = `${tenTamKP.toLowerCase()}_kp_${tXet}_${thu}_${tenBuoiNhan}`;
+                            mapTenKPB.set(kTamKP, { ten: tenTamKP, buoiTiet: [...btKhongTenKPB] });
+                        }
+                    }
 
-                if (mapTenP.size === 0 && maxSoKhongTenP > 0) {
-                    for (let idxP = 1; idxP <= maxSoKhongTenP; idxP++) {
-                        let tenTamP = maxSoKhongTenP === 1 ? 'Chưa ghi tên HS' : `Chưa ghi tên HS #${idxP}`;
-                        let kTamP = `${tenTamP.toLowerCase()}_p_${tXet}_${thu}`;
-                        mapTenP.set(kTamP, { ten: tenTamP, buoiTiet: [...buoiTietKhongTenP] });
-                    }
-                }
-                if (mapTenKP.size === 0 && maxSoKhongTenKP > 0) {
-                    for (let idxKP = 1; idxKP <= maxSoKhongTenKP; idxKP++) {
-                        let tenTamKP = maxSoKhongTenKP === 1 ? 'Chưa ghi tên HS (KP)' : `Chưa ghi tên HS (KP) #${idxKP}`;
-                        let kTamKP = `${tenTamKP.toLowerCase()}_kp_${tXet}_${thu}`;
-                        mapTenKP.set(kTamKP, { ten: tenTamKP, buoiTiet: [...buoiTietKhongTenKP] });
-                    }
-                }
+                    let vPB = mapTenPB.size > 0 ? mapTenPB.size : maxSoKhongTenPB;
+                    let vKPB = mapTenKPB.size > 0 ? mapTenKPB.size : maxSoKhongTenKPB;
+                    let coMatB = (maxTongB > 0) ? Math.max(0, maxTongB - vPB - vKPB) : (minCoMatB !== null ? minCoMatB : 0);
+                    return { maxTong: maxTongB, coMat: coMatB, vangP: vPB, vangKP: vKPB, mapTenP: mapTenPB, mapTenKP: mapTenKPB, chuoiFallback: chuoiFallbackB };
+                };
 
+                let banGhiSang = cacBanGhiTrongNgay.filter(x => x.buoi === 'sáng');
+                let banGhiChieu = cacBanGhiTrongNgay.filter(x => x.buoi === 'chiều');
+                let coSang = banGhiSang.length > 0;
+                let coChieu = banGhiChieu.length > 0;
+                let kqSang = coSang ? tongHopMotBuoi(banGhiSang, 'Sáng') : null;
+                let kqChieu = coChieu ? tongHopMotBuoi(banGhiChieu, 'Chiều') : null;
+
+                let trongSoBuoi = (coSang && coChieu) ? 0.5 : 1;
+                let maxTongNgay = Math.max(kqSang ? kqSang.maxTong : 0, kqChieu ? kqChieu.maxTong : 0, siSoChuan);
                 if (siSoChuan === 0 && maxTongNgay > 0) siSoChuan = maxTongNgay;
 
-                let soVangPNgay = mapTenP.size > 0 ? mapTenP.size : maxSoKhongTenP;
-                let soVangKPNgay = mapTenKP.size > 0 ? mapTenKP.size : maxSoKhongTenKP;
-                let coMatHienThi = (maxTongNgay > 0)
-                    ? Math.max(0, maxTongNgay - soVangPNgay - soVangKPNgay)
-                    : (minCoMatNgay !== null ? minCoMatNgay : 0);
+                let soVangPNgay = ((kqSang ? kqSang.vangP : 0) + (kqChieu ? kqChieu.vangP : 0)) * trongSoBuoi;
+                let soVangKPNgay = ((kqSang ? kqSang.vangKP : 0) + (kqChieu ? kqChieu.vangKP : 0)) * trongSoBuoi;
+                let coMatHienThi = (coSang && coChieu)
+                    ? ((kqSang.coMat + kqChieu.coMat) * 0.5)
+                    : (kqSang ? kqSang.coMat : (kqChieu ? kqChieu.coMat : 0));
 
                 tongPLop += soVangPNgay;
                 tongKPLop += soVangKPNgay;
@@ -744,32 +765,67 @@ window.tinhToanTongHopSiSoTuan = function(op) {
                     }
                 }
 
-                let khoaNgayDuyNhat = `${tXet}_${thu}`;
-                const ghiHs = (mapTen, loaiVang) => {
+                const ghiHsBuoi = (mapTen, loaiVang, buoiNhan) => {
                     mapTen.forEach((info, kTen) => {
                         let keyGlobal = `${maLop}||${kTen}`;
                         if (!mapHocSinhNghi[keyGlobal]) {
                             mapHocSinhNghi[keyGlobal] = { ten: info.ten, lop: maLop, ngayMap: new Map() };
                         }
-                        let existingDay = mapHocSinhNghi[keyGlobal].ngayMap.get(khoaNgayDuyNhat);
-                        if (!existingDay) {
-                            mapHocSinhNghi[keyGlobal].ngayMap.set(khoaNgayDuyNhat, {
-                                tuan: tXet, thu: thu, ngay: ngayCuaDong, loai: loaiVang, buoiTiet: [...info.buoiTiet]
+                        let khoaBuoiDuyNhat = `${tXet}_${thu}_${buoiNhan}`;
+                        let existingEntry = mapHocSinhNghi[keyGlobal].ngayMap.get(khoaBuoiDuyNhat);
+                        if (!existingEntry) {
+                            mapHocSinhNghi[keyGlobal].ngayMap.set(khoaBuoiDuyNhat, {
+                                tuan: tXet, thu: thu, ngay: ngayCuaDong, loai: loaiVang,
+                                buoi: buoiNhan, trongSo: trongSoBuoi, buoiTiet: [...info.buoiTiet]
                             });
                         } else {
-                            if (loaiVang === 'KP') existingDay.loai = 'KP';
-                            existingDay.buoiTiet.push(...info.buoiTiet);
+                            if (loaiVang === 'KP') existingEntry.loai = 'KP';
+                            existingEntry.buoiTiet.push(...info.buoiTiet);
                         }
 
-                        if (!mapHsLop[kTen]) mapHsLop[kTen] = { ten: info.ten, pDays: new Set(), kpDays: new Set() };
-                        if (loaiVang === 'P') mapHsLop[kTen].pDays.add(khoaNgayDuyNhat);
-                        else mapHsLop[kTen].kpDays.add(khoaNgayDuyNhat);
+                        if (!mapHsLop[kTen]) mapHsLop[kTen] = { ten: info.ten, pBuoi: new Map(), kpBuoi: new Map() };
+                        if (loaiVang === 'P') mapHsLop[kTen].pBuoi.set(khoaBuoiDuyNhat, trongSoBuoi);
+                        else mapHsLop[kTen].kpBuoi.set(khoaBuoiDuyNhat, trongSoBuoi);
                     });
                 };
-                ghiHs(mapTenP, 'P');
-                ghiHs(mapTenKP, 'KP');
+                if (kqSang) {
+                    ghiHsBuoi(kqSang.mapTenP, 'P', 'Sáng');
+                    ghiHsBuoi(kqSang.mapTenKP, 'KP', 'Sáng');
+                }
+                if (kqChieu) {
+                    ghiHsBuoi(kqChieu.mapTenP, 'P', 'Chiều');
+                    ghiHsBuoi(kqChieu.mapTenKP, 'KP', 'Chiều');
+                }
 
                 if (cheDoLoc === 'TUAN') {
+                    let dsTenPGop = [];
+                    let dsTenKPGop = [];
+                    if (coSang && coChieu) {
+                        kqSang.mapTenP.forEach((v, k) => {
+                            let label = kqChieu.mapTenP.has(k) ? v.ten : `${v.ten} (Sáng)`;
+                            dsTenPGop.push(label);
+                        });
+                        kqChieu.mapTenP.forEach((v, k) => {
+                            if (!kqSang.mapTenP.has(k)) dsTenPGop.push(`${v.ten} (Chiều)`);
+                        });
+                        kqSang.mapTenKP.forEach((v, k) => {
+                            let label = kqChieu.mapTenKP.has(k) ? v.ten : `${v.ten} (Sáng)`;
+                            dsTenKPGop.push(label);
+                        });
+                        kqChieu.mapTenKP.forEach((v, k) => {
+                            if (!kqSang.mapTenKP.has(k)) dsTenKPGop.push(`${v.ten} (Chiều)`);
+                        });
+                    } else {
+                        let kq1 = kqSang || kqChieu;
+                        dsTenPGop = Array.from(kq1.mapTenP.values()).map(x => x.ten);
+                        dsTenKPGop = Array.from(kq1.mapTenKP.values()).map(x => x.ten);
+                    }
+
+                    let chuoiFallback = (kqSang && kqSang.chuoiFallback) || (kqChieu && kqChieu.chuoiFallback) || '';
+                    let hienThiSangChieu = (coSang && coChieu && (kqSang.coMat !== kqChieu.coMat || kqSang.vangP !== kqChieu.vangP || kqSang.vangKP !== kqChieu.vangKP))
+                        ? `S:${kqSang.coMat}/${kqSang.maxTong} | C:${kqChieu.coMat}/${kqChieu.maxTong}`
+                        : '';
+
                     ngayData[thu] = {
                         daDiemDanh: true,
                         tong: maxTongNgay,
@@ -777,8 +833,9 @@ window.tinhToanTongHopSiSoTuan = function(op) {
                         vangP: soVangPNgay,
                         vangKP: soVangKPNgay,
                         tyLeNgay: maxTongNgay > 0 ? tinhPhanTramTHSS(coMatHienThi, maxTongNgay) : '100.0',
-                        dsTenP: Array.from(mapTenP.values()).map(x => x.ten),
-                        dsTenKP: Array.from(mapTenKP.values()).map(x => x.ten),
+                        hienThiSangChieu: hienThiSangChieu,
+                        dsTenP: dsTenPGop,
+                        dsTenKP: dsTenKPGop,
                         chuoiFallback: chuoiFallback
                     };
                 }
@@ -801,9 +858,12 @@ window.tinhToanTongHopSiSoTuan = function(op) {
         }
 
         let tomTatHsLop = Object.values(mapHsLop).map(h => {
+            let sumP = 0, sumKP = 0;
+            h.pBuoi.forEach(w => { sumP += w; });
+            h.kpBuoi.forEach(w => { sumKP += w; });
             let parts = [];
-            if (h.pDays.size > 0) parts.push(`${h.pDays.size}P`);
-            if (h.kpDays.size > 0) parts.push(`${h.kpDays.size}KP`);
+            if (sumP > 0) parts.push(`${fmtSoTHSS(sumP)}P`);
+            if (sumKP > 0) parts.push(`${fmtSoTHSS(sumKP)}KP`);
             return `${h.ten} (${parts.join(', ')})`;
         });
 
@@ -822,20 +882,26 @@ window.tinhToanTongHopSiSoTuan = function(op) {
 
     let dsHocSinhNghi = Object.values(mapHocSinhNghi).map(item => {
         let chiTietNgay = Array.from(item.ngayMap.values());
-        let soP = chiTietNgay.filter(d => d.loai === 'P').length;
-        let soKP = chiTietNgay.filter(d => d.loai === 'KP').length;
+        let soP = 0, soKP = 0, tongNgay = 0;
+        chiTietNgay.forEach(d => {
+            let ts = (d.trongSo !== undefined) ? d.trongSo : 1;
+            tongNgay += ts;
+            if (d.loai === 'P') soP += ts;
+            else soKP += ts;
+        });
         return {
             ten: item.ten,
             lop: item.lop,
-            soNgayNghi: chiTietNgay.length,
-            soP: soP,
-            soKP: soKP,
+            soNgayNghi: fmtSoTHSS(tongNgay),
+            soNgayNghiNum: tongNgay,
+            soP: fmtSoTHSS(soP),
+            soKP: fmtSoTHSS(soKP),
             chiTietNgay: chiTietNgay
         };
     }).filter(hs => {
         if (!tuKhoaNorm) return true;
         return hs.ten.toLowerCase().normalize('NFC').includes(tuKhoaNorm) || hs.lop.toLowerCase().includes(tuKhoaNorm);
-    }).sort((a, b) => b.soNgayNghi - a.soNgayNghi || a.lop.localeCompare(b.lop, undefined, { numeric: true }));
+    }).sort((a, b) => (b.soNgayNghiNum || b.soNgayNghi) - (a.soNgayNghiNum || a.soNgayNghi) || a.lop.localeCompare(b.lop, undefined, { numeric: true }));
 
     let mauSoToanTruong = tongLuotCoTheToanTruong > 0 ? tongLuotCoTheToanTruong : tongSiSoToanPhamVi;
     let coMatToanTruong = Math.max(0, mauSoToanTruong - tongLuotVangP - tongLuotVangKP);
@@ -1005,16 +1071,16 @@ window.veGiaoDienTongHopSiSo = function(containerId = 'vungHienThiTongHopSiSo') 
             </div>
             <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <div class="text-xs font-bold text-amber-800 uppercase">Lượt nghỉ có phép (P)</div>
-                <div class="text-2xl font-black text-amber-700 mt-1">${kq.tongKet.tongVangP} <span class="text-xs font-semibold">(${kq.tongKet.tyLeVangP}%)</span></div>
+                <div class="text-2xl font-black text-amber-700 mt-1">${fmtSoTHSS(kq.tongKet.tongVangP)} <span class="text-xs font-semibold">(${kq.tongKet.tyLeVangP}%)</span></div>
             </div>
             <div class="bg-rose-50 border border-rose-200 rounded-lg p-3">
                 <div class="text-xs font-bold text-rose-800 uppercase">Lượt nghỉ không phép (KP)</div>
-                <div class="text-2xl font-black text-rose-700 mt-1">${kq.tongKet.tongVangKP} <span class="text-xs font-semibold">(${kq.tongKet.tyLeVangKP}%)</span></div>
+                <div class="text-2xl font-black text-rose-700 mt-1">${fmtSoTHSS(kq.tongKet.tongVangKP)} <span class="text-xs font-semibold">(${kq.tongKet.tyLeVangKP}%)</span></div>
             </div>
             <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
                 <div class="text-xs font-bold text-emerald-800 uppercase">Tỷ lệ chuyên cần toàn phạm vi</div>
                 <div class="text-2xl font-black text-emerald-700 mt-1">${kq.tongKet.tyLeChuyenCan}%</div>
-                <div class="text-[11px] font-semibold text-emerald-800 mt-0.5">${kq.tongKet.coMatToanTruong}/${kq.tongKet.mauSoToanTruong} lượt</div>
+                <div class="text-[11px] font-semibold text-emerald-800 mt-0.5">${fmtSoTHSS(kq.tongKet.coMatToanTruong)}/${fmtSoTHSS(kq.tongKet.mauSoToanTruong)} lượt</div>
             </div>
         </div>
     `;
@@ -1056,9 +1122,10 @@ window.veGiaoDienTongHopSiSo = function(containerId = 'vungHienThiTongHopSiSo') 
                                 let dsTenHtml = [];
                                 if (cell.dsTenP.length > 0) dsTenHtml.push(`<span class="text-amber-800"><b>P:</b> ${cell.dsTenP.join(', ')}</span>`);
                                 if (cell.dsTenKP.length > 0) dsTenHtml.push(`<span class="text-rose-700"><b>KP:</b> ${cell.dsTenKP.join(', ')}</span>`);
+                                let nhanSiSoNgay = cell.hienThiSangChieu ? `${cell.hienThiSangChieu}` : `${fmtSoTHSS(cell.coMat)}/${cell.tong}`;
                                 return `<td class="border border-slate-300 p-1.5 text-center bg-rose-50/40 align-top">
-                                    <div class="font-extrabold text-rose-700">${cell.coMat}/${cell.tong} <span class="text-[10.5px]">(${cell.tyLeNgay}%)</span></div>
-                                    <div class="text-[10px] font-semibold text-slate-600">P:${cell.vangP}, KP:${cell.vangKP}</div>
+                                    <div class="font-extrabold text-rose-700">${nhanSiSoNgay} <span class="text-[10.5px]">(${cell.tyLeNgay}%)</span></div>
+                                    <div class="text-[10px] font-semibold text-slate-600">P:${fmtSoTHSS(cell.vangP)}, KP:${fmtSoTHSS(cell.vangKP)}</div>
                                     ${dsTenHtml.length > 0 ? `<div class="text-[11px] text-left mt-1 leading-snug">${dsTenHtml.join('<br>')}</div>` : ''}
                                 </td>`;
                             }).join('') : `
@@ -1067,7 +1134,7 @@ window.veGiaoDienTongHopSiSo = function(containerId = 'vungHienThiTongHopSiSo') 
                             `}
                             <td class="border border-slate-300 p-2 text-left align-top">
                                 <div class="font-bold ${row.coVang ? 'text-rose-700' : 'text-emerald-700'}">
-                                    ${row.coVang ? `CC: ${row.tyLeCC}% (Nghỉ: ${row.tongP}P, ${row.tongKP}KP)` : 'Chuyên cần: 100%'}
+                                    ${row.coVang ? `CC: ${row.tyLeCC}% (Nghỉ: ${fmtSoTHSS(row.tongP)}P, ${fmtSoTHSS(row.tongKP)}KP)` : 'Chuyên cần: 100%'}
                                 </div>
                                 ${row.tomTatHsLop.length > 0 ? `<div class="text-[11px] text-slate-700 mt-1 leading-snug">${row.tomTatHsLop.join('; ')}</div>` : ''}
                             </td>
@@ -1081,16 +1148,16 @@ window.veGiaoDienTongHopSiSo = function(containerId = 'vungHienThiTongHopSiSo') 
                             let tt = kq.tongTruongTheoThu[thu];
                             if (!tt || tt.tongSiSo === 0) return `<td class="border border-slate-300 p-2 text-center text-slate-400">--</td>`;
                             return `<td class="border border-slate-300 p-2 text-center">
-                                <div>${tt.coMat}/${tt.tongSiSo} <span class="text-emerald-700">(${tt.tyLe}%)</span></div>
-                                <div class="text-[10.5px] font-semibold text-rose-700">P:${tt.vangP}, KP:${tt.vangKP}</div>
+                                <div>${fmtSoTHSS(tt.coMat)}/${tt.tongSiSo} <span class="text-emerald-700">(${tt.tyLe}%)</span></div>
+                                <div class="text-[10.5px] font-semibold text-rose-700">P:${fmtSoTHSS(tt.vangP)}, KP:${fmtSoTHSS(tt.vangKP)}</div>
                             </td>`;
                         }).join('') : `
-                            <td class="border border-slate-300 p-2 text-center text-amber-800">${kq.tongKet.tongVangP} (${kq.tongKet.tyLeVangP}%)</td>
-                            <td class="border border-slate-300 p-2 text-center text-rose-700">${kq.tongKet.tongVangKP} (${kq.tongKet.tyLeVangKP}%)</td>
+                            <td class="border border-slate-300 p-2 text-center text-amber-800">${fmtSoTHSS(kq.tongKet.tongVangP)} (${kq.tongKet.tyLeVangP}%)</td>
+                            <td class="border border-slate-300 p-2 text-center text-rose-700">${fmtSoTHSS(kq.tongKet.tongVangKP)} (${kq.tongKet.tyLeVangKP}%)</td>
                         `}
                         <td class="border border-slate-300 p-2 text-left">
                             <div class="text-emerald-800">Tỷ lệ CC chung: ${kq.tongKet.tyLeChuyenCan}%</div>
-                            <div class="text-[11px] font-semibold text-slate-700">Tổng vắng: ${kq.tongKet.tongVangP}P, ${kq.tongKet.tongVangKP}KP</div>
+                            <div class="text-[11px] font-semibold text-slate-700">Tổng vắng: ${fmtSoTHSS(kq.tongKet.tongVangP)}P, ${fmtSoTHSS(kq.tongKet.tongVangKP)}KP</div>
                         </td>
                     </tr>
                 </tfoot>
@@ -1217,7 +1284,7 @@ window.xuatExcelTongHopSiSo = async function() {
                 rowTotalArr.push((tt && tt.tongSiSo > 0) ? `${tt.coMat}/${tt.tongSiSo} (${tt.tyLe}%)\nP:${tt.vangP}, KP:${tt.vangKP}` : '--');
             });
         }
-        rowTotalArr.push(kq.tongKet.tongVangP, kq.tongKet.tongVangKP, `${kq.tongKet.tyLeChuyenCan}%`, `Tổng vắng: ${kq.tongKet.tongVangP}P, ${kq.tongKet.tongVangKP}KP`);
+        rowTotalArr.push(kq.tongKet.tongVangP, kq.tongKet.tongVangKP, `${kq.tongKet.tyLeChuyenCan}%`, `Tổng vắng: ${fmtSoTHSS(kq.tongKet.tongVangP)}P, ${fmtSoTHSS(kq.tongKet.tongVangKP)}KP`);
         let rTotal = ws1.addRow(rowTotalArr);
         rTotal.font = { name: 'Times New Roman', size: 12, bold: true };
         rTotal.eachCell({ includeEmpty: true }, (c, colIdx) => {
@@ -1361,7 +1428,7 @@ window.copyNhacNhoChuyenCanZaloTHSS = async function() {
     let dongNoiDung = dsChuaBao.map((item, idx) =>
         `${idx + 1}. Lớp ${item.maLop} (GVCN: ${item.gvcn}): ${item.ngayThieu.join(', ')}`
     );
-    let vanBanZalo = `${tieuDe}\nCác lớp chưa cập nhật chuyên cần:\n${dongNoiDung.join('\n')}\nKính đề nghị các đồng chí bổ sung đầy đủ trên Sổ đầu bài điện tử. Xin cảm ơn!`;
+    let vanBanZalo = `${tieuDe}\nCác lớp chưa cập nhật chuyên cần:\n${dongNoiDung.join('\n')}\nKính đề nghị các đồng chí cập nhật đầy đủ, đúng thời gian quy định trên Sổ đầu bài điện tử. Xin cảm ơn!`;
 
     try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
