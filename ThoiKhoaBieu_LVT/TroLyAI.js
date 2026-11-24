@@ -30,28 +30,35 @@
         const locGV = document.getElementById('locGiaoVien')?.value?.trim() || '';
         const locLop = document.getElementById('locLopHoc')?.value?.trim() || '';
 
+        // Tự động tìm đúng hàng <tr> trong #tieuDeBang chứa tên các lớp (có colspan="2" hoặc nhiều cột lớp nhất)
         const theadRows = Array.from(document.querySelectorAll('#tieuDeBang tr'));
+        let rowLop = theadRows.find(tr => tr.querySelector('th[colspan="2"], td[colspan="2"]')) || theadRows[0];
+        if (!rowLop && theadRows.length > 0) rowLop = theadRows[0];
+
         const dsLop = [];
-        if (theadRows.length > 0) {
-            const headerCells = Array.from(theadRows[0].querySelectorAll('th'));
-            for (let i = 3; i < headerCells.length; i++) {
-                const th = headerCells[i];
+        const canhBaoLop = [];
+
+        if (rowLop) {
+            const headerCells = Array.from(rowLop.querySelectorAll('th, td'));
+            headerCells.forEach((th) => {
+                const txtFull = (th.innerText || '').trim();
+                const txtDong1 = txtFull.split('\n')[0].replace(/\s+/g, ' ').trim();
+                const colSpan = parseInt(th.getAttribute('colspan') || '1', 10);
+
+                // Bỏ qua 3 cột cố định đầu tiên: Thứ/Ngày, Buổi, Tiết
+                if (/^(thứ|buổi|tiết)/i.test(txtDong1) && colSpan === 1) return;
+
                 if (!laPhanTuDangHien(th)) {
                     dsLop.push(null);
-                    continue;
+                    return;
                 }
-                dsLop.push((th.innerText || '').replace(/\s+/g, ' ').trim());
-            }
-        }
 
-        const canhBaoLop = [];
-        for (let r = 1; r < theadRows.length; r++) {
-            const cells = Array.from(theadRows[r].querySelectorAll('th, td'));
-            cells.forEach((c, idx) => {
-                const txt = (c.innerText || '').replace(/\s+/g, ' ').trim();
-                if (txt && txt !== 'Môn' && txt !== 'N dạy' && (txt.includes('/') || txt.toLowerCase().includes('thiếu') || txt.toLowerCase().includes('thừa'))) {
-                    const tenLop = dsLop[idx] || `Cột ${idx + 1}`;
-                    canhBaoLop.push(`${tenLop}: ${txt}`);
+                dsLop.push(txtDong1 || `Lớp_${dsLop.length + 1}`);
+
+                // Tách dòng trạng thái đủ/thiếu tiết nằm bên dưới tên lớp (nếu có)
+                const dongPhu = txtFull.split('\n').slice(1).join(' ').replace(/\s+/g, ' ').trim();
+                if (dongPhu) {
+                    canhBaoLop.push(`${txtDong1}: ${dongPhu}`);
                 }
             });
         }
