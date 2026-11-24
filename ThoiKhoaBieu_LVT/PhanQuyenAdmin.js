@@ -14,7 +14,8 @@ const DANH_SACH_MENU_HE_THONG = [
     { id: 'menuDanhMucSGK', ten: '6. DM SGK' },
     { id: 'menuPhanPhoiChuongTrinh', ten: '7. PP Chương trình' },
     { id: 'menuPhanQuyen', ten: '8. Phân quyền' },
-    { id: 'menuKiemTraSoDauBai', ten: '9. Kiểm tra SĐB' }
+    { id: 'menuKiemTraSoDauBai', ten: '9. Kiểm tra SĐB' },
+    { id: 'menuDuyetGiaoAn', ten: '10. Duyệt Giáo án' }
 ];
 
 const DANH_SACH_NUT_CHUC_NANG = [
@@ -64,8 +65,17 @@ function capNhatHienThiPhanQuyen() {
             menuPPCT.style.display = duocXemPPCT ? 'flex' : 'none';
         }
 
+        let menuDuyetGA = document.getElementById('menuDuyetGiaoAn');
+        let duocXemDuyetGA = false;
+        if (menuDuyetGA) {
+            duocXemDuyetGA = coQuyenQuanTri ||
+                             (typeof quyenChiTiet !== 'undefined' && quyenChiTiet.menu && quyenChiTiet.menu.includes('menuDuyetGiaoAn')) ||
+                             menuCongKhai.includes('menuDuyetGiaoAn');
+            menuDuyetGA.style.display = duocXemDuyetGA ? 'flex' : 'none';
+        }
+
         let nhanHT = document.getElementById('nhanHeThong');
-        if (nhanHT && (duocXemMenu || duocXemPPCT)) {
+        if (nhanHT && (duocXemMenu || duocXemPPCT || duocXemDuyetGA)) {
             nhanHT.style.display = 'flex';
         }
 
