@@ -2546,7 +2546,25 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
         (theChotQuyen && theChotQuyen.getAttribute('data-quyenkhoasdb') === 'true') ||
         (typeof window.coQuyenDuyetGiaoAn === 'function' && window.coQuyenDuyetGiaoAn())
     );
-    let htmlNutGiaoAnTuan = '';
+    let htmlNutGiaoAnCaNhan = '';
+    if (madinhdanhGV && !String(madinhdanhGV).includes('@') && typeof window.timGiaoAnTheoGvVaTuan === 'function') {
+        let gaCuaToi = window.timGiaoAnTheoGvVaTuan(madinhdanhGV, maxTuanChon);
+        if (gaCuaToi) {
+            let uiGa = window.layThongTinHienThiTrangThaiGA(gaCuaToi.trangThaiChung);
+            let monCanSuaStr = (gaCuaToi.trangThaiChung === 'CAN_SUA' && typeof window.layChuoiMonCanSuaGA === 'function')
+                ? window.layChuoiMonCanSuaGA(gaCuaToi, madinhdanhGV, maxTuanChon) : '';
+            let nhanHienThiGA = monCanSuaStr
+                ? `Giáo án Tuần ${maxTuanChon}: ${uiGa.nhan} — ${monCanSuaStr}`
+                : `Giáo án Tuần ${maxTuanChon}: ${uiGa.nhan}`;
+            if (gaCuaToi.fileId && typeof window.taiTruocNoiDungGiaoAnGA === 'function') {
+                setTimeout(() => window.taiTruocNoiDungGiaoAnGA(gaCuaToi.fileId), 300);
+            }
+            htmlNutGiaoAnCaNhan = `<button type="button" onclick="moModalXemGiaoAnSDB('${String(gaCuaToi.id).replace(/'/g, "\\'")}', '')" class="hide-on-print px-2.5 py-0.5 rounded border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer shadow-xs ${uiGa.mauBadge}"><span class="w-2 h-2 rounded-full ${uiGa.mauCham}"></span><span>${nhanHienThiGA}</span></button>`;
+        } else if (tapHopMonDay.size > 0) {
+            htmlNutGiaoAnCaNhan = `<button type="button" onclick="kichHoatTaiGiaoAn1Cham(${maxTuanChon}, '${String(madinhdanhGV).replace(/'/g, "\\'")}', '')" class="hide-on-print px-2.5 py-0.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer shadow-xs">+ Tải giáo án Tuần ${maxTuanChon}</button>`;
+        }
+    }
+    let htmlNutGiaoAnLop = '';
     if (laAdminHoacBghSDB && typeof window.timGiaoAnTheoGvVaTuan === 'function') {
         let tapGaCuaLop = new Map();
         tkbTuanNay.forEach(d => {
@@ -2568,25 +2586,10 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                 let fidSafe = String(gaItem.fileId || '').replace(/'/g, "\\'");
                 return `<button type="button" onmouseenter="if(typeof taiTruocNoiDungGiaoAnGA==='function') taiTruocNoiDungGiaoAnGA('${fidSafe}')" onclick="moModalXemGiaoAnSDB('${gaIdSafe}', '', false)" class="hide-on-print px-2 py-0.5 rounded border text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer shadow-xs ${uiGa.mauBadge}" title="Bấm để xem giáo án của ${tenNgan}"><span class="w-2 h-2 rounded-full ${uiGa.mauCham}"></span><span>${tenNgan}: ${uiGa.nhan}</span></button>`;
             }).join('');
-            htmlNutGiaoAnTuan = `<div class="hide-on-print flex flex-wrap items-center gap-1.5"><span class="text-xs font-bold text-blue-800">Giáo án lớp ${lopChon}:</span>${dsBtnGa}</div>`;
-        }
-    } else if (madinhdanhGV && !String(madinhdanhGV).includes('@') && typeof window.timGiaoAnTheoGvVaTuan === 'function') {
-        let gaCuaToi = window.timGiaoAnTheoGvVaTuan(madinhdanhGV, maxTuanChon);
-        if (gaCuaToi) {
-            let uiGa = window.layThongTinHienThiTrangThaiGA(gaCuaToi.trangThaiChung);
-            let monCanSuaStr = (gaCuaToi.trangThaiChung === 'CAN_SUA' && typeof window.layChuoiMonCanSuaGA === 'function')
-                ? window.layChuoiMonCanSuaGA(gaCuaToi, madinhdanhGV, maxTuanChon) : '';
-            let nhanHienThiGA = monCanSuaStr
-                ? `Giáo án Tuần ${maxTuanChon}: ${uiGa.nhan} — ${monCanSuaStr}`
-                : `Giáo án Tuần ${maxTuanChon}: ${uiGa.nhan}`;
-            if (gaCuaToi.fileId && typeof window.taiTruocNoiDungGiaoAnGA === 'function') {
-                setTimeout(() => window.taiTruocNoiDungGiaoAnGA(gaCuaToi.fileId), 300);
-            }
-            htmlNutGiaoAnTuan = `<button type="button" onclick="moModalXemGiaoAnSDB('${String(gaCuaToi.id).replace(/'/g, "\\'")}', '')" class="hide-on-print px-2.5 py-1 rounded border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer shadow-xs ${uiGa.mauBadge}"><span class="w-2 h-2 rounded-full ${uiGa.mauCham}"></span><span>${nhanHienThiGA}</span></button>`;
-        } else if (tapHopMonDay.size > 0) {
-            htmlNutGiaoAnTuan = `<button type="button" onclick="kichHoatTaiGiaoAn1Cham(${maxTuanChon}, '${String(madinhdanhGV).replace(/'/g, "\\'")}', '')" class="hide-on-print px-2.5 py-1 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer shadow-xs">+ Tải giáo án Tuần ${maxTuanChon}</button>`;
+            htmlNutGiaoAnLop = `<div class="hide-on-print flex flex-wrap items-center gap-1.5"><span class="text-xs font-bold text-blue-800">Giáo án lớp ${lopChon}:</span>${dsBtnGa}</div>`;
         }
     }
+    let htmlNutGiaoAnTuan = [htmlNutGiaoAnCaNhan, htmlNutGiaoAnLop].filter(Boolean).join('');
     let theHienThiQuyen = `<div class="mb-1.5 px-2.5 py-1.5 bg-blue-50 border border-blue-300 shadow-sm text-xs rounded flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 animate-pulse-once"><div class="flex flex-wrap items-center gap-1.5"><span class="font-bold text-blue-800">Giáo viên:</span> <span class="text-blue-700 font-extrabold">${madinhdanhGV || 'Chưa nhận diện'}</span>${htmlNutGiaoAnTuan}</div><div class="text-left sm:text-right sm:max-w-[60%]"><span class="font-bold text-blue-800">Được phân công dạy:</span> <span class="text-blue-700 font-semibold italic">${chuoiMonDay}</span></div></div>`;
 
     let danhSachThu = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6"];
