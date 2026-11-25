@@ -2371,7 +2371,7 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
             if (laMonAI_SDB(mon)) {
                 // Đối với môn AI: Kiểm tra theo trần 12 tiết/năm học
                 if (tietThucTe > dinhMucAiNam) {
-                    canhBaoHtml += `<span class="bg-red-100 text-red-700 font-bold px-3 py-1 rounded border border-red-200 shadow-sm flex items-center gap-1 text-xs whitespace-nowrap"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>${tenMonIn}: Vượt ${tietThucTe - dinhMucAiNam} tiết năm (${tietThucTe}/${dinhMucAiNam} tiết/năm)</span>`;
+                    canhBaoHtml += `<span class="bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded border border-red-200 shadow-xs flex items-center gap-1 text-xs whitespace-nowrap"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>${tenMonIn}: Vượt ${tietThucTe - dinhMucAiNam} tiết năm (${tietThucTe}/${dinhMucAiNam} tiết/năm)</span>`;
                     hasCanhBao = true;
                 }
                 return;
@@ -2381,16 +2381,16 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
 
             let doLech = tietThucTe - tietChuanDuKien;
             if (doLech < 0) { 
-                canhBaoHtml += `<span class="bg-red-100 text-red-700 font-bold px-3 py-1 rounded border border-red-200 shadow-sm flex items-center gap-1 text-xs whitespace-nowrap"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>${tenMonIn}: Thiếu ${Math.abs(doLech)} (tính đến hết tuần ${maxTuanChon})</span>`;
+                canhBaoHtml += `<span class="bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded border border-red-200 shadow-xs flex items-center gap-1 text-xs whitespace-nowrap"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>${tenMonIn}: Thiếu ${Math.abs(doLech)} (tính đến hết tuần ${maxTuanChon})</span>`;
                 hasCanhBao = true;
             } else if (doLech > 0) { 
-                canhBaoHtml += `<span class="bg-orange-100 text-orange-700 font-bold px-3 py-1 rounded border border-orange-200 shadow-sm flex items-center gap-1 text-xs whitespace-nowrap"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>${tenMonIn}: Thừa ${doLech} (tính đến hết tuần ${maxTuanChon})</span>`;
+                canhBaoHtml += `<span class="bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded border border-orange-200 shadow-xs flex items-center gap-1 text-xs whitespace-nowrap"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>${tenMonIn}: Thừa ${doLech} (tính đến hết tuần ${maxTuanChon})</span>`;
                 hasCanhBao = true;
             }
         });
     }
 
-    let thanhCanhBaoRender = hasCanhBao ? `<div class="mb-3 p-2 bg-white border-l-4 border-red-500 shadow-sm text-sm flex flex-col md:flex-row md:items-center gap-3 w-full"><div class="flex items-center gap-2 flex-none"><div class="p-1 bg-red-100 rounded-full"><svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div><span class="font-extrabold text-red-700 uppercase tracking-wide text-xs">Cảnh báo Tiến độ:</span></div><div class="flex flex-wrap gap-2 flex-1">${canhBaoHtml}</div></div>` : '';
+    let thanhCanhBaoRender = hasCanhBao ? `<div class="mb-1.5 px-2.5 py-1 bg-white border-l-4 border-red-500 shadow-sm text-xs flex flex-col md:flex-row md:items-center gap-2 w-full"><div class="flex items-center gap-2 flex-none"><div class="p-1 bg-red-100 rounded-full"><svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div><span class="font-extrabold text-red-700 uppercase tracking-wide text-xs">Cảnh báo Tiến độ:</span></div><div class="flex flex-wrap gap-2 flex-1">${canhBaoHtml}</div></div>` : '';
     
     const thuTuThuKetXuat = { "Thứ 2": 2, "Thứ 3": 3, "Thứ 4": 4, "Thứ 5": 5, "Thứ 6": 6, "Thứ 7": 7, "Chủ nhật": 8 };
     const thuTuBuoiKetXuat = { "sáng": 1, "chiều": 2 };
@@ -2467,8 +2467,8 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     if (soBiKhoa) {
         let namHocHienThi = thongTinKhoa.namHoc ? ` (NĂM HỌC ${thongTinKhoa.namHoc})` : '';
         theTrangThaiHtml = `
-            <div class="mb-4 p-3 bg-red-50 border-2 border-red-500 shadow-sm flex items-center justify-between rounded animate-pulse-once">
-                <div class="flex items-center gap-3">
+            <div class="sdb-banner-trang-thai mb-1.5 px-2.5 py-1.5 bg-red-50 border-2 border-red-500 shadow-sm flex items-center justify-between rounded animate-pulse-once">
+                <div class="flex items-center gap-2">
                     <div class="bg-red-600 text-white rounded-full p-1.5 shadow flex-none">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                     </div>
@@ -2477,7 +2477,7 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                         <span class="text-xs text-red-700 font-semibold">Người khóa: <b>${thongTinKhoa.nguoiThucHien || 'Ban Giám Hiệu'}</b> lúc ${thongTinKhoa.thoiGian || 'Gần đây'}. Toàn bộ các lớp đã được niêm phong, không thể chỉnh sửa.</span>
                     </div>
                 </div>
-                <span class="text-xs font-extrabold bg-red-200 text-red-900 border border-red-400 px-3 py-1.5 rounded-full uppercase tracking-wider whitespace-nowrap">Chỉ Xem</span>
+                <span class="text-xs font-extrabold bg-red-200 text-red-900 border border-red-400 px-2.5 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">Chỉ Xem</span>
             </div>`;
     } else if (tongSoTietCoMon > 0) {
         // [NÂNG CẤP ĐỐI CHIẾU SỰ KHÁC NHAU GIỮA SỔ ĐẦU BÀI ĐÃ LƯU VÀ THỜI KHÓA BIỂU]
@@ -2493,8 +2493,8 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
             `).join('');
 
             theTrangThaiHtml = `
-                <div class="mb-4 p-3 bg-amber-50 border-2 border-amber-500 shadow-md rounded flex flex-col gap-2.5 animate-pulse-once">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div class="sdb-banner-trang-thai mb-1.5 px-2.5 py-1.5 bg-amber-50 border-2 border-amber-500 shadow-md rounded flex flex-col gap-1.5 animate-pulse-once">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
                         <div class="flex items-center gap-2.5">
                             <div class="bg-amber-500 text-white rounded-full p-1.5 shadow flex-none animate-bounce-once">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -2511,17 +2511,17 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                             <span>Đồng bộ Thời khoá biểu (${dsKhacBiet.length} tiết thay đổi)</span>
                         </button>
                     </div>
-                    <div class="pt-2 border-t border-amber-200 flex flex-wrap items-center gap-1.5">
+                    <div class="pt-1.5 border-t border-amber-200 flex flex-wrap items-center gap-1.5">
                         <span class="font-bold text-amber-900 text-xs flex-none">Chi tiết ${dsKhacBiet.length} tiết thay đổi:</span>
                         <div class="flex flex-wrap gap-1.5">${dsPillHtml}</div>
                     </div>
                 </div>`;
         } else if (coThayDoiChuaLuu_SDB) {
-            theTrangThaiHtml = `<div class="mb-4 p-2 bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded animate-pulse-once"><div class="flex items-center gap-2"><div class="bg-amber-500 rounded-full p-1"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div><span class="text-sm font-extrabold text-amber-800 tracking-wide uppercase">ĐÃ ĐỒNG BỘ THỜI KHÓA BIỂU (CÓ THAY ĐỔI CHƯA LƯU)</span></div><span class="text-xs font-bold text-amber-800 bg-amber-200 px-3 py-1 rounded-full border border-amber-400">⚠️ Vui lòng kiểm tra lại và bấm "Lưu Sổ đầu bài" để cập nhật vĩnh viễn lên máy chủ!</span></div>`;
+            theTrangThaiHtml = `<div class="sdb-banner-trang-thai mb-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 rounded animate-pulse-once"><div class="flex items-center gap-2"><div class="bg-amber-500 rounded-full p-1"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div><span class="text-sm font-extrabold text-amber-800 tracking-wide uppercase">ĐÃ ĐỒNG BỘ THỜI KHÓA BIỂU (CÓ THAY ĐỔI CHƯA LƯU)</span></div><span class="text-xs font-bold text-amber-800 bg-amber-200 px-3 py-1 rounded-full border border-amber-400">⚠️ Vui lòng kiểm tra lại và bấm "Lưu Sổ đầu bài" để cập nhật vĩnh viễn lên máy chủ!</span></div>`;
         } else if (soTietDaLuu > 0) {
-            theTrangThaiHtml = `<div class="mb-4 p-2 bg-emerald-50 border border-emerald-200 shadow-sm flex items-center justify-between rounded"><div class="flex items-center gap-2"><div class="bg-emerald-500 rounded-full p-1"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div><span class="text-sm font-extrabold text-emerald-800 tracking-wide uppercase">CÓ DỮ LIỆU ĐÃ ĐƯỢC CHỐT SỔ (ĐÃ TRÙNG KHỚP THỜI KHÓA BIỂU)</span></div></div>`;
+            theTrangThaiHtml = `<div class="sdb-banner-trang-thai mb-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 shadow-sm flex items-center justify-between rounded"><div class="flex items-center gap-2"><div class="bg-emerald-500 rounded-full p-1"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div><span class="text-sm font-extrabold text-emerald-800 tracking-wide uppercase">CÓ DỮ LIỆU ĐÃ ĐƯỢC CHỐT SỔ (ĐÃ TRÙNG KHỚP THỜI KHÓA BIỂU)</span></div></div>`;
         } else {
-            theTrangThaiHtml = `<div class="mb-4 p-2 bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded animate-pulse-once"><div class="flex items-center gap-2"><div class="bg-amber-500 rounded-full p-1"><svg class="w-3 h-3 text-white animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></div><span class="text-sm font-extrabold text-amber-800 tracking-wide uppercase">DỮ LIỆU MỚI TỊNH TIẾN (CHƯA LƯU)</span></div><span class="text-xs font-bold text-amber-800 bg-amber-200 px-3 py-1 rounded-full border border-amber-400">⚠️ Yêu cầu: Bấm "Đồng bộ Tên bài", Nhập Đánh giá, Ký tên và bấm "Lưu Sổ đầu bài" để lưu!</span></div>`;
+            theTrangThaiHtml = `<div class="sdb-banner-trang-thai mb-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 rounded animate-pulse-once"><div class="flex items-center gap-2"><div class="bg-amber-500 rounded-full p-1"><svg class="w-3 h-3 text-white animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></div><span class="text-sm font-extrabold text-amber-800 tracking-wide uppercase">DỮ LIỆU MỚI TỊNH TIẾN (CHƯA LƯU)</span></div><span class="text-xs font-bold text-amber-800 bg-amber-200 px-3 py-1 rounded-full border border-amber-400">⚠️ Yêu cầu: Bấm "Đồng bộ Tên bài", Nhập Đánh giá, Ký tên và bấm "Lưu Sổ đầu bài" để lưu!</span></div>`;
         }
     }
 
@@ -2540,8 +2540,37 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     });
 
     let chuoiMonDay = tapHopMonDay.size > 0 ? Array.from(tapHopMonDay).join(', ') : '<span class="text-red-500 font-normal">Không có tiết dạy tại lớp này</span>';
+    let laAdminHoacBghSDB = !!(
+        quyenQuanTri ||
+        quyenKhoaSdbServer ||
+        (theChotQuyen && theChotQuyen.getAttribute('data-quyenkhoasdb') === 'true') ||
+        (typeof window.coQuyenDuyetGiaoAn === 'function' && window.coQuyenDuyetGiaoAn())
+    );
     let htmlNutGiaoAnTuan = '';
-    if (madinhdanhGV && !String(madinhdanhGV).includes('@') && typeof window.timGiaoAnTheoGvVaTuan === 'function') {
+    if (laAdminHoacBghSDB && typeof window.timGiaoAnTheoGvVaTuan === 'function') {
+        let tapGaCuaLop = new Map();
+        tkbTuanNay.forEach(d => {
+            if (!String(d['Môn Học'] || '').trim()) return;
+            let gvNguon = String(d['Mã GV'] || d['ChuKy_Thuc'] || '').trim();
+            if (!gvNguon) return;
+            gvNguon.split(/[,;&-]/).map(g => g.trim()).filter(Boolean).forEach(gvItem => {
+                let gaItem = window.timGiaoAnTheoGvVaTuan(gvItem, maxTuanChon);
+                if (gaItem && !tapGaCuaLop.has(gaItem.id)) {
+                    tapGaCuaLop.set(gaItem.id, gaItem);
+                }
+            });
+        });
+        if (tapGaCuaLop.size > 0) {
+            let dsBtnGa = Array.from(tapGaCuaLop.values()).map(gaItem => {
+                let uiGa = window.layThongTinHienThiTrangThaiGA(gaItem.trangThaiChung);
+                let tenNgan = gaItem.tenGV || gaItem.maGV;
+                let gaIdSafe = String(gaItem.id || '').replace(/'/g, "\\'");
+                let fidSafe = String(gaItem.fileId || '').replace(/'/g, "\\'");
+                return `<button type="button" onmouseenter="if(typeof taiTruocNoiDungGiaoAnGA==='function') taiTruocNoiDungGiaoAnGA('${fidSafe}')" onclick="moModalXemGiaoAnSDB('${gaIdSafe}', '', false)" class="hide-on-print px-2 py-0.5 rounded border text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer shadow-xs ${uiGa.mauBadge}" title="Bấm để xem giáo án của ${tenNgan}"><span class="w-2 h-2 rounded-full ${uiGa.mauCham}"></span><span>${tenNgan}: ${uiGa.nhan}</span></button>`;
+            }).join('');
+            htmlNutGiaoAnTuan = `<div class="hide-on-print flex flex-wrap items-center gap-1.5"><span class="text-xs font-bold text-blue-800">Giáo án lớp ${lopChon}:</span>${dsBtnGa}</div>`;
+        }
+    } else if (madinhdanhGV && !String(madinhdanhGV).includes('@') && typeof window.timGiaoAnTheoGvVaTuan === 'function') {
         let gaCuaToi = window.timGiaoAnTheoGvVaTuan(madinhdanhGV, maxTuanChon);
         if (gaCuaToi) {
             let uiGa = window.layThongTinHienThiTrangThaiGA(gaCuaToi.trangThaiChung);
@@ -2550,12 +2579,15 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
             let nhanHienThiGA = monCanSuaStr
                 ? `Giáo án Tuần ${maxTuanChon}: ${uiGa.nhan} — ${monCanSuaStr}`
                 : `Giáo án Tuần ${maxTuanChon}: ${uiGa.nhan}`;
+            if (gaCuaToi.fileId && typeof window.taiTruocNoiDungGiaoAnGA === 'function') {
+                setTimeout(() => window.taiTruocNoiDungGiaoAnGA(gaCuaToi.fileId), 300);
+            }
             htmlNutGiaoAnTuan = `<button type="button" onclick="moModalXemGiaoAnSDB('${String(gaCuaToi.id).replace(/'/g, "\\'")}', '')" class="hide-on-print px-2.5 py-1 rounded border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer shadow-xs ${uiGa.mauBadge}"><span class="w-2 h-2 rounded-full ${uiGa.mauCham}"></span><span>${nhanHienThiGA}</span></button>`;
         } else if (tapHopMonDay.size > 0) {
             htmlNutGiaoAnTuan = `<button type="button" onclick="kichHoatTaiGiaoAn1Cham(${maxTuanChon}, '${String(madinhdanhGV).replace(/'/g, "\\'")}', '')" class="hide-on-print px-2.5 py-1 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer shadow-xs">+ Tải giáo án Tuần ${maxTuanChon}</button>`;
         }
     }
-    let theHienThiQuyen = `<div class="mb-4 p-2.5 bg-blue-50 border border-blue-300 shadow-sm text-sm rounded flex flex-col sm:flex-row sm:items-center justify-between gap-2 animate-pulse-once"><div class="flex flex-wrap items-center gap-2"><span class="font-bold text-blue-800">Giáo viên:</span> <span class="text-blue-700 font-extrabold">${madinhdanhGV || 'Chưa nhận diện'}</span>${htmlNutGiaoAnTuan}</div><div class="text-left sm:text-right sm:max-w-[60%]"><span class="font-bold text-blue-800">Được phân công dạy:</span> <span class="text-blue-700 font-semibold italic">${chuoiMonDay}</span></div></div>`;
+    let theHienThiQuyen = `<div class="mb-1.5 px-2.5 py-1.5 bg-blue-50 border border-blue-300 shadow-sm text-xs rounded flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 animate-pulse-once"><div class="flex flex-wrap items-center gap-1.5"><span class="font-bold text-blue-800">Giáo viên:</span> <span class="text-blue-700 font-extrabold">${madinhdanhGV || 'Chưa nhận diện'}</span>${htmlNutGiaoAnTuan}</div><div class="text-left sm:text-right sm:max-w-[60%]"><span class="font-bold text-blue-800">Được phân công dạy:</span> <span class="text-blue-700 font-semibold italic">${chuoiMonDay}</span></div></div>`;
 
     let danhSachThu = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6"];
     if (coDayBuThu7) danhSachThu.push("Thứ 7");
@@ -2588,8 +2620,8 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
     let ngayCuoiTieuDe = mienNgayHienTai ? tinhNgayTuInputDate(mienNgayHienTai, danhSachThu[danhSachThu.length - 1]) : '...';
 
     let htmlBang = `
-        <div class="mb-8 bang-so-dau-bai-container overflow-x-auto">
-            <div class="flex justify-between items-center mb-2">
+        <div class="mb-4 bang-so-dau-bai-container overflow-x-auto">
+            <div class="flex justify-between items-center mb-1">
                 <span class="font-bold text-slate-800 uppercase text-base header-lop">LỚP: ${lopChon}</span>
                 <span class="text-center italic text-sm text-slate-600 flex-1 header-ngay">(Từ ngày ${ngayDauTieuDe} đến ngày ${ngayCuoiTieuDe})</span>
                 <span class="font-bold text-slate-800 uppercase text-base header-tuan">TUẦN ${tuanChon.replace(/\D/g,'')}</span>
@@ -2597,15 +2629,15 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
             <table class="w-full min-w-[950px] border-collapse border border-gray-500 text-sm">
                 <thead class="bg-slate-100 text-center font-bold">
                 <tr>
-                        <th class="border border-gray-500 p-2 w-20">THỨ</th>
-                        <th class="border border-gray-500 p-2 w-10">TIẾT</th>
-                        <th class="border border-gray-500 p-2 min-w-[96px] w-24">C.CẦN</th>
-                        <th class="border border-gray-500 p-2 min-w-[140px] w-40">MÔN</th>
-                        <th class="border border-gray-500 p-2 w-12">TIẾT PPCT</th>
-                        <th class="border border-gray-500 p-2 min-w-[240px] w-1/2">TÊN BÀI DẠY</th>
-                        <th class="border border-gray-500 p-2 min-w-[240px] w-1/2">NHẬN XÉT CỦA GV</th>
-                        <th class="border border-gray-500 p-2 min-w-[85px] w-20">XẾP LOẠI</th>
-                        <th class="border border-gray-500 p-2 min-w-[200px]">GIÁO VIÊN DẠY</th>
+                        <th class="border border-gray-500 px-1.5 py-1.5 w-20">THỨ</th>
+                        <th class="border border-gray-500 px-1.5 py-1.5 w-10">TIẾT</th>
+                        <th class="border border-gray-500 px-1.5 py-1.5 min-w-[96px] w-24">C.CẦN</th>
+                        <th class="border border-gray-500 px-1.5 py-1.5 min-w-[140px] w-40">MÔN</th>
+                        <th class="border border-gray-500 px-1.5 py-1.5 w-12">TIẾT PPCT</th>
+                        <th class="border border-gray-500 px-1.5 py-1.5 min-w-[240px] w-1/2">TÊN BÀI DẠY</th>
+                        <th class="border border-gray-500 px-1.5 py-1.5 min-w-[240px] w-1/2">NHẬN XÉT CỦA GV</th>
+                        <th class="border border-gray-500 px-1.5 py-1.5 min-w-[85px] w-20">XẾP LOẠI</th>
+                        <th class="border border-gray-500 px-1.5 py-1.5 min-w-[200px]">GIÁO VIÊN DẠY</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2722,16 +2754,23 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
                     daInCotThu = true;
                 }
 
-                let maGvCuaTiet = dongDuLieu ? (dongDuLieu['Mã GV'] || '') : '';
+                let maGvCuaTiet = dongDuLieu ? (dongDuLieu['Mã GV'] || dongDuLieu['ChuKy_Thuc'] || '') : '';
                 let htmlNutGiaoAnO = (monHoc && typeof window.taoHtmlNutGiaoAnChoO === 'function')
                     ? window.taoHtmlNutGiaoAnChoO(maxTuanChon, monHoc, maGvCuaTiet, quyenNhapThuCong && !quyenQuanTri && !soBiKhoa)
                     : '';
                 let khoiNutGA = htmlNutGiaoAnO ? `<div class="hide-on-print leading-none">${htmlNutGiaoAnO}</div>` : '';
+                let monSafeAttr = String(monHoc || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                let gvSafeAttr = String(maGvCuaTiet || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                let lopSafeAttr = String(lopChon || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                let coGaTuanNay = !!(monHoc && typeof window.timGiaoAnTheoGvVaTuan === 'function' && maGvCuaTiet && window.timGiaoAnTheoGvVaTuan(String(maGvCuaTiet).split(/[,;&-]/)[0].trim(), maxTuanChon));
+                let attrClickMon = monHoc ? `onclick="if(typeof window.moGiaoAnTuOMonHocSDB==='function') window.moGiaoAnTuOMonHocSDB(this, ${maxTuanChon}, '${monSafeAttr}', '${gvSafeAttr}', '${lopSafeAttr}')"` : '';
+                let cssClickMon = coGaTuanNay ? 'cursor-pointer hover:bg-blue-50/70 transition-colors' : '';
+                let titleClickMon = coGaTuanNay ? `title="Bấm vào ô môn học để mở giáo án và tự động cuộn tới bài dạy"` : '';
 
                 htmlBang += `
                     <td class="text-center p-1 bg-white group-hover:bg-slate-50" style="${styleVien}" title="Buổi ${buoiObj.dataBuoi}" data-loai="tietSDB">${tiet}</td>
                     <td class="text-center p-1 bg-white group-hover:bg-slate-50 align-middle" style="${styleVien}" data-loai="chuyenCan" data-chitiet-cc="${encodeURIComponent(JSON.stringify(chiTietCC || null))}" title="${(typeof tomTatCC !== 'undefined' && tomTatCC.tooltip) ? tomTatCC.tooltip.replace(/"/g, '&quot;') : ''}">${theChuyenCan}</td>
-                    <td class="p-1 font-bold text-center text-slate-900 bg-white group-hover:bg-slate-50" style="${styleVien}" data-loai="mon">${monHoc}${iconSuaChua}${khoiNutGA}</td>
+                    <td class="p-1 font-bold text-center text-slate-900 bg-white group-hover:bg-slate-50 ${cssClickMon}" style="${styleVien}" data-loai="mon" ${attrClickMon} ${titleClickMon}>${monHoc}${iconSuaChua}${khoiNutGA}</td>
                     
                     <td class="p-1 bg-white group-hover:bg-slate-50 align-middle" style="${styleVien}" data-loai="tiet">${theTietPPCT}</td>
                     <td class="p-1 ${cssTenBai} bg-white group-hover:bg-slate-50 align-middle" style="white-space: normal; word-wrap: break-word; ${styleVien}" data-loai="tenBai" data-islocked="${isLocked}" data-coquyensua="${quyenNhapThuCong}">${theTenBai}</td>
@@ -2846,6 +2885,39 @@ function thucThiKetXuatSoDauBaiLenLuoi() {
         </div>
     </div>`;
 
+    if (vungHienThi) {
+        vungHienThi.style.padding = '8px';
+        vungHienThi.style.marginTop = '0px';
+        let khungTabSdb = vungHienThi.parentElement;
+        if (khungTabSdb && khungTabSdb !== document.body && khungTabSdb !== document.documentElement) {
+            khungTabSdb.style.padding = '10px 12px';
+            let tieuDeSdb = khungTabSdb.querySelector('h1, h2, h3');
+            if (tieuDeSdb && String(tieuDeSdb.textContent || '').toUpperCase().includes('SỔ ĐẦU BÀI')) {
+                tieuDeSdb.style.marginTop = '0px';
+                tieuDeSdb.style.marginBottom = '6px';
+                tieuDeSdb.style.lineHeight = '1.2';
+            }
+        }
+    }
+    let btnLuuThuHep = document.getElementById('btnLuuSoDauBai');
+    let thanhCongCuSdb = btnLuuThuHep ? btnLuuThuHep.closest('.border, .rounded-lg, .rounded-xl, .bg-white, .bg-slate-50') : null;
+    if (thanhCongCuSdb && thanhCongCuSdb !== document.body && thanhCongCuSdb !== document.documentElement) {
+        thanhCongCuSdb.style.padding = '8px 10px';
+        thanhCongCuSdb.style.marginBottom = '8px';
+        thanhCongCuSdb.style.rowGap = '6px';
+        thanhCongCuSdb.style.gap = '6px';
+        Array.from(thanhCongCuSdb.children).forEach(child => {
+            child.style.marginTop = '0px';
+            child.style.marginBottom = '0px';
+            child.style.paddingTop = '0px';
+            child.style.paddingBottom = '0px';
+            child.style.rowGap = '6px';
+        });
+        thanhCongCuSdb.querySelectorAll('select, input, button').forEach(el => {
+            el.style.paddingTop = '4px';
+            el.style.paddingBottom = '4px';
+        });
+    }
     vungHienThi.innerHTML = theTrangThaiHtml + thanhCanhBaoRender + theHienThiQuyen + htmlBang + htmlChuKy;
     vungHienThi.querySelectorAll('.bang-so-dau-bai-container table tbody tr').forEach(tr => {
         if (typeof window.capNhatMauChuDongDaKy === 'function') window.capNhatMauChuDongDaKy(tr);
@@ -4750,9 +4822,26 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
                         for (let nd of tdMon.childNodes) { if (nd.nodeType === 3) monHienTai += nd.textContent; }
                         if (monHienTai.trim() !== monHocMoi) {
                             let nutGA = (monHocMoi && typeof window.taoHtmlNutGiaoAnChoO === 'function')
-                                ? window.taoHtmlNutGiaoAnChoO(tuanChon, monHocMoi, dongDuLieuMoi['Mã GV'] || '', quyenNhapThuCong && !quyenQuanTri && !isLockedMoi)
+                                ? window.taoHtmlNutGiaoAnChoO(tuanChon, monHocMoi, dongDuLieuMoi['Mã GV'] || dongDuLieuMoi['ChuKy_Thuc'] || '', quyenNhapThuCong && !quyenQuanTri && !isLockedMoi)
                                 : '';
                             tdMon.innerHTML = monHocMoi + (nutGA ? `<div class="hide-on-print leading-none">${nutGA}</div>` : '');
+                        }
+                        if (monHocMoi) {
+                            let tNumNgam = parseInt(String(tuanChon || '').replace(/\D/g, ''), 10) || 0;
+                            let gvNgam = String(dongDuLieuMoi['Mã GV'] || dongDuLieuMoi['ChuKy_Thuc'] || '');
+                            let coGaNgam = !!(typeof window.timGiaoAnTheoGvVaTuan === 'function' && gvNgam && window.timGiaoAnTheoGvVaTuan(gvNgam.split(/[,;&-]/)[0].trim(), tNumNgam));
+                            tdMon.onclick = function() {
+                                if (typeof window.moGiaoAnTuOMonHocSDB === 'function') {
+                                    window.moGiaoAnTuOMonHocSDB(this, tNumNgam, monHocMoi, gvNgam, lopChon);
+                                }
+                            };
+                            if (coGaNgam) {
+                                tdMon.classList.add('cursor-pointer', 'hover:bg-blue-50/70', 'transition-colors');
+                                tdMon.title = 'Bấm vào ô môn học để mở giáo án và tự động cuộn tới bài dạy';
+                            } else {
+                                tdMon.classList.remove('cursor-pointer', 'hover:bg-blue-50/70');
+                                tdMon.removeAttribute('title');
+                            }
                         }
                     }
 
@@ -4890,7 +4979,7 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
     let tongSoTietCoMon = tkbTuanNay.filter(d => String(d['Môn Học']).trim() !== '').length;
 
     if (tongSoTietCoMon > 0) {
-        let containerDiv = vungHienThi.querySelector('div.mb-4.p-2, div.mb-4.p-3');
+        let containerDiv = vungHienThi.querySelector('.sdb-banner-trang-thai, div.mb-4.p-2, div.mb-4.p-3');
         if (containerDiv) {
             let dsKhacBiet = kiemTraKhacBietTkbVaSoDauBai(tuanChon, lopChon);
             if (soTietDaLuu > 0 && dsKhacBiet && dsKhacBiet.length > 0) {
@@ -4902,9 +4991,9 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
                     </span>
                 `).join('');
 
-                containerDiv.className = "mb-4 p-3 bg-amber-50 border-2 border-amber-500 shadow-md rounded flex flex-col gap-2.5 animate-pulse-once";
+                containerDiv.className = "sdb-banner-trang-thai mb-1.5 px-2.5 py-1.5 bg-amber-50 border-2 border-amber-500 shadow-md rounded flex flex-col gap-1.5 animate-pulse-once";
                 containerDiv.innerHTML = `
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
                         <div class="flex items-center gap-2.5">
                             <div class="bg-amber-500 text-white rounded-full p-1.5 shadow flex-none animate-bounce-once">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -4921,15 +5010,15 @@ window.capNhatSoDauBaiNgamLenLuoi = function(tuanChon, lopChon) {
                             <span>Đồng bộ Thời khoá biểu (${dsKhacBiet.length} tiết thay đổi)</span>
                         </button>
                     </div>
-                    <div class="pt-2 border-t border-amber-200 flex flex-wrap items-center gap-1.5">
+                    <div class="pt-1.5 border-t border-amber-200 flex flex-wrap items-center gap-1.5">
                         <span class="font-bold text-amber-900 text-xs flex-none">Chi tiết ${dsKhacBiet.length} tiết thay đổi:</span>
                         <div class="flex flex-wrap gap-1.5">${dsPillHtml}</div>
                     </div>`;
             } else if (soTietDaLuu > 0) {
-                containerDiv.className = "mb-4 p-2 bg-emerald-50 border border-emerald-200 shadow-sm flex items-center justify-between rounded";
+                containerDiv.className = "sdb-banner-trang-thai mb-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 shadow-sm flex items-center justify-between rounded";
                 containerDiv.innerHTML = `<div class="flex items-center gap-2"><div class="bg-emerald-500 rounded-full p-1"><svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div><span class="text-sm font-extrabold text-emerald-800 tracking-wide uppercase">CÓ DỮ LIỆU ĐÃ ĐƯỢC CHỐT SỔ (ĐÃ TRÙNG KHỚP THỜI KHÓA BIỂU)</span></div><span class="text-xs font-semibold text-emerald-700 italic hidden sm:block"></span></div>`;
             } else {
-                containerDiv.className = "mb-4 p-2 bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded animate-pulse-once";
+                containerDiv.className = "sdb-banner-trang-thai mb-1.5 px-2.5 py-1 bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 rounded animate-pulse-once";
                 containerDiv.innerHTML = `<div class="flex items-center gap-2"><div class="bg-amber-500 rounded-full p-1"><svg class="w-3 h-3 text-white animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></div><span class="text-sm font-extrabold text-amber-800 tracking-wide uppercase">DỮ LIỆU MỚI TỊNH TIẾN (CHƯA LƯU)</span></div><span class="text-xs font-bold text-amber-800 bg-amber-200 px-3 py-1 rounded-full border border-amber-400">⚠️ Yêu cầu: Bấm "Đồng bộ Tên bài", Nhập Đánh giá, Ký tên và bấm "Lưu Sổ đầu bài" để lưu!</span></div>`;
             }
         }
