@@ -269,8 +269,9 @@
         wrapper.id = 'cumTroLyAINoiBo';
         wrapper.className = 'fixed bottom-10 right-4 z-[10060] font-sans';
         wrapper.innerHTML = `
-            <button id="btnMoTroLyAI" type="button"
-                class="flex items-center gap-2 bg-[#0b5394] hover:bg-[#1e70b8] text-white font-bold px-4 py-2.5 rounded-full shadow-xl border border-blue-300 transition-all cursor-pointer">
+            <button id="btnMoTroLyAI" type="button" title="Bấm để mở hoặc kéo thả để di chuyển"
+                style="touch-action: none; user-select: none;"
+                class="flex items-center gap-2 bg-[#0b5394] hover:bg-[#1e70b8] text-white font-bold px-4 py-2.5 rounded-full shadow-xl border border-blue-300 transition-colors cursor-move select-none">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/>
                 </svg>
@@ -328,15 +329,129 @@
         const tenTep = document.getElementById('tenTepDinhKemAI');
         const btnXoaTep = document.getElementById('btnXoaTepAI');
 
+        const KHOA_VI_TRI_AI = 'TRO_LY_AI_VI_TRI_NUT';
+        let viTriNutDaLuu = null;
+        let vuaKeoXong = false;
+
+        function kepViTriTrongManHinh(left, top, el) {
+            const rect = el.getBoundingClientRect();
+            const w = rect.width || 150;
+            const h = rect.height || 44;
+            const maxLeft = Math.max(8, window.innerWidth - w - 8);
+            const maxTop = Math.max(8, window.innerHeight - h - 8);
+            return {
+                left: Math.min(Math.max(8, left), maxLeft),
+                top: Math.min(Math.max(8, top), maxTop)
+            };
+        }
+
+        function apDungViTriWrapper(left, top) {
+            wrapper.style.right = 'auto';
+            wrapper.style.bottom = 'auto';
+            wrapper.style.left = `${left}px`;
+            wrapper.style.top = `${top}px`;
+        }
+
+        // Khôi phục vị trí nút đã lưu (nếu có)
+        try {
+            const rawViTri = localStorage.getItem(KHOA_VI_TRI_AI);
+            if (rawViTri) {
+                const parsed = JSON.parse(rawViTri);
+                if (typeof parsed?.left === 'number' && typeof parsed?.top === 'number') {
+                    const pos = kepViTriTrongManHinh(parsed.left, parsed.top, wrapper);
+                    viTriNutDaLuu = pos;
+                    apDungViTriWrapper(pos.left, pos.top);
+                }
+            }
+        } catch (_) {}
+
+        // Kéo thả nút Trợ lý Gemini (hỗ trợ cả chuột & cảm ứng)
+        (function kichHoatKeoThaNut() {
+            let dangNhan = false;
+            let daKeo = false;
+            let startX = 0;
+            let startY = 0;
+            let startLeft = 0;
+            let startTop = 0;
+            let activePointerId = null;
+
+            btnMo.addEventListener('pointerdown', (e) => {
+                if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
+                const rect = wrapper.getBoundingClientRect();
+                dangNhan = true;
+                daKeo = false;
+                activePointerId = e.pointerId;
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = rect.left;
+                startTop = rect.top;
+                try { btnMo.setPointerCapture(e.pointerId); } catch (_) {}
+            });
+
+            btnMo.addEventListener('pointermove', (e) => {
+                if (!dangNhan || e.pointerId !== activePointerId) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                if (!daKeo && Math.hypot(dx, dy) > 5) {
+                    daKeo = true;
+                }
+                if (!daKeo) return;
+                const pos = kepViTriTrongManHinh(startLeft + dx, startTop + dy, wrapper);
+                apDungViTriWrapper(pos.left, pos.top);
+            });
+
+            function ketThucKeo(e) {
+                if (!dangNhan || e.pointerId !== activePointerId) return;
+                dangNhan = false;
+                try { btnMo.releasePointerCapture(e.pointerId); } catch (_) {}
+                if (daKeo) {
+                    vuaKeoXong = true;
+                    setTimeout(() => { vuaKeoXong = false; }, 120);
+                    const rect = wrapper.getBoundingClientRect();
+                    const pos = kepViTriTrongManHinh(rect.left, rect.top, wrapper);
+                    apDungViTriWrapper(pos.left, pos.top);
+                    viTriNutDaLuu = pos;
+                    try { localStorage.setItem(KHOA_VI_TRI_AI, JSON.stringify(pos)); } catch (_) {}
+                }
+                activePointerId = null;
+            }
+
+            btnMo.addEventListener('pointerup', ketThucKeo);
+            btnMo.addEventListener('pointercancel', ketThucKeo);
+        })();
+
+        window.addEventListener('resize', () => {
+            if (!wrapper.style.left || !wrapper.style.top) return;
+            const left = parseFloat(wrapper.style.left);
+            const top = parseFloat(wrapper.style.top);
+            if (!isNaN(left) && !isNaN(top)) {
+                const pos = kepViTriTrongManHinh(left, top, wrapper);
+                apDungViTriWrapper(pos.left, pos.top);
+            }
+        });
+
         btnMo.addEventListener('click', () => {
+            if (vuaKeoXong) return;
             btnMo.classList.add('hidden');
             hopChat.classList.remove('hidden');
+            if (wrapper.style.left && wrapper.style.top) {
+                const pos = kepViTriTrongManHinh(
+                    parseFloat(wrapper.style.left) || 8,
+                    parseFloat(wrapper.style.top) || 8,
+                    wrapper
+                );
+                apDungViTriWrapper(pos.left, pos.top);
+            }
             input.focus();
         });
 
         btnDong.addEventListener('click', () => {
             hopChat.classList.add('hidden');
             btnMo.classList.remove('hidden');
+            if (viTriNutDaLuu) {
+                const pos = kepViTriTrongManHinh(viTriNutDaLuu.left, viTriNutDaLuu.top, wrapper);
+                apDungViTriWrapper(pos.left, pos.top);
+            }
         });
 
         btnChonFile.addEventListener('click', () => inputFile.click());
