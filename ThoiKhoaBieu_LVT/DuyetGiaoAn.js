@@ -65,6 +65,16 @@ window.khoiTaoDOMDuyetGiaoAn = function() {
                         </select>
                     </div>
                     <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-700">Khối:</span>
+                        <select id="locKhoiDuyetGA" onchange="ketXuatBangDuyetGiaoAn()" class="border border-blue-300 rounded px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white outline-none cursor-pointer">
+                            <option value="">Tất cả khối</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-700">Lớp:</span>
+                        <input type="text" id="locLopDuyetGA" oninput="ketXuatBangDuyetGiaoAn()" placeholder="VD: 6*, *A..." title="Hỗ trợ ký tự đại diện * (VD: 6*, *A, 6A1 hoặc 6*,7A)" class="w-28 md:w-32 border border-blue-300 rounded px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white outline-none focus:border-blue-500">
+                    </div>
+                    <div class="flex items-center gap-2">
                         <span class="text-xs font-bold text-slate-700">Trạng thái:</span>
                         <select id="locTrangThaiDuyetGA" onchange="ketXuatBangDuyetGiaoAn()" class="border border-blue-300 rounded px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white outline-none cursor-pointer">
                             <option value="CAN_XU_LY">Cần xử lý (Chờ duyệt &amp; Đã sửa)</option>
@@ -77,7 +87,7 @@ window.khoiTaoDOMDuyetGiaoAn = function() {
                         </select>
                     </div>
                     <div class="flex-1 min-w-[200px]">
-                        <input type="text" id="timKiemDuyetGA" oninput="ketXuatBangDuyetGiaoAn()" placeholder="Tìm tên giáo viên hoặc môn học..." class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
+                        <input type="text" id="timKiemDuyetGA" oninput="ketXuatBangDuyetGiaoAn()" placeholder="Tìm tên giáo viên (cách nhau dấu ,) hoặc môn học..." title="Có thể nhập nhiều tên giáo viên hoặc môn học ngăn cách bởi dấu phẩy (,)" class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500">
                     </div>
                     <div id="thongKeNhanhDuyetGA" class="text-xs font-bold text-slate-600"></div>
                 </div>
@@ -360,6 +370,7 @@ window.taiDanhSachGiaoAnTuMayChu = async function(buocTaiMoi = false) {
         let khungDuyet = document.getElementById('khungDuyetGiaoAn');
         if (khungDuyet && !khungDuyet.classList.contains('hidden')) {
             window.napBoLocTuanDuyetGA();
+            window.napBoLocKhoiDuyetGA();
             window.ketXuatBangDuyetGiaoAn();
         }
         let khungSDB = document.getElementById('khungSoDauBai');
@@ -518,12 +529,14 @@ window.moTabDuyetGiaoAn = function() {
         Promise.resolve(taiDuLieuSoDauBaiTuMayChu()).then(() => {
             let khungDuyet = document.getElementById('khungDuyetGiaoAn');
             if (khungDuyet && !khungDuyet.classList.contains('hidden')) {
+                window.napBoLocKhoiDuyetGA();
                 window.ketXuatBangDuyetGiaoAn();
             }
         }).catch(() => {});
     }
     window.taiDanhSachGiaoAnTuMayChu(false).then(() => {
         window.napBoLocTuanDuyetGA();
+        window.napBoLocKhoiDuyetGA();
         window.ketXuatBangDuyetGiaoAn();
     });
 };
@@ -544,13 +557,64 @@ window.napBoLocTuanDuyetGA = function() {
     if (valCu && arrTuan.includes(parseInt(valCu, 10))) sel.value = valCu;
 };
 
+window.layKhoiTuMaLopGA = function(maLop) {
+    let s = String(maLop || '').trim().replace(/^lớp\s*/i, '');
+    let m = s.match(/^(\d{1,2})/);
+    return m ? String(parseInt(m[1], 10)) : '';
+};
+
+window.taoBoLocLopWildcardGA = function(chuoiLoc) {
+    let parts = String(chuoiLoc || '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    return parts.map(p => {
+        let escaped = p.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+        return new RegExp('^' + escaped + '$', 'i');
+    });
+};
+
+window.napBoLocKhoiDuyetGA = function() {
+    let sel = document.getElementById('locKhoiDuyetGA');
+    if (!sel) return;
+    let valCu = sel.value;
+    let tapKhoi = new Set();
+
+    (window.duLieuGiaoAnToanCuc || []).forEach(g => {
+        let dsMon = window.layDanhSachMonPhanCongCuaGvTheoTuan(g.maGV, g.tuan);
+        dsMon.forEach(m => {
+            (m.lopList || []).forEach(l => {
+                let k = window.layKhoiTuMaLopGA(l);
+                if (k) tapKhoi.add(k);
+            });
+        });
+    });
+
+    if (tapKhoi.size === 0) {
+        let nguonTkb = [];
+        if (typeof duLieuTKBGopDaMap !== 'undefined' && Array.isArray(duLieuTKBGopDaMap)) nguonTkb = nguonTkb.concat(duLieuTKBGopDaMap);
+        if (typeof duLieuTkbHienTai !== 'undefined' && Array.isArray(duLieuTkbHienTai)) nguonTkb = nguonTkb.concat(duLieuTkbHienTai);
+        if (typeof thongSoHocVu !== 'undefined' && Array.isArray(thongSoHocVu.TKB_TUAN)) nguonTkb = nguonTkb.concat(thongSoHocVu.TKB_TUAN);
+        nguonTkb.forEach(d => {
+            if (!d) return;
+            let k = window.layKhoiTuMaLopGA(d['Mã Lớp'] || d.maLop || '');
+            if (k) tapKhoi.add(k);
+        });
+    }
+
+    let arrKhoi = Array.from(tapKhoi).sort((a, b) => Number(a) - Number(b));
+    sel.innerHTML = `<option value="">Tất cả khối</option>` + arrKhoi.map(k => `<option value="${k}">Khối ${k}</option>`).join('');
+    if (valCu && arrKhoi.includes(String(valCu))) sel.value = valCu;
+};
+
 window.ketXuatBangDuyetGiaoAn = function() {
     let tbody = document.getElementById('vungDuLieuDuyetGiaoAn');
     if (!tbody) return;
 
     let tuanLoc = document.getElementById('locTuanDuyetGA')?.value || '';
+    let khoiLoc = document.getElementById('locKhoiDuyetGA')?.value || '';
+    let lopLoc = (document.getElementById('locLopDuyetGA')?.value || '').trim();
+    let regexLopList = window.taoBoLocLopWildcardGA(lopLoc);
     let trangThaiLoc = document.getElementById('locTrangThaiDuyetGA')?.value || '';
     let tuKhoa = (document.getElementById('timKiemDuyetGA')?.value || '').trim().toLowerCase().normalize('NFC');
+    let dsTuKhoa = tuKhoa ? tuKhoa.split(',').map(s => s.trim()).filter(Boolean) : [];
 
     let ds = [...(window.duLieuGiaoAnToanCuc || [])];
     const thuTuUuTien = { 'DA_SUA': 1, 'CHO_DUYET': 2, 'CAN_SUA': 3, 'DUYET_MOT_PHAN': 4, 'DA_DUYET': 5 };
@@ -568,10 +632,23 @@ window.ketXuatBangDuyetGiaoAn = function() {
         } else if (trangThaiLoc && g.trangThaiChung !== trangThaiLoc) {
             return false;
         }
-        if (tuKhoa) {
-            let monPC = window.layDanhSachMonPhanCongCuaGvTheoTuan(g.maGV, g.tuan).map(m => m.mon).join(' ');
+        let dsMonPC = (khoiLoc || regexLopList.length > 0 || dsTuKhoa.length > 0)
+            ? window.layDanhSachMonPhanCongCuaGvTheoTuan(g.maGV, g.tuan)
+            : null;
+        if (khoiLoc || regexLopList.length > 0) {
+            let tapLop = [];
+            (dsMonPC || []).forEach(m => {
+                (m.lopList || []).forEach(l => {
+                    if (l && !tapLop.includes(l)) tapLop.push(l);
+                });
+            });
+            if (khoiLoc && !tapLop.some(l => window.layKhoiTuMaLopGA(l) === String(khoiLoc))) return false;
+            if (regexLopList.length > 0 && !tapLop.some(l => regexLopList.some(rx => rx.test(String(l).trim())))) return false;
+        }
+        if (dsTuKhoa.length > 0) {
+            let monPC = (dsMonPC || []).map(m => m.mon).join(' ');
             let chuoiTim = `${g.tenGV} ${g.maGV} ${g.tenFile} ${monPC}`.toLowerCase().normalize('NFC');
-            if (!chuoiTim.includes(tuKhoa)) return false;
+            if (!dsTuKhoa.some(tk => chuoiTim.includes(tk))) return false;
         }
         return true;
     });
