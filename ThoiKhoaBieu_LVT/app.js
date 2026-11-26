@@ -1551,9 +1551,6 @@ window.kiemTraVaXuLyTrungGiaoVienKhiXep = function(inputEl, tenGvMoi) {
         let utKhac = parseInt(uuTienMon[monKhac]) || 99;
         let lopKhacLaHDTN = window.laTietHoatDongTapTheDuocPhepTrung(monKhac, utKhac);
         
-        // Ngoại trừ tiết HĐTN / hoạt động tập thể thì được phép trùng tiết (1 giáo viên có thể tổ chức cho cả trường)
-        if (hienTaiLaHDTN && lopKhacLaHDTN) return;
-        
         let tapGv = gvVal.toLowerCase().normalize('NFC').split(/[,;&-]/).map(s => s.trim());
         if (tapGv.includes(tenGvMoiNorm) || gvVal.toLowerCase().normalize('NFC') === tenGvMoiNorm) {
             dsLopTrung.push({
@@ -1581,9 +1578,6 @@ window.kiemTraVaXuLyTrungGiaoVienKhiXep = function(inputEl, tenGvMoi) {
                 let utAn = parseInt(uuTienMon[monAn]) || 99;
                 let lopAnLaHDTN = window.laTietHoatDongTapTheDuocPhepTrung(monAn, utAn);
                 
-                // Ngoại trừ tiết HĐTN / hoạt động tập thể thì được phép trùng tiết
-                if (hienTaiLaHDTN && lopAnLaHDTN) return;
-                
                 let tapGvAn = String(tietGoc.maGv).toLowerCase().normalize('NFC').split(/[,;&-]/).map(s => s.trim());
                 if (tapGvAn.includes(tenGvMoiNorm) || String(tietGoc.maGv).toLowerCase().normalize('NFC') === tenGvMoiNorm) {
                     dsLopTrung.push({
@@ -1599,31 +1593,158 @@ window.kiemTraVaXuLyTrungGiaoVienKhiXep = function(inputEl, tenGvMoi) {
     }
     
     if (dsLopTrung.length > 0) {
-        let thongTinCacLop = dsLopTrung.map(it => `Lớp ${it.lop} (${it.thu}, ${it.buoi}, Tiết ${it.tiet}${it.mon ? ' - Môn: ' + it.mon : ''})`).join('\n- ');
-        
-        alert(`⚠️ CẢNH BÁO TRÙNG LỊCH GIÁO VIÊN:\n\nGiáo viên "${tenGvMoi}" đã được xếp lịch ở:\n- ${thongTinCacLop} rồi!\n\n(Lưu ý: Chỉ các tiết HĐTN/hoạt động tập thể mới được phép trùng giáo viên).\n\nVui lòng kiểm tra lại.`);
-        
-        // Trả về giá trị trước khi thay đổi:
-        inputEl.value = giaTriCu;
-        if (!inputEl.value) {
-            inputEl.placeholder = '--';
-        }
-        
-        // Khôi phục trạng thái cờ sửa chữa nếu ô chưa sửa trước đó:
-        let td = inputEl.closest('td');
-        if (td && inputEl.dataset.daSuaTruocDo !== '1') {
-            td.removeAttribute('data-thaydoi');
-            let icon = td.querySelector('.icon-sua-chua');
-            if (icon) icon.remove();
-        }
-        
-        if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
-            kiemTraTrungGiaoVienToanBang(true);
+        if (typeof window.hienThiModalCanhBaoTrungGiaoVien === 'function') {
+            window.hienThiModalCanhBaoTrungGiaoVien({
+                inputEl: inputEl,
+                tenGvMoi: tenGvMoi,
+                giaTriCu: giaTriCu,
+                daSuaTruocDo: inputEl.dataset.daSuaTruocDo || '0',
+                lopHienTai: lopHienTai,
+                monHienTai: monHienTai,
+                thu: thu,
+                buoi: buoi,
+                tiet: tiet,
+                dsLopTrung: dsLopTrung
+            });
+            return 'pending';
         }
         return false;
     }
     
     return true;
+};
+
+// =========================================================================
+// MODAL CẢNH BÁO TRÙNG LỊCH GIÁO VIÊN (CHO XẾP TRÙNG HOẶC KHÔNG XẾP)
+// =========================================================================
+window.hienThiModalCanhBaoTrungGiaoVien = function(opts) {
+    if (!opts || !opts.inputEl) return;
+    let inputEl = opts.inputEl;
+    let tenGvMoi = opts.tenGvMoi || '';
+    let giaTriCu = opts.giaTriCu || '';
+    let daSuaTruocDo = opts.daSuaTruocDo || '0';
+    let dsLopTrung = Array.isArray(opts.dsLopTrung) ? opts.dsLopTrung : [];
+
+    // Đánh dấu đang chờ xác nhận để onblur không kích hoạt kiểm tra lặp lại
+    inputEl.value = tenGvMoi;
+    inputEl.dataset.dangChoXacNhanTrung = '1';
+
+    let modal = document.getElementById('modalCanhBaoTrungGV');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalCanhBaoTrungGV';
+        modal.className = 'fixed inset-0 z-[9999] hidden items-center justify-center bg-slate-900/60 backdrop-blur-[1px] p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl border border-amber-300 w-full max-w-lg overflow-hidden animate-fade-in" style="font-family:'Times New Roman',Times,serif;">
+                <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3.5 flex items-center justify-between text-white">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-6 h-6 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <h3 class="text-base md:text-lg font-extrabold uppercase tracking-wide">Cảnh báo trùng lịch giáo viên</h3>
+                    </div>
+                    <button type="button" id="btnDongModalTrungGV" class="text-white/80 hover:text-white rounded-lg p-1 transition-colors cursor-pointer" title="Đóng (Không xếp)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div id="noiDungModalTrungGV" class="p-5 text-slate-800 space-y-3 text-sm md:text-base max-h-[65vh] overflow-y-auto"></div>
+                <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex flex-wrap items-center justify-end gap-3">
+                    <button type="button" id="btnKhongXepTrungGV" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-sm transition-colors cursor-pointer shadow-xs">
+                        Không xếp
+                    </button>
+                    <button type="button" id="btnChoXepTrungGV" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm transition-colors cursor-pointer shadow-sm">
+                        Cho xếp trùng
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    const escapeHtml = (str) => String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    let dongBangTrung = dsLopTrung.map((it, idx) => `
+        <tr class="border-b border-amber-200 last:border-b-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-amber-50/40'}">
+            <td class="px-3 py-2 font-extrabold text-red-700 border-r border-amber-200">Lớp ${escapeHtml(it.lop)}</td>
+            <td class="px-3 py-2 font-bold text-blue-900 border-r border-amber-200">${it.mon ? escapeHtml(it.mon) : '<span class="italic text-slate-400 font-normal">Chưa có môn</span>'}</td>
+            <td class="px-3 py-2 text-slate-700 font-semibold whitespace-nowrap">${escapeHtml(it.thu)}, ${escapeHtml(it.buoi)}, Tiết ${escapeHtml(it.tiet)}</td>
+        </tr>
+    `).join('');
+
+    let noiDungEl = document.getElementById('noiDungModalTrungGV');
+    if (noiDungEl) {
+        noiDungEl.innerHTML = `
+            <p class="leading-relaxed">
+                Giáo viên <span class="font-extrabold text-blue-900">${escapeHtml(tenGvMoi)}</span> đang được xếp cho
+                <span class="font-bold text-slate-900">Lớp ${escapeHtml(opts.lopHienTai)}</span>
+                (${escapeHtml(opts.thu)}, ${escapeHtml(opts.buoi)}, Tiết ${escapeHtml(opts.tiet)}${opts.monHienTai ? ' - Môn: <span class="font-bold text-blue-800">' + escapeHtml(opts.monHienTai) + '</span>' : ''}),
+                nhưng đã có lịch dạy trùng giờ tại:
+            </p>
+            <div class="border border-amber-300 rounded-xl overflow-hidden shadow-xs">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead class="bg-amber-100 text-amber-950 font-extrabold">
+                        <tr>
+                            <th class="px-3 py-2 border-r border-amber-300">Lớp đã xếp</th>
+                            <th class="px-3 py-2 border-r border-amber-300">Môn học</th>
+                            <th class="px-3 py-2">Thời điểm</th>
+                        </tr>
+                    </thead>
+                    <tbody>${dongBangTrung}</tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    const dongModal = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    };
+
+    const xuLyChoXepTrung = () => {
+        delete inputEl.dataset.dangChoXacNhanTrung;
+        inputEl.value = tenGvMoi;
+        inputEl.dataset.val = tenGvMoi;
+        if (typeof window.danhDauDongThayDoiTKB === 'function') {
+            window.danhDauDongThayDoiTKB(inputEl);
+        }
+        if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
+            kiemTraTrungGiaoVienToanBang(true);
+        }
+        dongModal();
+    };
+
+    const xuLyKhongXep = () => {
+        delete inputEl.dataset.dangChoXacNhanTrung;
+        inputEl.value = giaTriCu;
+        inputEl.dataset.val = giaTriCu;
+        if (!inputEl.value) {
+            inputEl.placeholder = '--';
+        }
+        let td = inputEl.closest('td');
+        if (td && daSuaTruocDo !== '1') {
+            td.removeAttribute('data-thaydoi');
+            let icon = td.querySelector('.icon-sua-chua');
+            if (icon) icon.remove();
+        }
+        if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
+            kiemTraTrungGiaoVienToanBang(true);
+        }
+        dongModal();
+    };
+
+    let btnChoXep = document.getElementById('btnChoXepTrungGV');
+    let btnKhongXep = document.getElementById('btnKhongXepTrungGV');
+    let btnDong = document.getElementById('btnDongModalTrungGV');
+    if (btnChoXep) btnChoXep.onclick = xuLyChoXepTrung;
+    if (btnKhongXep) btnKhongXep.onclick = xuLyKhongXep;
+    if (btnDong) btnDong.onclick = xuLyKhongXep;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 };
 
 function taoTuyChonDong(danhSach, giaTriMacDinh, kieuText, idPhanTu, isTarget = true, loaiDanhSach = '', coQuyenSua = quyenSuaChua) {
@@ -1782,6 +1903,7 @@ window.demSoTietAiTrenLuoiCuaLop = function(lopMucTieu) {
 
 window.xacThucGiaTriHopLe = function(inputEl, loaiDanhSach, kiemTraTrung = true) {
     if (!inputEl) return true;
+    if (inputEl.dataset && inputEl.dataset.dangChoXacNhanTrung === '1') return false;
     let giaTri = inputEl.value.trim();
 
     // [NÂNG CẤP]: Xóa trắng ô hoàn toàn nếu người dùng chọn "---" hoặc "--"
@@ -1845,8 +1967,8 @@ window.xacThucGiaTriHopLe = function(inputEl, loaiDanhSach, kiemTraTrung = true)
         // 1. Kiểm tra xếp trùng giáo viên nếu là ô giáo viên (ngoại trừ HĐTN)
         if (loaiDanhSach === 'gv' && kiemTraTrung && inputEl.id && inputEl.id.startsWith('gv_')) {
             let hopLe = window.kiemTraVaXuLyTrungGiaoVienKhiXep(inputEl, giaTriDung);
-            if (!hopLe) {
-                return false; // Đã trùng và đã trả về giá trị trước khi thay đổi
+            if (!hopLe || hopLe === 'pending') {
+                return false; // Đã trùng và đang chờ xác nhận hoặc đã trả về giá trị trước khi thay đổi
             }
         }
 
