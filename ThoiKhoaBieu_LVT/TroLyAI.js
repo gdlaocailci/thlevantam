@@ -1,6 +1,7 @@
 (function () {
     let dangTraLoi = false;
     let tepDangChon = null; // { tenFile, mimeType, base64, noiDungText }
+    let lichSuHoiThoai = []; // Lưu lịch sử hội thoại nối tiếp trong phiên
 
     // =========================================================================
     // THUẬT TOÁN TRÍCH XUẤT DỮ LIỆU THÔNG MINH TRÊN MÀN HÌNH
@@ -282,14 +283,22 @@
                 <div class="bg-[#0b5394] text-white px-4 py-3 flex items-center justify-between">
                     <div>
                         <div class="font-bold text-sm">Trợ lý Gemini Nhà trường</div>
-                        <div class="text-[11px] text-blue-200">Đọc màn hình &amp; phân tích tệp đính kèm</div>
+                        <div class="text-[11px] text-blue-200">Hội thoại nối tiếp &amp; phân tích tệp đính kèm</div>
                     </div>
-                    <button id="btnDongTroLyAI" type="button" class="text-white hover:text-red-200 text-2xl leading-none px-1 cursor-pointer">&times;</button>
+                    <div class="flex items-center gap-1.5">
+                        <button id="btnMoiHoiThoaiAI" type="button" title="Cuộc trò chuyện mới"
+                            class="text-blue-100 hover:text-white hover:bg-white/15 rounded-lg p-1.5 cursor-pointer transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                        <button id="btnDongTroLyAI" type="button" class="text-white hover:text-red-200 text-2xl leading-none px-1 cursor-pointer">&times;</button>
+                    </div>
                 </div>
 
                 <div id="noiDungChatAI" class="flex-1 p-3 overflow-y-auto space-y-2.5 bg-slate-50 text-sm">
                     <div class="bg-blue-50 border border-blue-200 text-slate-700 p-2.5 rounded-xl text-xs leading-relaxed">
-                        Xin chào! Tôi có thể đọc dữ liệu trên màn hình đang mở, hoặc bạn bấm biểu tượng kẹp ghim để tải lên file <b>Excel, PDF, Ảnh, TXT/CSV</b> cùng đối chiếu nhé.
+                        Xin chào! Tôi có thể đọc dữ liệu trên màn hình đang mở, ghi nhớ mạch trò chuyện nối tiếp, hoặc bạn bấm dấu <b>+</b> để tải lên file <b>Excel, PDF, Ảnh, TXT/CSV</b> cùng đối chiếu nhé.
                     </div>
                 </div>
 
@@ -298,20 +307,24 @@
                     <button id="btnXoaTepAI" type="button" class="ml-2 text-red-600 hover:text-red-800 font-bold cursor-pointer">&times;</button>
                 </div>
 
-                <form id="formGuiCauHoiAI" class="p-2.5 bg-white border-t border-slate-200 flex items-center gap-1.5">
+                <form id="formGuiCauHoiAI" class="p-2.5 bg-white border-t border-slate-200">
                     <input id="inputFileAI" type="file" accept=".pdf,.xlsx,.docx,.xls,.csv,.txt,.png,.jpg,.jpeg,.webp" class="hidden">
-                    <button id="btnChonFileAI" type="button" title="Đính kèm tệp (Excel, PDF, Ảnh, TXT)"
-                        class="p-2 text-slate-600 hover:text-[#0b5394] hover:bg-slate-100 rounded-lg cursor-pointer transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                        </svg>
-                    </button>
-                    <input id="inputCauHoiAI" type="text" placeholder="Nhập câu hỏi..." autocomplete="off"
-                        class="flex-1 min-w-0 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button id="btnGuiAI" type="submit"
-                        class="bg-[#0b5394] hover:bg-[#1e70b8] text-white font-bold px-3.5 py-1.5 rounded-lg text-sm cursor-pointer disabled:opacity-50">
-                        Gửi
-                    </button>
+                    <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-300 rounded-full px-2 py-1 shadow-inner focus-within:ring-2 focus-within:ring-blue-500 focus-within:bg-white transition-all">
+                        <button id="btnChonFileAI" type="button" title="Đính kèm tệp (Excel, PDF, Ảnh, TXT)"
+                            class="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-[#0b5394] hover:bg-slate-200/70 rounded-full cursor-pointer transition-colors flex-none">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"></path>
+                            </svg>
+                        </button>
+                        <input id="inputCauHoiAI" type="text" placeholder="Đặt câu hỏi nối tiếp" autocomplete="off"
+                            class="flex-1 min-w-0 bg-transparent px-1 py-1 text-sm text-slate-800 placeholder-slate-500 focus:outline-none">
+                        <button id="btnGuiAI" type="submit" title="Gửi câu hỏi"
+                            class="w-8 h-8 flex items-center justify-center bg-[#0b5394] hover:bg-[#1e70b8] text-white rounded-full cursor-pointer disabled:opacity-50 flex-none transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </form>
             </div>
         `;
@@ -328,6 +341,7 @@
         const vungTep = document.getElementById('vungTepDinhKemAI');
         const tenTep = document.getElementById('tenTepDinhKemAI');
         const btnXoaTep = document.getElementById('btnXoaTepAI');
+        const btnMoiHoiThoai = document.getElementById('btnMoiHoiThoaiAI');
 
         const KHOA_VI_TRI_AI = 'TRO_LY_AI_VI_TRI_NUT';
         let viTriNutDaLuu = null;
@@ -462,6 +476,22 @@
             vungTep.classList.add('hidden');
         });
 
+        if (btnMoiHoiThoai) {
+            btnMoiHoiThoai.addEventListener('click', () => {
+                if (dangTraLoi) return;
+                lichSuHoiThoai = [];
+                tepDangChon = null;
+                inputFile.value = '';
+                vungTep.classList.add('hidden');
+                khungTin.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-200 text-slate-700 p-2.5 rounded-xl text-xs leading-relaxed">
+                        Đã bắt đầu cuộc trò chuyện mới! Hãy đặt câu hỏi hoặc bấm dấu <b>+</b> để đính kèm tệp nhé.
+                    </div>
+                `;
+                input.focus();
+            });
+        }
+
         inputFile.addEventListener('change', async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -547,13 +577,26 @@
             document.getElementById('btnGuiAI').disabled = true;
 
             try {
+                const lichSuGanDay = lichSuHoiThoai.slice(-10);
+                const lichSuText = lichSuGanDay.length > 0
+                    ? `[Lịch sử hội thoại nối tiếp gần đây]\n` + lichSuGanDay
+                        .map(m => `${m.vaiTro === 'user' ? 'Người dùng' : 'Trợ lý'}: ${m.noiDung}`)
+                        .join('\n')
+                        .slice(-10000)
+                    : '';
+                const nguCanhManHinh = layNguCanhTrangHienTai();
+                const nguCanhGui = lichSuText
+                    ? `${lichSuText}\n\n${nguCanhManHinh}`.slice(0, 35000)
+                    : nguCanhManHinh;
+
                 const phanHoi = await fetch(CAU_HINH_FRONTEND.URL_API_MAY_CHU, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
                         thaoTac: 'hoiTroLyAI',
                         cauHoi: cauHoi,
-                        nguCanh: layNguCanhTrangHienTai(),
+                        nguCanh: nguCanhGui,
+                        lichSuHoiThoai: lichSuGanDay,
                         tepDinhKem: tepGui,
                         fileIdGiaoAn: layFileIdModalDangMo()
                     })
@@ -562,6 +605,11 @@
                 const ketQua = await phanHoi.json();
                 if (ketQua.trangThai === 'thanh_cong') {
                     oTraLoi.innerHTML = dinhDangTraLoiDep(ketQua.traLoi);
+                    lichSuHoiThoai.push({ vaiTro: 'user', noiDung: nhanUser });
+                    lichSuHoiThoai.push({ vaiTro: 'assistant', noiDung: String(ketQua.traLoi || '') });
+                    if (lichSuHoiThoai.length > 20) {
+                        lichSuHoiThoai = lichSuHoiThoai.slice(-20);
+                    }
                 } else {
                     oTraLoi.textContent = 'Lỗi: ' + (ketQua.thongBao || 'Không nhận được phản hồi.');
                 }
