@@ -949,6 +949,7 @@ async function khoiTaoGiaoDien() {
                     if (dateInput) dateInput.value = ngayDauTuanUI;
                 }
                 
+                if (typeof window.khoiPhucPhienDangNhap === 'function') window.khoiPhucPhienDangNhap();
                 kiemSoatGiaoDien(); 
                 napDuLieuBoLocGiaoVien();
                 if(thongSoHocVu.NAM_HOC) { 
@@ -978,8 +979,13 @@ async function khoiTaoGiaoDien() {
         const thongSoMoi = await phanHoi.json();
         if (thongSoMoi.trangThai === 'loi_he_thong') throw new Error(thongSoMoi.thongBao);
         
+        const _quyenTruocKhiCapNhat = JSON.stringify({ quyenSuaChua, quyenChiTiet });
         thongSoHocVu = thongSoMoi; window.thongSoHocVu = thongSoHocVu;
         localStorage.setItem(KEY_CH, JSON.stringify(thongSoHocVu)); 
+        if (typeof window.khoiPhucPhienDangNhap === 'function') window.khoiPhucPhienDangNhap();
+        if (JSON.stringify({ quyenSuaChua, quyenChiTiet }) !== _quyenTruocKhiCapNhat) {
+            daVeLuoiRam = false;
+        }
         if (typeof window.capNhatDatalistTKB === 'function') {
             window.capNhatDatalistTKB();
         } 
@@ -1593,6 +1599,18 @@ window.kiemTraVaXuLyTrungGiaoVienKhiXep = function(inputEl, tenGvMoi) {
     }
     
     if (dsLopTrung.length > 0) {
+        // Tìm các vị trí gợi ý khác trong cùng ngày hôm đó (cùng Thứ) không gây trùng cho ai
+        let dsGoiY = [];
+        if (typeof window.timViTriGoiYTrongNgayKhongTrung === 'function') {
+            dsGoiY = window.timViTriGoiYTrongNgayKhongTrung({
+                thu: thu,
+                buoiHienTai: buoi,
+                tietHienTai: tiet,
+                lopHienTai: lopHienTai,
+                tenGvMoiNorm: tenGvMoiNorm,
+                setLopUI: setLopUI
+            });
+        }
         if (typeof window.hienThiModalCanhBaoTrungGiaoVien === 'function') {
             window.hienThiModalCanhBaoTrungGiaoVien({
                 inputEl: inputEl,
@@ -1604,7 +1622,8 @@ window.kiemTraVaXuLyTrungGiaoVienKhiXep = function(inputEl, tenGvMoi) {
                 thu: thu,
                 buoi: buoi,
                 tiet: tiet,
-                dsLopTrung: dsLopTrung
+                dsLopTrung: dsLopTrung,
+                dsGoiY: dsGoiY
             });
             return 'pending';
         }
@@ -1612,6 +1631,166 @@ window.kiemTraVaXuLyTrungGiaoVienKhiXep = function(inputEl, tenGvMoi) {
     }
     
     return true;
+};
+
+
+// =========================================================================
+// TÌM VỊ TRÍ GỢI Ý KHÁC TRONG CÙNG NGÀY KHÔNG LÀM TRÙNG GIÁO VIÊN NÀO
+// =========================================================================
+window.kiemTraGvCoBanTaiTietKhac = function(tenGvNorm, thu, buoi, tiet, lopBoQua, setLopUI) {
+    if (!tenGvNorm || tenGvNorm === '--' || tenGvNorm === '---') return false;
+
+    let cacOGv = document.querySelectorAll(`input[id^="gv_${thu}_${buoi}_${tiet}_"]`);
+    for (let i = 0; i < cacOGv.length; i++) {
+        let oGv = cacOGv[i];
+        let partsKhac = oGv.id.split('_');
+        let lopKhac = partsKhac.slice(4).join('_');
+        if (lopKhac === lopBoQua) continue;
+
+        let gvVal = oGv.value.trim();
+        if (!gvVal || gvVal === '--' || gvVal === '---') continue;
+        let tapGv = gvVal.toLowerCase().normalize('NFC').split(/[,;&-]/).map(s => s.trim());
+        if (tapGv.includes(tenGvNorm) || gvVal.toLowerCase().normalize('NFC') === tenGvNorm) {
+            return true;
+        }
+    }
+
+    if (typeof duLieuTkbHienTai !== 'undefined' && Array.isArray(duLieuTkbHienTai) && duLieuTkbHienTai.length > 0) {
+        for (let i = 0; i < duLieuTkbHienTai.length; i++) {
+            let tietGoc = duLieuTkbHienTai[i];
+            if (!tietGoc || !tietGoc.maGv) continue;
+            if (tietGoc.maLop === lopBoQua) continue;
+            if (setLopUI && setLopUI.has(tietGoc.maLop)) continue;
+
+            let thuGoc = String(tietGoc.thu || '').trim();
+            let buoiGoc = String(tietGoc.buoi || '').trim();
+            let tietSoGoc = String(tietGoc.tiet || '').trim();
+            if (thuGoc === thu && buoiGoc === buoi && tietSoGoc === String(tiet)) {
+                let gvAnNorm = String(tietGoc.maGv).toLowerCase().normalize('NFC');
+                let tapGvAn = gvAnNorm.split(/[,;&-]/).map(s => s.trim());
+                if (tapGvAn.includes(tenGvNorm) || gvAnNorm === tenGvNorm) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+};
+
+window.laTietItUuTienGoiY = function(buoi, tiet) {
+    let tSo = parseInt(tiet, 10) || 0;
+    if (buoi === 'Sáng' && tSo >= 5) return true;
+    if (buoi === 'Chiều' && tSo >= 4) return true;
+    return false;
+};
+
+window.quetViTriGoiYTheoThu = function(thuXet, opts, chiLayTietUuTien = true) {
+    let ketQua = [];
+    let buoiHT = opts.buoiHienTai;
+    let tietHT = String(opts.tietHienTai);
+    let thuGoc = opts.thu;
+    let lopHT = opts.lopHienTai;
+    let tenGvMoiNorm = opts.tenGvMoiNorm;
+    let setLopUI = opts.setLopUI || new Set();
+
+    const buoiList = ['Sáng', 'Chiều'];
+    for (let bIdx = 0; bIdx < buoiList.length; bIdx++) {
+        let b = buoiList[bIdx];
+        for (let t = 1; t <= 5; t++) {
+            let tStr = String(t);
+            if (thuXet === thuGoc && b === buoiHT && tStr === tietHT) continue;
+
+            let itUuTien = window.laTietItUuTienGoiY(b, t);
+            if (chiLayTietUuTien && itUuTien) continue;
+            if (!chiLayTietUuTien && !itUuTien) continue;
+
+            let oGvDich = document.getElementById(`gv_${thuXet}_${b}_${tStr}_${lopHT}`);
+            let oMonDich = document.getElementById(`mon_${thuXet}_${b}_${tStr}_${lopHT}`);
+            if (!oGvDich || oGvDich.disabled) continue;
+
+            // 1. Giáo viên mới phải rảnh tại vị trí đích (thuXet, b, t)
+            if (window.kiemTraGvCoBanTaiTietKhac(tenGvMoiNorm, thuXet, b, tStr, lopHT, setLopUI)) {
+                continue;
+            }
+
+            let monDich = oMonDich ? oMonDich.value.trim() : '';
+            let gvDich = oGvDich.value.trim();
+            if (monDich === '--' || monDich === '---') monDich = '';
+            if (gvDich === '--' || gvDich === '---') gvDich = '';
+
+            if (!monDich && !gvDich) {
+                ketQua.push({
+                    loai: 'trong',
+                    thu: thuXet,
+                    buoi: b,
+                    tiet: tStr,
+                    monDich: '',
+                    gvDich: '',
+                    itUuTien: itUuTien
+                });
+            } else {
+                // 2. Nếu đổi tiết với ô đích, giáo viên ở ô đích (nếu có) cũng phải rảnh tại tiết hiện tại (thuGoc, buoiHT, tietHT)
+                let gvDichNorm = gvDich.toLowerCase().normalize('NFC');
+                if (gvDichNorm && window.kiemTraGvCoBanTaiTietKhac(gvDichNorm, thuGoc, buoiHT, tietHT, lopHT, setLopUI)) {
+                    continue;
+                }
+                ketQua.push({
+                    loai: 'doi',
+                    thu: thuXet,
+                    buoi: b,
+                    tiet: tStr,
+                    monDich: monDich,
+                    gvDich: gvDich,
+                    itUuTien: itUuTien
+                });
+            }
+        }
+    }
+    return ketQua;
+};
+
+window.timViTriGoiYTrongNgayKhongTrung = function(opts) {
+    if (!opts || !opts.thu || !opts.lopHienTai || !opts.tenGvMoiNorm) return [];
+
+    // 1. Ưu tiên tìm các tiết chính (Sáng 1-4, Chiều 1-3) trong cùng ngày
+    let dsCungNgayUuTien = window.quetViTriGoiYTheoThu(opts.thu, opts, true);
+    if (dsCungNgayUuTien.length > 0) return dsCungNgayUuTien;
+
+    // 2. Nếu cùng ngày không còn tiết chính, tìm tiết chính ở ngày khác gần nhất
+    let dsThu = (typeof window.layDanhSachThuDong === 'function')
+        ? window.layDanhSachThuDong(typeof ngayDauTuanUI !== 'undefined' ? ngayDauTuanUI : '')
+        : ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+
+    let idxHienTai = dsThu.indexOf(opts.thu);
+    if (idxHienTai === -1) idxHienTai = 0;
+
+    let dsThuKhac = dsThu
+        .map((t, idx) => ({ thu: t, dist: Math.abs(idx - idxHienTai), sau: idx > idxHienTai }))
+        .filter(item => item.thu !== opts.thu)
+        .sort((a, b) => {
+            if (a.dist !== b.dist) return a.dist - b.dist;
+            return (a.sau === b.sau) ? 0 : (a.sau ? -1 : 1);
+        });
+
+    for (let i = 0; i < dsThuKhac.length; i++) {
+        let dsNgayKhacUuTien = window.quetViTriGoiYTheoThu(dsThuKhac[i].thu, opts, true);
+        if (dsNgayKhacUuTien.length > 0) {
+            return dsNgayKhacUuTien;
+        }
+    }
+
+    // 3. Phương án dự phòng cuối: nếu cả tuần hết tiết chính mới xét tiết 5 sáng / tiết 4 chiều (cùng ngày trước, rồi ngày gần nhất)
+    let dsCungNgayPhu = window.quetViTriGoiYTheoThu(opts.thu, opts, false);
+    if (dsCungNgayPhu.length > 0) return dsCungNgayPhu;
+
+    for (let i = 0; i < dsThuKhac.length; i++) {
+        let dsNgayKhacPhu = window.quetViTriGoiYTheoThu(dsThuKhac[i].thu, opts, false);
+        if (dsNgayKhacPhu.length > 0) {
+            return dsNgayKhacPhu;
+        }
+    }
+
+    return [];
 };
 
 // =========================================================================
@@ -1635,8 +1814,8 @@ window.hienThiModalCanhBaoTrungGiaoVien = function(opts) {
         modal.id = 'modalCanhBaoTrungGV';
         modal.className = 'fixed inset-0 z-[9999] hidden items-center justify-center bg-slate-900/60 backdrop-blur-[1px] p-4';
         modal.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-2xl border border-amber-300 w-full max-w-lg overflow-hidden animate-fade-in" style="font-family:'Times New Roman',Times,serif;">
-                <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3.5 flex items-center justify-between text-white">
+            <div id="hopModalCanhBaoTrungGV" class="bg-white rounded-2xl shadow-2xl border border-amber-300 w-full max-w-lg overflow-hidden animate-fade-in" style="font-family:'Times New Roman',Times,serif;">
+                <div id="headerModalCanhBaoTrungGV" class="bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3.5 flex items-center justify-between text-white cursor-move select-none" title="Kéo giữ thanh tiêu đề để di chuyển cửa sổ">
                     <div class="flex items-center gap-2.5">
                         <svg class="w-6 h-6 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -1659,6 +1838,65 @@ window.hienThiModalCanhBaoTrungGiaoVien = function(opts) {
             </div>
         `;
         document.body.appendChild(modal);
+
+        // Kích hoạt kéo thả di chuyển cửa sổ cảnh báo bằng thanh tiêu đề
+        let hopModal = document.getElementById('hopModalCanhBaoTrungGV');
+        let headerModal = document.getElementById('headerModalCanhBaoTrungGV');
+        if (hopModal && headerModal) {
+            let dangKeo = false;
+            let startX = 0, startY = 0;
+            let offsetX = 0, offsetY = 0;
+
+            const batDauKeo = (clientX, clientY, targetEl) => {
+                if (targetEl && targetEl.closest('button')) return;
+                dangKeo = true;
+                startX = clientX - offsetX;
+                startY = clientY - offsetY;
+            };
+
+            const dangDiChuyen = (clientX, clientY) => {
+                if (!dangKeo) return;
+                offsetX = clientX - startX;
+                offsetY = clientY - startY;
+                hopModal.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+            };
+
+            const ketThucKeo = () => {
+                dangKeo = false;
+            };
+
+            headerModal.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                batDauKeo(e.clientX, e.clientY, e.target);
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!dangKeo) return;
+                e.preventDefault();
+                dangDiChuyen(e.clientX, e.clientY);
+            });
+            document.addEventListener('mouseup', ketThucKeo);
+
+            headerModal.addEventListener('touchstart', (e) => {
+                if (!e.touches || !e.touches[0]) return;
+                batDauKeo(e.touches[0].clientX, e.touches[0].clientY, e.target);
+            }, { passive: true });
+            document.addEventListener('touchmove', (e) => {
+                if (!dangKeo || !e.touches || !e.touches[0]) return;
+                dangDiChuyen(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+            document.addEventListener('touchend', ketThucKeo);
+
+            hopModal._resetViTri = () => {
+                offsetX = 0;
+                offsetY = 0;
+                hopModal.style.transform = '';
+            };
+        }
+    }
+
+    let hopModalEl = document.getElementById('hopModalCanhBaoTrungGV');
+    if (hopModalEl && typeof hopModalEl._resetViTri === 'function') {
+        hopModalEl._resetViTri();
     }
 
     const escapeHtml = (str) => String(str || '')
@@ -1674,6 +1912,54 @@ window.hienThiModalCanhBaoTrungGiaoVien = function(opts) {
             <td class="px-3 py-2 text-slate-700 font-semibold whitespace-nowrap">${escapeHtml(it.thu)}, ${escapeHtml(it.buoi)}, Tiết ${escapeHtml(it.tiet)}</td>
         </tr>
     `).join('');
+
+    let dsGoiY = Array.isArray(opts.dsGoiY) ? opts.dsGoiY : [];
+    let htmlGoiY = '';
+    if (dsGoiY.length > 0) {
+        let thuGoiY = dsGoiY[0].thu || opts.thu;
+        let laNgayKhac = thuGoiY !== opts.thu;
+        let tieuDeGoiY = laNgayKhac
+            ? `Không còn vị trí trong ${escapeHtml(opts.thu)} — Gợi ý sang ngày gần nhất (${escapeHtml(thuGoiY)}) cho Lớp ${escapeHtml(opts.lopHienTai)} (không trùng lịch):`
+            : `Gợi ý vị trí khác trong ${escapeHtml(opts.thu)} cho Lớp ${escapeHtml(opts.lopHienTai)} (không trùng lịch):`;
+
+        let itemsHtml = dsGoiY.map((gy, idx) => {
+            let moTa = gy.loai === 'trong'
+                ? '<span class="text-emerald-700 font-bold">Ô trống</span>'
+                : `<span class="text-indigo-700 font-semibold">Đổi với ${gy.monDich ? escapeHtml(gy.monDich) : 'Chưa có môn'}${gy.gvDich ? ' - ' + escapeHtml(gy.gvDich) : ''}</span>`;
+            let nhanNut = gy.loai === 'trong' ? 'Chuyển vào đây' : 'Đổi tiết';
+            let nhanThoiDiem = laNgayKhac
+                ? `${escapeHtml(gy.thu)}, ${escapeHtml(gy.buoi)} - Tiết ${escapeHtml(gy.tiet)}`
+                : `${escapeHtml(gy.buoi)} - Tiết ${escapeHtml(gy.tiet)}`;
+            return `
+                <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-emerald-200 last:border-b-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-emerald-50/40'}">
+                    <div class="text-xs md:text-sm leading-snug">
+                        <span class="font-extrabold text-slate-900">${nhanThoiDiem}</span>
+                        <span class="mx-1 text-slate-400">|</span>
+                        ${moTa}
+                    </div>
+                    <button type="button" data-goiy-idx="${idx}" class="btn-chon-goiy-trung px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs whitespace-nowrap cursor-pointer transition-colors shadow-xs">
+                        ${nhanNut}
+                    </button>
+                </div>
+            `;
+        }).join('');
+        htmlGoiY = `
+            <div class="mt-2">
+                <p class="text-xs md:text-sm font-extrabold text-emerald-800 mb-1.5">
+                    ${tieuDeGoiY}
+                </p>
+                <div class="border border-emerald-300 rounded-xl overflow-hidden shadow-xs max-h-40 overflow-y-auto">
+                    ${itemsHtml}
+                </div>
+            </div>
+        `;
+    } else {
+        htmlGoiY = `
+            <div class="mt-2 px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-600 italic">
+                Không có vị trí nào khác trong tuần cho Lớp ${escapeHtml(opts.lopHienTai)} mà không gây trùng lịch giáo viên.
+            </div>
+        `;
+    }
 
     let noiDungEl = document.getElementById('noiDungModalTrungGV');
     if (noiDungEl) {
@@ -1696,6 +1982,7 @@ window.hienThiModalCanhBaoTrungGiaoVien = function(opts) {
                     <tbody>${dongBangTrung}</tbody>
                 </table>
             </div>
+            ${htmlGoiY}
         `;
     }
 
@@ -1735,6 +2022,90 @@ window.hienThiModalCanhBaoTrungGiaoVien = function(opts) {
         }
         dongModal();
     };
+
+    const xuLyChonGoiY = (idx) => {
+        let gy = dsGoiY[idx];
+        if (!gy) return;
+
+        let oMonHT = document.getElementById(`mon_${opts.thu}_${opts.buoi}_${opts.tiet}_${opts.lopHienTai}`);
+        let oMonDich = document.getElementById(`mon_${gy.thu}_${gy.buoi}_${gy.tiet}_${opts.lopHienTai}`);
+        let oGvDich = document.getElementById(`gv_${gy.thu}_${gy.buoi}_${gy.tiet}_${opts.lopHienTai}`);
+        if (!oGvDich) return;
+
+        let monHT = oMonHT ? oMonHT.value.trim() : '';
+        if (monHT === '--' || monHT === '---') monHT = '';
+
+        delete inputEl.dataset.dangChoXacNhanTrung;
+
+        if (gy.loai === 'trong') {
+            if (oMonDich && monHT) {
+                oMonDich.value = monHT;
+                oMonDich.dataset.val = monHT;
+                if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(oMonDich);
+            }
+            oGvDich.value = tenGvMoi;
+            oGvDich.dataset.val = tenGvMoi;
+            if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(oGvDich);
+
+            if (oMonHT && monHT) {
+                oMonHT.value = '';
+                oMonHT.dataset.val = '';
+                oMonHT.placeholder = '--';
+                if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(oMonHT);
+            }
+            inputEl.value = monHT ? '' : giaTriCu;
+            inputEl.dataset.val = inputEl.value;
+            if (!inputEl.value) inputEl.placeholder = '--';
+            if (monHT) {
+                if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(inputEl);
+            } else {
+                let td = inputEl.closest('td');
+                if (td && daSuaTruocDo !== '1') {
+                    td.removeAttribute('data-thaydoi');
+                    let icon = td.querySelector('.icon-sua-chua');
+                    if (icon) icon.remove();
+                }
+            }
+        } else {
+            let monDich = gy.monDich || '';
+            let gvDich = gy.gvDich || '';
+
+            if (oMonDich) {
+                oMonDich.value = monHT;
+                oMonDich.dataset.val = monHT;
+                if (!oMonDich.value) oMonDich.placeholder = '--';
+                if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(oMonDich);
+            }
+            oGvDich.value = tenGvMoi;
+            oGvDich.dataset.val = tenGvMoi;
+            if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(oGvDich);
+
+            if (oMonHT) {
+                oMonHT.value = monDich;
+                oMonHT.dataset.val = monDich;
+                if (!oMonHT.value) oMonHT.placeholder = '--';
+                if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(oMonHT);
+            }
+            inputEl.value = gvDich;
+            inputEl.dataset.val = gvDich;
+            if (!inputEl.value) inputEl.placeholder = '--';
+            if (typeof window.danhDauDongThayDoiTKB === 'function') window.danhDauDongThayDoiTKB(inputEl);
+        }
+
+        if (typeof kiemTraTrungGiaoVienToanBang === 'function') {
+            kiemTraTrungGiaoVienToanBang(true);
+        }
+        dongModal();
+    };
+
+    if (noiDungEl) {
+        noiDungEl.querySelectorAll('.btn-chon-goiy-trung').forEach(btnGoiY => {
+            btnGoiY.onclick = () => {
+                let idx = parseInt(btnGoiY.getAttribute('data-goiy-idx'), 10);
+                if (!isNaN(idx)) xuLyChonGoiY(idx);
+            };
+        });
+    }
 
     let btnChoXep = document.getElementById('btnChoXepTrungGV');
     let btnKhongXep = document.getElementById('btnKhongXepTrungGV');
@@ -2877,8 +3248,91 @@ window.kichHoatTab = function(idMenu, idKhung, hienThanhCongCuTKB) {
 let clientDangNhapG;
 let dangXuLyDangNhap = false; 
 
+window.luuPhienDangNhap = function(thongTin) {
+    if (!thongTin || !thongTin.email) return;
+    try {
+        const keyPhien = layKhoaCachLy('SmartTKB_PhienDangNhap');
+        localStorage.setItem(keyPhien, JSON.stringify({
+            email: thongTin.email,
+            name: thongTin.name || thongTin.email,
+            picture: thongTin.picture || '',
+            savedAt: Date.now()
+        }));
+    } catch (e) {}
+};
+
+window.xoaPhienDangNhap = function() {
+    try {
+        localStorage.removeItem(layKhoaCachLy('SmartTKB_PhienDangNhap'));
+    } catch (e) {}
+};
+
+window.apDungPhienDangNhap = function(thongTin) {
+    if (!thongTin || !thongTin.email) return false;
+    const dinhDanhHeThong = thongTin.email;
+    const tenHienThi = thongTin.name || dinhDanhHeThong;
+    const anhDaiDien = thongTin.picture || '';
+
+    window.dinhDanhGiaoVienToanCuc = dinhDanhHeThong;
+
+    let nutDangNhap = document.getElementById('nutDangNhapG');
+    if (nutDangNhap) {
+        const avatarHtml = anhDaiDien
+            ? `<img src="${anhDaiDien}" class="w-6 h-6 rounded-full border border-white" title="Tài khoản: ${tenHienThi}">`
+            : `<span class="w-6 h-6 rounded-full border border-white bg-blue-600 text-white text-xs font-bold flex items-center justify-center" title="Tài khoản: ${tenHienThi}">${String(tenHienThi).charAt(0).toUpperCase()}</span>`;
+        nutDangNhap.innerHTML = `${avatarHtml}<span class="truncate text-sm font-semibold group-hover:text-red-300 transition-colors">Đăng xuất</span>`;
+        nutDangNhap.classList.replace('bg-slate-700', 'bg-slate-800');
+        nutDangNhap.classList.replace('hover:bg-slate-600', 'hover:bg-red-700');
+        nutDangNhap.classList.replace('border-slate-500', 'border-red-500');
+        nutDangNhap.onclick = function() {
+            if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?')) {
+                window.xoaPhienDangNhap();
+                try { sessionStorage.setItem('SDB_BO_QUA_SSO', '1'); } catch (e) {}
+                window.location.reload();
+            }
+        };
+    }
+
+    const dsQuanTri = (thongSoHocVu && thongSoHocVu.DANH_SACH_QUAN_TRI) || [];
+    const dinhDanhGoc = 'tulieuhopthanh@gmail.com';
+    const emailDinhDanhChuan = String(dinhDanhHeThong || '').trim().toLowerCase();
+
+    let laQuanTriVien = (emailDinhDanhChuan === dinhDanhGoc.toLowerCase()) ||
+                        dsQuanTri.some(q => String(q).trim().toLowerCase() === emailDinhDanhChuan);
+
+    quyenSuaChua = !!laQuanTriVien;
+
+    quyenChiTiet = { menu: [], nut: [], lop: [] };
+    if (thongSoHocVu && thongSoHocVu.MA_TRAN_PHAN_QUYEN) {
+        for (let k in thongSoHocVu.MA_TRAN_PHAN_QUYEN) {
+            let kChuan = String(k).trim().toLowerCase();
+            if (kChuan === emailDinhDanhChuan || kChuan === String(dinhDanhHeThong).trim()) {
+                let objPQ = thongSoHocVu.MA_TRAN_PHAN_QUYEN[k] || {};
+                quyenChiTiet.menu = objPQ.menu || [];
+                quyenChiTiet.nut = objPQ.nut || [];
+                quyenChiTiet.lop = objPQ.lop || [];
+                break;
+            }
+        }
+    }
+    return true;
+};
+
+window.khoiPhucPhienDangNhap = function() {
+    try {
+        const raw = localStorage.getItem(layKhoaCachLy('SmartTKB_PhienDangNhap'));
+        if (!raw) return false;
+        const phien = JSON.parse(raw);
+        if (!phien || !phien.email) return false;
+        return window.apDungPhienDangNhap(phien);
+    } catch (e) {
+        return false;
+    }
+};
+
 function khoiDongDangNhap() {
     if (dangXuLyDangNhap) return;
+    try { sessionStorage.removeItem('SDB_BO_QUA_SSO'); } catch (e) {}
 
     let nutDangNhap = document.getElementById('nutDangNhapG');
     let htmlGoc = nutDangNhap ? nutDangNhap.innerHTML : '';
@@ -2928,42 +3382,10 @@ async function xuLyLayThongTin(maTokenTruyCap) {
         const dinhDanhHeThong = duLieuXacThuc[tuKhoaDinhDanh]; 
         const tenHienThi = duLieuXacThuc.name; 
         const anhDaiDien = duLieuXacThuc.picture;
-        
-        window.dinhDanhGiaoVienToanCuc = dinhDanhHeThong;
 
-        if (nutDangNhap) {
-            nutDangNhap.innerHTML = `<img src="${anhDaiDien}" class="w-6 h-6 rounded-full border border-white" title="Tài khoản: ${tenHienThi}"><span class="truncate text-sm font-semibold group-hover:text-red-300 transition-colors">Đăng xuất</span>`;
-            nutDangNhap.classList.replace('bg-slate-700', 'bg-slate-800'); 
-            nutDangNhap.classList.replace('hover:bg-slate-600', 'hover:bg-red-700');
-            nutDangNhap.classList.replace('border-slate-500', 'border-red-500'); 
-            nutDangNhap.onclick = function() {
-                if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?')) window.location.reload();
-            }; 
-        }
-
-        const dsQuanTri = thongSoHocVu.DANH_SACH_QUAN_TRI || [];
-        const dinhDanhGoc = 'tulieuhopthanh@gmail.com'; 
-        const emailDinhDanhChuan = String(dinhDanhHeThong || '').trim().toLowerCase();
-
-        let laQuanTriVien = (emailDinhDanhChuan === dinhDanhGoc.toLowerCase()) ||
-                            dsQuanTri.some(q => String(q).trim().toLowerCase() === emailDinhDanhChuan);
-
-        if (laQuanTriVien) quyenSuaChua = true; 
-        else quyenSuaChua = false; 
-        
-        quyenChiTiet = { menu: [], nut: [], lop: [] }; 
-        if (thongSoHocVu.MA_TRAN_PHAN_QUYEN) {
-            for (let k in thongSoHocVu.MA_TRAN_PHAN_QUYEN) {
-                let kChuan = String(k).trim().toLowerCase();
-                if (kChuan === emailDinhDanhChuan || kChuan === String(dinhDanhHeThong).trim()) {
-                    let objPQ = thongSoHocVu.MA_TRAN_PHAN_QUYEN[k] || {};
-                    quyenChiTiet.menu = objPQ.menu || [];
-                    quyenChiTiet.nut = objPQ.nut || [];
-                    quyenChiTiet.lop = objPQ.lop || [];
-                    break;
-                }
-            }
-        }
+        const thongTinPhien = { email: dinhDanhHeThong, name: tenHienThi, picture: anhDaiDien };
+        window.luuPhienDangNhap(thongTinPhien);
+        window.apDungPhienDangNhap(thongTinPhien);
         
         kiemSoatGiaoDien(); 
 
