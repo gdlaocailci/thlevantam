@@ -280,19 +280,27 @@
             </button>
 
             <div id="hopChatTroLyAI" class="hidden w-[380px] max-w-[94vw] h-[500px] bg-white border border-slate-300 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-                <div class="bg-[#0b5394] text-white px-4 py-3 flex items-center justify-between">
-                    <div>
-                        <div class="font-bold text-sm">Trợ lý Gemini Nhà trường</div>
-                        <div class="text-[11px] text-blue-200">Hội thoại nối tiếp &amp; phân tích tệp đính kèm</div>
+                <div id="headerHopChatAI" title="Kéo để di chuyển khung"
+                    style="touch-action: none; user-select: none; cursor: move;"
+                    class="bg-[#0b5394] text-white px-4 py-3 flex items-center justify-between select-none">
+                    <div class="min-w-0 pr-2">
+                        <div class="font-bold text-sm truncate">Trợ lý Gemini Nhà trường</div>
+                        <div class="text-[11px] text-blue-200 truncate">Hội thoại nối tiếp &amp; phân tích tệp đính kèm</div>
                     </div>
-                    <div class="flex items-center gap-1.5">
+                    <div class="flex items-center gap-1 flex-none">
                         <button id="btnMoiHoiThoaiAI" type="button" title="Cuộc trò chuyện mới"
                             class="text-blue-100 hover:text-white hover:bg-white/15 rounded-lg p-1.5 cursor-pointer transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
                             </svg>
                         </button>
-                        <button id="btnDongTroLyAI" type="button" class="text-white hover:text-red-200 text-2xl leading-none px-1 cursor-pointer">&times;</button>
+                        <button id="btnToanManHinhAI" type="button" title="Giãn toàn màn hình"
+                            class="text-blue-100 hover:text-white hover:bg-white/15 rounded-lg p-1.5 cursor-pointer transition-colors">
+                            <svg id="iconToanManHinhAI" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"></path>
+                            </svg>
+                        </button>
+                        <button id="btnDongTroLyAI" type="button" title="Đóng khung chat" class="text-white hover:text-red-200 text-2xl leading-none px-1 cursor-pointer">&times;</button>
                     </div>
                 </div>
 
@@ -333,6 +341,9 @@
         const btnMo = document.getElementById('btnMoTroLyAI');
         const btnDong = document.getElementById('btnDongTroLyAI');
         const hopChat = document.getElementById('hopChatTroLyAI');
+        const headerHopChat = document.getElementById('headerHopChatAI');
+        const btnToanManHinh = document.getElementById('btnToanManHinhAI');
+        const iconToanManHinh = document.getElementById('iconToanManHinhAI');
         const form = document.getElementById('formGuiCauHoiAI');
         const input = document.getElementById('inputCauHoiAI');
         const khungTin = document.getElementById('noiDungChatAI');
@@ -344,8 +355,11 @@
         const btnMoiHoiThoai = document.getElementById('btnMoiHoiThoaiAI');
 
         const KHOA_VI_TRI_AI = 'TRO_LY_AI_VI_TRI_NUT';
+        const KHOA_VI_TRI_KHUNG_AI = 'TRO_LY_AI_VI_TRI_KHUNG';
         let viTriNutDaLuu = null;
+        let viTriKhungDaLuu = null;
         let vuaKeoXong = false;
+        let dangToanManHinh = false;
 
         function kepViTriTrongManHinh(left, top, el) {
             const rect = el.getBoundingClientRect();
@@ -366,7 +380,67 @@
             wrapper.style.top = `${top}px`;
         }
 
-        // Khôi phục vị trí nút đã lưu (nếu có)
+        function datLaiViTriMacDinhWrapper() {
+            wrapper.style.left = '';
+            wrapper.style.top = '';
+            wrapper.style.right = '';
+            wrapper.style.bottom = '';
+        }
+
+        function capNhatCheDoToanManHinh(bat) {
+            dangToanManHinh = !!bat;
+            if (dangToanManHinh) {
+                hopChat.style.position = 'fixed';
+                hopChat.style.top = '0';
+                hopChat.style.left = '0';
+                hopChat.style.right = '0';
+                hopChat.style.bottom = '0';
+                hopChat.style.width = '100vw';
+                hopChat.style.height = '100vh';
+                hopChat.style.maxWidth = '100vw';
+                hopChat.style.maxHeight = '100vh';
+                hopChat.style.borderRadius = '0';
+                hopChat.style.borderWidth = '0';
+                hopChat.style.zIndex = '10061';
+
+                headerHopChat.style.cursor = 'default';
+                headerHopChat.title = '';
+                btnToanManHinh.title = 'Thu nhỏ khung chat';
+                iconToanManHinh.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M8 4v4H4M16 4v4h4M8 20v-4H4M16 20v-4h4"></path>';
+            } else {
+                hopChat.style.position = '';
+                hopChat.style.top = '';
+                hopChat.style.left = '';
+                hopChat.style.right = '';
+                hopChat.style.bottom = '';
+                hopChat.style.width = '';
+                hopChat.style.height = '';
+                hopChat.style.maxWidth = '';
+                hopChat.style.maxHeight = '';
+                hopChat.style.borderRadius = '';
+                hopChat.style.borderWidth = '';
+                hopChat.style.zIndex = '';
+
+                headerHopChat.style.cursor = 'move';
+                headerHopChat.title = 'Kéo để di chuyển khung';
+                btnToanManHinh.title = 'Giãn toàn màn hình';
+                iconToanManHinh.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"></path>';
+
+                if (viTriKhungDaLuu) {
+                    const pos = kepViTriTrongManHinh(viTriKhungDaLuu.left, viTriKhungDaLuu.top, wrapper);
+                    apDungViTriWrapper(pos.left, pos.top);
+                } else if (wrapper.style.left && wrapper.style.top) {
+                    const pos = kepViTriTrongManHinh(
+                        parseFloat(wrapper.style.left) || 8,
+                        parseFloat(wrapper.style.top) || 8,
+                        wrapper
+                    );
+                    apDungViTriWrapper(pos.left, pos.top);
+                }
+            }
+        }
+
+        // Khôi phục vị trí nút & khung đã lưu (nếu có)
         try {
             const rawViTri = localStorage.getItem(KHOA_VI_TRI_AI);
             if (rawViTri) {
@@ -375,6 +449,13 @@
                     const pos = kepViTriTrongManHinh(parsed.left, parsed.top, wrapper);
                     viTriNutDaLuu = pos;
                     apDungViTriWrapper(pos.left, pos.top);
+                }
+            }
+            const rawViTriKhung = localStorage.getItem(KHOA_VI_TRI_KHUNG_AI);
+            if (rawViTriKhung) {
+                const parsedKhung = JSON.parse(rawViTriKhung);
+                if (typeof parsedKhung?.left === 'number' && typeof parsedKhung?.top === 'number') {
+                    viTriKhungDaLuu = parsedKhung;
                 }
             }
         } catch (_) {}
@@ -434,7 +515,63 @@
             btnMo.addEventListener('pointercancel', ketThucKeo);
         })();
 
+        // Kéo thả khung chat Trợ lý Gemini qua thanh tiêu đề (hỗ trợ cả chuột & cảm ứng)
+        (function kichHoatKeoThaKhungChat() {
+            let dangNhan = false;
+            let daKeo = false;
+            let startX = 0;
+            let startY = 0;
+            let startLeft = 0;
+            let startTop = 0;
+            let activePointerId = null;
+
+            headerHopChat.addEventListener('pointerdown', (e) => {
+                if (dangToanManHinh) return;
+                if (e.target.closest('button')) return;
+                if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
+                const rect = wrapper.getBoundingClientRect();
+                dangNhan = true;
+                daKeo = false;
+                activePointerId = e.pointerId;
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = rect.left;
+                startTop = rect.top;
+                try { headerHopChat.setPointerCapture(e.pointerId); } catch (_) {}
+            });
+
+            headerHopChat.addEventListener('pointermove', (e) => {
+                if (!dangNhan || e.pointerId !== activePointerId || dangToanManHinh) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                if (!daKeo && Math.hypot(dx, dy) > 4) {
+                    daKeo = true;
+                }
+                if (!daKeo) return;
+                const pos = kepViTriTrongManHinh(startLeft + dx, startTop + dy, wrapper);
+                apDungViTriWrapper(pos.left, pos.top);
+            });
+
+            function ketThucKeoKhung(e) {
+                if (!dangNhan || e.pointerId !== activePointerId) return;
+                dangNhan = false;
+                try { headerHopChat.releasePointerCapture(e.pointerId); } catch (_) {}
+                if (daKeo && !dangToanManHinh) {
+                    const rect = wrapper.getBoundingClientRect();
+                    const pos = kepViTriTrongManHinh(rect.left, rect.top, wrapper);
+                    apDungViTriWrapper(pos.left, pos.top);
+                    viTriKhungDaLuu = pos;
+                    try { localStorage.setItem(KHOA_VI_TRI_KHUNG_AI, JSON.stringify(pos)); } catch (_) {}
+                }
+                activePointerId = null;
+            }
+
+            headerHopChat.addEventListener('pointerup', ketThucKeoKhung);
+            headerHopChat.addEventListener('pointercancel', ketThucKeoKhung);
+        })();
+
         window.addEventListener('resize', () => {
+            if (dangToanManHinh) return;
             if (!wrapper.style.left || !wrapper.style.top) return;
             const left = parseFloat(wrapper.style.left);
             const top = parseFloat(wrapper.style.top);
@@ -444,27 +581,49 @@
             }
         });
 
+        btnToanManHinh.addEventListener('click', () => {
+            capNhatCheDoToanManHinh(!dangToanManHinh);
+            khungTin.scrollTop = khungTin.scrollHeight;
+            input.focus();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && dangToanManHinh && !hopChat.classList.contains('hidden')) {
+                capNhatCheDoToanManHinh(false);
+            }
+        });
+
         btnMo.addEventListener('click', () => {
             if (vuaKeoXong) return;
             btnMo.classList.add('hidden');
             hopChat.classList.remove('hidden');
-            if (wrapper.style.left && wrapper.style.top) {
-                const pos = kepViTriTrongManHinh(
-                    parseFloat(wrapper.style.left) || 8,
-                    parseFloat(wrapper.style.top) || 8,
-                    wrapper
-                );
-                apDungViTriWrapper(pos.left, pos.top);
+            if (!dangToanManHinh) {
+                if (viTriKhungDaLuu) {
+                    const pos = kepViTriTrongManHinh(viTriKhungDaLuu.left, viTriKhungDaLuu.top, wrapper);
+                    apDungViTriWrapper(pos.left, pos.top);
+                } else if (wrapper.style.left && wrapper.style.top) {
+                    const pos = kepViTriTrongManHinh(
+                        parseFloat(wrapper.style.left) || 8,
+                        parseFloat(wrapper.style.top) || 8,
+                        wrapper
+                    );
+                    apDungViTriWrapper(pos.left, pos.top);
+                }
             }
             input.focus();
         });
 
         btnDong.addEventListener('click', () => {
+            if (dangToanManHinh) {
+                capNhatCheDoToanManHinh(false);
+            }
             hopChat.classList.add('hidden');
             btnMo.classList.remove('hidden');
             if (viTriNutDaLuu) {
                 const pos = kepViTriTrongManHinh(viTriNutDaLuu.left, viTriNutDaLuu.top, wrapper);
                 apDungViTriWrapper(pos.left, pos.top);
+            } else {
+                datLaiViTriMacDinhWrapper();
             }
         });
 
@@ -536,15 +695,99 @@
             return dong.join('');
         }
 
+        async function saoChepVanBan(vanBan) {
+            const text = String(vanBan || '');
+            if (navigator.clipboard && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (_) {}
+            }
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.top = '-9999px';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            let ok = false;
+            try {
+                ok = document.execCommand('copy');
+            } catch (_) {
+                ok = false;
+            }
+            document.body.removeChild(ta);
+            return ok;
+        }
+
+        function capNhatTraLoiAssistant(oTraLoi, noiDung, choPhepCopy, laDangDinhDang) {
+            const noiDungEl = oTraLoi._noiDungEl;
+            const footerEl = oTraLoi._footerCopyEl;
+            if (!noiDungEl) {
+                oTraLoi.textContent = String(noiDung || '');
+                return;
+            }
+            if (laDangDinhDang) {
+                noiDungEl.innerHTML = dinhDangTraLoiDep(noiDung);
+            } else {
+                noiDungEl.textContent = String(noiDung || '');
+            }
+            oTraLoi._rawText = String(noiDung || '');
+            if (footerEl) {
+                if (choPhepCopy && oTraLoi._rawText.trim()) {
+                    footerEl.classList.remove('hidden');
+                } else {
+                    footerEl.classList.add('hidden');
+                }
+            }
+        }
+
         function themTinNhan(vaiTro, noiDung) {
             const div = document.createElement('div');
             div.className = vaiTro === 'user'
                 ? 'ml-8 bg-[#0b5394] text-white p-2.5 rounded-xl text-xs whitespace-pre-wrap'
-                : 'mr-4 bg-white border border-slate-200 text-slate-800 p-2.5 rounded-xl text-xs leading-relaxed space-y-0.5 shadow-sm';
+                : 'mr-4 bg-white border border-slate-200 text-slate-800 p-2.5 rounded-xl text-xs leading-relaxed shadow-sm';
             if (vaiTro === 'user') {
                 div.textContent = noiDung;
             } else {
-                div.innerHTML = dinhDangTraLoiDep(noiDung);
+                const noiDungEl = document.createElement('div');
+                noiDungEl.className = 'space-y-0.5';
+                noiDungEl.innerHTML = dinhDangTraLoiDep(noiDung);
+
+                const footerEl = document.createElement('div');
+                footerEl.className = 'hidden mt-2 pt-1.5 border-t border-slate-100 flex justify-end';
+
+                const btnCopy = document.createElement('button');
+                btnCopy.type = 'button';
+                btnCopy.title = 'Sao chép câu trả lời';
+                btnCopy.className = 'inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-[#0b5394] hover:bg-slate-100 px-2 py-0.5 rounded-md cursor-pointer transition-colors';
+                const iconCopyHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path stroke-linecap="round" stroke-linejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg><span>Sao chép</span>';
+                const iconDaCopyHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg><span>Đã sao chép</span>';
+                btnCopy.innerHTML = iconCopyHTML;
+
+                let timerResetCopy = null;
+                btnCopy.addEventListener('click', async () => {
+                    const textCanCopy = div._rawText || noiDungEl.innerText || '';
+                    const thanhCong = await saoChepVanBan(textCanCopy);
+                    if (!thanhCong) return;
+                    if (timerResetCopy) clearTimeout(timerResetCopy);
+                    btnCopy.innerHTML = iconDaCopyHTML;
+                    btnCopy.classList.remove('text-slate-500', 'hover:text-[#0b5394]', 'hover:bg-slate-100');
+                    btnCopy.classList.add('text-emerald-600', 'bg-emerald-50');
+                    timerResetCopy = setTimeout(() => {
+                        btnCopy.innerHTML = iconCopyHTML;
+                        btnCopy.classList.remove('text-emerald-600', 'bg-emerald-50');
+                        btnCopy.classList.add('text-slate-500', 'hover:text-[#0b5394]', 'hover:bg-slate-100');
+                    }, 1800);
+                });
+
+                footerEl.appendChild(btnCopy);
+                div.appendChild(noiDungEl);
+                div.appendChild(footerEl);
+                div._noiDungEl = noiDungEl;
+                div._footerCopyEl = footerEl;
+                div._rawText = String(noiDung || '');
             }
             khungTin.appendChild(div);
             khungTin.scrollTop = khungTin.scrollHeight;
@@ -604,17 +847,17 @@
 
                 const ketQua = await phanHoi.json();
                 if (ketQua.trangThai === 'thanh_cong') {
-                    oTraLoi.innerHTML = dinhDangTraLoiDep(ketQua.traLoi);
+                    capNhatTraLoiAssistant(oTraLoi, ketQua.traLoi, true, true);
                     lichSuHoiThoai.push({ vaiTro: 'user', noiDung: nhanUser });
                     lichSuHoiThoai.push({ vaiTro: 'assistant', noiDung: String(ketQua.traLoi || '') });
                     if (lichSuHoiThoai.length > 20) {
                         lichSuHoiThoai = lichSuHoiThoai.slice(-20);
                     }
                 } else {
-                    oTraLoi.textContent = 'Lỗi: ' + (ketQua.thongBao || 'Không nhận được phản hồi.');
+                    capNhatTraLoiAssistant(oTraLoi, 'Lỗi: ' + (ketQua.thongBao || 'Không nhận được phản hồi.'), false, false);
                 }
             } catch (err) {
-                oTraLoi.textContent = 'Lỗi kết nối: ' + (err.message || 'Vui lòng thử lại.');
+                capNhatTraLoiAssistant(oTraLoi, 'Lỗi kết nối: ' + (err.message || 'Vui lòng thử lại.'), false, false);
             } finally {
                 dangTraLoi = false;
                 document.getElementById('btnGuiAI').disabled = false;
