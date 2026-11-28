@@ -306,7 +306,7 @@
 
                 <div id="noiDungChatAI" class="flex-1 p-3 overflow-y-auto space-y-2.5 bg-slate-50 text-sm">
                     <div class="bg-blue-50 border border-blue-200 text-slate-700 p-2.5 rounded-xl text-xs leading-relaxed">
-                        Xin chào! Tôi có thể đọc dữ liệu trên màn hình đang mở, ghi nhớ mạch trò chuyện nối tiếp, hoặc bạn bấm dấu <b>+</b> để tải lên file <b>Excel, PDF, Ảnh, TXT/CSV</b> cùng đối chiếu nhé.
+                        Xin chào! Tôi có thể đọc dữ liệu trên màn hình đang mở, ghi nhớ mạch trò chuyện nối tiếp, hoặc bạn bấm biểu tượng <b>ghim đính kèm</b> để tải lên file <b>Excel, PDF, Ảnh, TXT/CSV</b> cùng đối chiếu nhé.
                     </div>
                 </div>
 
@@ -321,7 +321,7 @@
                         <button id="btnChonFileAI" type="button" title="Đính kèm tệp (Excel, PDF, Ảnh, TXT)"
                             class="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-[#0b5394] hover:bg-slate-200/70 rounded-full cursor-pointer transition-colors flex-none">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
                             </svg>
                         </button>
                         <input id="inputCauHoiAI" type="text" placeholder="Đặt câu hỏi nối tiếp" autocomplete="off"
@@ -644,7 +644,7 @@
                 vungTep.classList.add('hidden');
                 khungTin.innerHTML = `
                     <div class="bg-blue-50 border border-blue-200 text-slate-700 p-2.5 rounded-xl text-xs leading-relaxed">
-                        Đã bắt đầu cuộc trò chuyện mới! Hãy đặt câu hỏi hoặc bấm dấu <b>+</b> để đính kèm tệp nhé.
+                        Đã bắt đầu cuộc trò chuyện mới! Hãy đặt câu hỏi hoặc bấm biểu tượng <b>ghim</b> để đính kèm tệp nhé.
                     </div>
                 `;
                 input.focus();
